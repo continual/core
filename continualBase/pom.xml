@@ -3,9 +3,15 @@
 
 	<modelVersion>4.0.0</modelVersion>
 
+	<parent>
+		<groupId>io.continual</groupId>
+		<artifactId>continual</artifactId>
+		<version>0.1.0</version>
+	</parent>
+
 	<groupId>io.continual</groupId>
 	<artifactId>continualBase</artifactId>
-	<version>0.1.0-SNAPSHOT</version>
+	<version>0.1.0</version>
 	<packaging>pom</packaging>
 
 	<name>ContinualIO Base</name>
