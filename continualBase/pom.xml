@@ -6,15 +6,13 @@
 	<parent>
 		<groupId>io.continual</groupId>
 		<artifactId>continual</artifactId>
-		<version>0.1.0</version>
+		<version>0.2.0</version>
 	</parent>
 
-	<groupId>io.continual</groupId>
 	<artifactId>continualBase</artifactId>
-	<version>0.1.0</version>
 	<packaging>pom</packaging>
 
-	<name>ContinualIO Base</name>
+	<name>continual.io base</name>
 	<description>Base library for Continual.io builds.</description>
 	<url>https://continual.io</url>
 
@@ -76,6 +74,13 @@
 				<groupId>org.slf4j</groupId>
 				<artifactId>slf4j-api</artifactId>
 				<version>1.7.25</version>
+			</dependency>
+
+			<dependency>
+			    <groupId>org.slf4j</groupId>
+			    <artifactId>slf4j-log4j12</artifactId>
+			    <version>1.7.25</version>
+			    <scope>test</scope>
 			</dependency>
 
 		</dependencies>

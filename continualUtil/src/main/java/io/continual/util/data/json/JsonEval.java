@@ -24,8 +24,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import io.continual.util.data.TypeConvertor;
-import io.continual.util.data.exprEval.ExprDataSource;
 import io.continual.util.data.exprEval.ExpressionEvaluator;
+import io.continual.util.data.exprEval.JsonDataSource;
 
 public class JsonEval
 {
@@ -56,6 +56,20 @@ public class JsonEval
 	}
 
 	/**
+	 * Evaluate an expression against a JSON structure, using a default value if the referenced value
+	 * doesn't exist.
+	 * @param root
+	 * @param expression
+	 * @param defval
+	 * @return a JSON value or the default provided
+	 */
+	public static String eval ( JSONObject root, String expression, String defval )
+	{
+		final Object val = eval ( root, expression );
+		return val == null ? defval : val.toString ();
+	}
+
+	/**
 	 * Evaluate the given expression against the given root JSON object and return 
 	 * a string representation. If the evaluation is null, an empty string is returned.
 	 * @param root
@@ -68,7 +82,7 @@ public class JsonEval
 		if ( result == null ) return "";
 		return result.toString ();
 	}
-
+	
 	/**
 	 * Evaluate the given expression against the given root JSON object and return
 	 * a boolean representation. If the evaluation is null, false is returned. If
@@ -115,6 +129,29 @@ public class JsonEval
 
 	/**
 	 * Evaluate the given expression against the given root JSON object and return
+	 * a double representation. If the evaluation is null, the default value is returned.
+	 * If the value is a double, it's returned. Otherwise, the value is used as a string
+	 * and then converted to a dboule via rrConvertor.convertToDouble with the default
+	 * value as the default.
+	 * 
+	 * @param root
+	 * @param expression
+	 * @param defaultValue
+	 * @return a double
+	 */
+	public static double evalToDouble ( JSONObject root, String expression, double defaultValue )
+	{
+		final Object result = eval ( root, expression );
+		if ( result == null ) return defaultValue;
+		if ( result instanceof Number )
+		{
+			return ((Number) result).doubleValue();
+		}
+		return TypeConvertor.convertToDouble ( result.toString (), defaultValue );
+	}
+
+	/**
+	 * Evaluate the given expression against the given root JSON object and return
 	 * an object. If the evaluation is null, an empty object is returned. If the value
 	 * is not an object, IllegalArgumentException is thrown
 	 * 
@@ -134,6 +171,26 @@ public class JsonEval
 	}
 
 	/**
+	 * Evaluate the given expression against the given root JSON object and return
+	 * an array. If the evaluation is null, an empty array is returned. If the value
+	 * is not an array, IllegalArgumentException is thrown
+	 * 
+	 * @param root
+	 * @param expression
+	 * @return an object, which is empty if none exists at the expression
+	 */
+	public static JSONArray evalToArray ( JSONObject root, String expression ) throws IllegalArgumentException
+	{
+		final Object result = eval ( root, expression );
+		if ( result == null ) return new JSONArray ();
+		if ( result instanceof JSONArray )
+		{
+			return (JSONArray) result;
+		}
+		throw new IllegalArgumentException ( expression + " is not an array." );
+	}
+
+	/**
 	 * substitute any occurrence of ${&lt;expr&gt;} with the evaluation of that expression 
 	 * @param sourceString
 	 * @param root
@@ -141,17 +198,30 @@ public class JsonEval
 	 */
 	public static String substitute ( String sourceString, JSONObject root )
 	{
-		return ExpressionEvaluator.evaluate ( sourceString, new JsonDataSource ( root ) );
+		return ExpressionEvaluator.evaluateText ( sourceString, new JsonDataSource ( root ) );
 	}
 
 	public static void setValue ( JSONObject root, String key, Object data )
+	{
+		setValue ( root, key, data, false );
+	}
+
+	public static void setValue ( JSONObject root, String key, Object data, boolean appendArray )
 	{
 		final String[] parts = key.split ( "\\." );
 		final List<String> partList = new LinkedList<String> ( Arrays.asList ( parts ) );
 
 		final String lastPart = partList.remove ( partList.size () - 1 );
 		final JSONObject container = getContainer ( root, partList, true );
-		container.put ( lastPart, data );
+		
+		if ( appendArray && container.has ( lastPart ) && container.get(lastPart) instanceof JSONArray )
+		{
+			container.getJSONArray ( lastPart ).put ( data );
+		}
+		else
+		{
+			container.put ( lastPart, data );
+		}
 	}
 
 	public static boolean hasKey ( JSONObject root, String key )
@@ -212,22 +282,6 @@ public class JsonEval
 		return current;
 	}
 
-	private static class JsonDataSource implements ExprDataSource 
-	{
-		public JsonDataSource ( JSONObject root )
-		{
-			fRoot = root;
-		}
-
-		@Override
-		public Object eval ( String label )
-		{
-			return JsonEval.eval ( fRoot, label );
-		}
-
-		private final JSONObject fRoot;
-	}
-	
 	private static Object termToArrayValue ( JSONObject root, String term )
 	{
 		final int openBrace = term.indexOf ( '[' );

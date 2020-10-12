@@ -44,7 +44,7 @@ public interface Command
 
 	/**
 	 * @param outTo
-	 * @return true to continue, false to exit
+	 * @return an input result
 	 * @throws UsageException 
 	 */
 	ConsoleLooper.InputResult execute ( HashMap<String,Object> workspace, PrintStream outTo ) throws UsageException;

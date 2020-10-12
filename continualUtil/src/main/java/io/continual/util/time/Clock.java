@@ -26,6 +26,10 @@ import org.slf4j.LoggerFactory;
  */
 public class Clock
 {
+	/**
+	 * Return the current time in milliseconds
+	 * @return the time in milliseconds
+	 */
 	public static long now ()
 	{
 		return holder.instance.nowMs ();

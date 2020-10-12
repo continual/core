@@ -109,6 +109,29 @@ public class JsonVisitor
 		return false;
 	}
 
+	public interface ValueReader<F,T> 
+	{
+		T read ( F val );
+	};
+
+	public static <T,F> List<T> arrayToList ( JSONArray a, final ValueReader<F,T> vr )
+	{
+		final LinkedList<T> list = new LinkedList<T> ();
+		if ( a != null )
+		{
+			forEachElement ( a, new ArrayVisitor<F,JSONException> ()
+			{
+				@Override
+				public boolean visit ( F t ) throws JSONException
+				{
+					list.add ( vr.read ( t ) );
+					return true;
+				}
+			});
+		}
+		return list;
+	}
+
 	public static List<String> arrayToList ( JSONArray a )
 	{
 		final LinkedList<String> list = new LinkedList<String> ();
@@ -160,7 +183,14 @@ public class JsonVisitor
 		final JSONArray a = new JSONArray ();
 		for ( T o : list )
 		{
-			a.put ( o );
+			if ( o instanceof JsonSerialized )
+			{
+				a.put ( ((JsonSerialized)o).toJson () );
+			}
+			else
+			{
+				a.put ( o );
+			}
 		}
 		return a;
 	}
@@ -169,6 +199,16 @@ public class JsonVisitor
 	{
 		final JSONObject obj = new JSONObject ();
 		for ( Map.Entry<String,String> e : list.entrySet () )
+		{
+			obj.put ( e.getKey (), e.getValue () );
+		}
+		return obj;
+	}
+
+	public static JSONObject mapToObject ( Map<String, Integer> list )
+	{
+		final JSONObject obj = new JSONObject ();
+		for ( Map.Entry<String,Integer> e : list.entrySet () )
 		{
 			obj.put ( e.getKey (), e.getValue () );
 		}

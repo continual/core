@@ -15,8 +15,10 @@
  */
 package io.continual.util.data;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -72,6 +74,60 @@ public class HumanReadableHelper
 	public static String memoryValue ( long inBytes )
 	{
 		return byteCountValue ( inBytes );
+	}
+
+	public static List<String> hexDumpLine ( byte[] bytes, int offset, int length )
+	{
+		return hexDumpLine ( bytes, offset, length, 16 );
+	}
+
+	public static List<String> hexDumpLine ( byte[] bytes, int offset, int length, int lineLengthInBytes )
+	{
+		final LinkedList<String> result = new LinkedList<> ();
+		
+		while ( offset < length )
+		{
+			// do the next line...
+			final int bytesRemaining = length - offset;
+			final int bytesThisLine = offset + Math.min ( bytesRemaining, lineLengthInBytes );
+
+			final StringBuilder hexPart = new StringBuilder ();
+			final StringBuilder asciiPart = new StringBuilder ();
+
+			while ( offset < bytesThisLine )
+			{
+				int ch = bytes[offset];
+				final String byteInHex = TypeConvertor.byteToHex ( ch );
+				final char byteAsChar = isPrintableForHexDump ( ch ) ? (char) ch : '.';
+
+				hexPart
+					.append ( byteInHex )
+					.append ( ' ' )
+				;
+				asciiPart
+					.append ( byteAsChar )
+				;
+
+				offset++;
+			}
+
+			final StringBuilder line = new StringBuilder ()
+				.append ( hexPart.toString ()  )
+			;
+			while ( line.length () < ( lineLengthInBytes * 3 + 4 ) )
+			{
+				line.append ( ' ' );
+			}
+			line.append ( asciiPart.toString () );
+			result.add ( line.toString () );
+		}
+
+		return result;
+	}
+	
+	private static boolean isPrintableForHexDump ( int ch )
+	{
+		return ch >= 32 && ch <= 126;
 	}
 
 	public static final long kMillisecond = 1;
@@ -219,6 +275,91 @@ public class HumanReadableHelper
 	{
 		return timeValue ( new TimeValueContext ( units, tu, smallestUnit, maxLevels ) );
 	}
+
+	/**
+	 * parse a time duration like "6h" or "10d" into ms
+	 * @param duration
+	 */
+	public static long parseDuration ( String duration )
+	{
+		if ( duration.endsWith ( "d" ) || duration.endsWith ( "days" ) )
+		{
+			final String valueStr = duration.substring ( 0, duration.indexOf ( "d" ) );
+			final double value = Double.parseDouble ( valueStr );
+			final double asMs = value * (24.0 * 60.0 * 60.0 * 1000.0);
+			return Math.round ( asMs );
+		}
+		else if ( duration.endsWith ( "h" ) || duration.endsWith ( "hr" ) || duration.endsWith ( "hrs" ) )
+		{
+			final String valueStr = duration.substring ( 0, duration.indexOf ( "d" ) );
+			final double value = Double.parseDouble ( valueStr );
+			final double asMs = value * (60.0 * 60.0 * 1000.0);
+			return Math.round ( asMs );
+		}
+		else if ( duration.endsWith ( "m" ) || duration.endsWith ( "min" ) || duration.endsWith ( "mins" ) )
+		{
+			final String valueStr = duration.substring ( 0, duration.indexOf ( "d" ) );
+			final double value = Double.parseDouble ( valueStr );
+			final double asMs = value * (60.0 * 1000.0);
+			return Math.round ( asMs );
+		}
+		else
+		{
+			throw new NumberFormatException ( "Can't parse duration [" + duration + "]" );
+		}
+	}
+
+	/**
+	 * Parse date strings as they're typically seen in configuration or input. Note that this isn't tuned to be
+	 * especially fast -- use it for occasional interpretation, not high volume transactions.
+	 * @param optString
+	 * @return a date
+	 * @throws ParseException 
+	 */
+	public static Date parseTypicalDates ( String d ) throws ParseException
+	{
+		if ( d.equalsIgnoreCase ( "today" ) || d.equalsIgnoreCase ( "now" ) )
+		{
+			return new Date ();
+		}
+
+		try
+		{
+			long number = Long.parseLong ( d );
+			if ( number > kMsThreshold )
+			{
+				return new Date ( number );
+			}
+			else
+			{
+				return new Date ( number * 1000L );
+			}
+		}
+		catch ( NumberFormatException x )
+		{
+			// ignore
+		}
+		
+		for ( SimpleDateFormat sdf : kDateFormats )
+		{
+			try
+			{
+				return sdf.parse ( d );
+			}
+			catch ( ParseException x )
+			{
+				// skip it
+			}
+		}
+		throw new ParseException ( "Unrecognized date [" + d +  "].", 0 );
+	}
+
+	private static SimpleDateFormat[] kDateFormats =
+	{
+		new SimpleDateFormat ( "yyyy-MM-dd" ),
+		new SimpleDateFormat ( "MM/dd/yyyy" ),
+	};
+	private static final long kMsThreshold = ( System.currentTimeMillis () / 100L );
 
 	private static long[] kTimeVals = { kYear, kMonth, kWeek, kDay, kHour, kMinute, kSecond, kMillisecond };
 	private static String[] kTimeValAbbvsSingle = { "yr", "month", "wk", "day", "hr", "m", "s", "ms" }; 

@@ -19,6 +19,10 @@ import java.util.Vector;
 
 import io.continual.util.nv.impl.nvWriteableTable;
 
+/**
+ * This class participates in the name/value pair system with a CmdLineParser as an
+ * underlying source for settings.
+ */
 public class CmdLinePrefs extends nvWriteableTable
 {
 	public CmdLinePrefs ( CmdLineParser clp )
@@ -59,7 +63,7 @@ public class CmdLinePrefs extends nvWriteableTable
 		return super.hasValueFor ( optionWord );
 	}
 
-
+	@Override
 	public String getString ( String key ) throws MissingReqdSettingException
 	{
 		String result = null;

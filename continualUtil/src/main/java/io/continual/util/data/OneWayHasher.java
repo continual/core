@@ -16,7 +16,6 @@
 
 package io.continual.util.data;
 
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;

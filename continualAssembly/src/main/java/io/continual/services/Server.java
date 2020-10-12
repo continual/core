@@ -106,6 +106,8 @@ public class Server<T extends ServiceContainer> extends DaemonConsole
 						true,
 						fFactory
 					);
+
+					runOnceOnStart ( p, clp, fServices );
 				}
 				else
 				{
@@ -122,10 +124,31 @@ public class Server<T extends ServiceContainer> extends DaemonConsole
 				log.warn ( "No services loaded from " + services );
 			}
 		}
-		
+
 		return result;
 	}
 
+	/**
+	 * A hook for server-based system to run code after startup.
+	 * @param prefs
+	 * @param cmdLine
+	 * @param svcs
+	 */
+	protected void runOnceOnStart ( NvReadable prefs, CmdLinePrefs cmdLine, ServiceContainer svcs )
+	{
+		// no-op in base class
+	}
+
+	/**
+	 * Shutdown the server
+	 * @throws InterruptedException
+	 */
+	protected void shutdown () throws InterruptedException
+	{
+		fServices.stopAll ();
+		fServices.awaitTermination ();
+	}
+	
 	@Override
 	protected boolean daemonStillRunning ()
 	{
@@ -145,6 +168,11 @@ public class Server<T extends ServiceContainer> extends DaemonConsole
 		fHideCopyrights = true;
 	}
 
+	protected ServiceContainer getServices ()
+	{
+		return fServices;
+	}
+	
 	public static void runServer ( String programName, String args[] ) throws Exception
 	{
 		runServer ( programName, new StdFactory (), args );

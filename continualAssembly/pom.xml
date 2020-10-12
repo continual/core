@@ -5,13 +5,17 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.1.0</version>
+		<version>0.2.0</version>
 		<artifactId>continualBase</artifactId>
 		<relativePath>../continualBase</relativePath>
 	</parent>
 
 	<artifactId>continualAssembly</artifactId>
 	<packaging>jar</packaging>
+
+	<name>continual.io assembly</name>
+	<description>Continual's tooling for configuring and assembling process components.</description>
+	<url>https://continual.io</url>
 
 	<dependencies>
 

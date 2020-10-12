@@ -5,13 +5,15 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.1.0</version>
+		<version>0.2.0</version>
 		<artifactId>continualBase</artifactId>
 		<relativePath>../continualBase</relativePath>
 	</parent>
 
 	<artifactId>continualUtil</artifactId>
 	<packaging>jar</packaging>
+
+	<name>continual.io utility</name>
 
 	<dependencies>
 

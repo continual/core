@@ -22,5 +22,5 @@ public interface StdCopyrightInfo
 
 	// this must be updated each year, but it prevents the need for tracking
 	// the date in every project.
-	public static final int kBuildYear = 2019;
+	public static final int kBuildYear = 2020;
 }

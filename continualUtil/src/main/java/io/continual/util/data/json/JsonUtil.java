@@ -18,8 +18,12 @@ package io.continual.util.data.json;
 
 import java.io.InputStream;
 import java.io.Reader;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -195,6 +199,41 @@ public class JsonUtil
 		return false;
 	}
 
+	public static Date readDate ( JSONObject base, String key ) throws JSONException
+	{
+		final Object o = base.opt ( key );
+		if ( o == null ) return null;
+
+		if ( o instanceof Long )
+		{
+			return new Date ( (Long) o );
+		}
+
+		if ( o instanceof String )
+		{
+			for ( String format : dateFormats )
+			{
+				try
+				{
+					final SimpleDateFormat sdf = new SimpleDateFormat ( format );
+					return sdf.parse ( (String) o );
+				}
+				catch ( ParseException e )
+				{
+					// ignore
+				}
+			}
+		}
+
+		throw new JSONException ( "Unrecognized format for Date read." );
+	}
+
+	private static String[] dateFormats =
+	{
+		"yyyy.MM.dd HH:mm:ss z",
+		"yyyyMMdd",
+	};
+
 	/**
 	 * Load a string or array of strings into a string list.
 	 * 
@@ -327,5 +366,86 @@ public class JsonUtil
 		}
 
 		return current;
+	}
+
+	public static String writeConsistently ( Object o )
+	{
+		if ( o instanceof JSONObject )
+		{
+			return writeConsistently ( (JSONObject) o );
+		}
+		else if ( o instanceof JSONArray )
+		{
+			return writeConsistently ( (JSONArray) o );
+		}
+		else
+		{
+			return JSONObject.valueToString ( o );
+		}
+	}
+
+	public static String writeConsistently ( JSONArray a )
+	{
+		final StringBuilder sb = new StringBuilder ();
+		sb.append ( "[\n" );
+		boolean doneOne = false;
+		for ( int i=0; i<a.length(); i++ )
+		{
+			if ( doneOne )
+			{
+				sb.append ( ",\n" );
+			}
+			doneOne = true;
+
+			sb.append ( writeConsistently ( a.opt ( i ) ) );
+		}
+		sb.append ( "\n]\n" );
+
+		return sb.toString();
+	}
+
+	/**
+	 * Write a string representation of a json object with a consistent format. Two
+	 * objects with the same keys and values produce the same string each time.
+	 * @param o
+	 * @return a string representation of the object
+	 */
+	public static String writeConsistently ( JSONObject o )
+	{
+		final ArrayList<String> keys = new ArrayList<> ();
+		keys.addAll ( o.keySet() );
+		Collections.sort ( keys );
+
+		final StringBuilder sb = new StringBuilder ();
+		sb.append ( "{\n" );
+		boolean doneOne = false;
+		for ( String key : keys )
+		{
+			if ( doneOne )
+			{
+				sb.append ( ",\n" );
+			}
+			doneOne = true;
+
+			sb
+				.append ( key )
+				.append ( ":" )
+				.append ( writeConsistently ( o.get ( key ) ) );
+			;
+		}
+		sb.append ( "\n}\n" );
+
+		return sb.toString ();
+	}
+
+	/**
+	 * Hash a json object
+	 * @param o a json object
+	 * @return a hash code for this object
+	 */
+	public static int hash ( JSONObject o )
+	{
+		// we have to use a predictable key order
+		return writeConsistently ( o ).hashCode ();
 	}
 }

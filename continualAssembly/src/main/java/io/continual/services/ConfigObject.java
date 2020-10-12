@@ -34,6 +34,7 @@ public class ConfigObject
 	{
 		fBase = null;
 		fData = JsonUtil.clone ( o == null ? new JSONObject () : o );
+		mergeData ();
 	}
 
 	public static ConfigObject read ( JSONObject o )
@@ -49,19 +50,18 @@ public class ConfigObject
 
 	public JSONObject toJson ()
 	{
-		JSONObject merged = fBase == null ? new JSONObject () : fBase.toJson ();
-		JsonUtil.copyInto ( fData, merged );
-		return merged;
+		return JsonUtil.clone ( fMerged );
 	}
 
 	public int size ()
 	{
-		return fData.length ();
+		return fMerged.length ();
 	}
 
 	public ConfigObject setBaseConfig ( ConfigObject co )
 	{
 		fBase = co;
+		mergeData ();
 		return this;
 	}
 	
@@ -72,13 +72,9 @@ public class ConfigObject
 
 	public String get ( String key, String defval )
 	{
-		if ( fData.has ( key ) )
+		if ( fMerged.has ( key ) )
 		{
-			return fData.getString ( key );
-		}
-		else if ( fBase != null )
-		{
-			return fBase.get ( key, defval );
+			return fMerged.getString ( key );
 		}
 		return defval;
 	}
@@ -90,13 +86,9 @@ public class ConfigObject
 
 	public boolean getBoolean ( String key, boolean defval )
 	{
-		if ( fData.has ( key ) )
+		if ( fMerged.has ( key ) )
 		{
-			return fData.optBoolean ( key );
-		}
-		else if ( fBase != null )
-		{
-			return fBase.getBoolean ( key, defval );
+			return fMerged.optBoolean ( key );
 		}
 		return defval;
 	}
@@ -104,11 +96,7 @@ public class ConfigObject
 	public Collection<String> getAllKeys ()
 	{
 		final TreeSet<String> keys = new TreeSet<> ();
-		if ( fBase != null )
-		{
-			keys.addAll ( fBase.getAllKeys () );
-		}
-		for ( Object key : fData.keySet () )
+		for ( Object key : fMerged.keySet () )
 		{
 			keys.add ( key.toString () );
 		}
@@ -117,15 +105,29 @@ public class ConfigObject
 
 	private final JSONObject fData;
 	private ConfigObject fBase;
+	private JSONObject fMerged;
 
 	protected void set ( String key, String value )
 	{
 		fData.put ( key, value );
+		mergeData ();
 	}
 
 	protected ConfigObject getSubConfig ( String serviceName )
 	{
-		final JSONObject data = fData.optJSONObject ( serviceName );
+		final JSONObject data = fMerged.optJSONObject ( serviceName );
 		return data == null ? new ConfigObject () : new ConfigObject ( data );
+	}
+
+	private void mergeData ()
+	{
+		if ( fBase == null )
+		{
+			fMerged = JsonUtil.clone ( fData );
+		}
+		else
+		{
+			fMerged = JsonUtil.overlay ( JsonUtil.clone ( fBase.toJson () ), fData );
+		}
 	}
 }

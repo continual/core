@@ -1,0 +1,38 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>io.continual</groupId>
+		<version>0.2.0</version>
+		<artifactId>continualBase</artifactId>
+		<relativePath>../../continualBase</relativePath>
+	</parent>
+
+	<artifactId>cpMsDocs</artifactId>
+	<packaging>jar</packaging>
+
+	<name>continual.io processor library for MS Office docs</name>
+	<url>https://continual.io</url>
+
+	<dependencies>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualProcessor</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<!-- apache poi -->
+		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi -->
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>4.1.2</version>
+		</dependency>
+
+	</dependencies>
+
+</project>
+

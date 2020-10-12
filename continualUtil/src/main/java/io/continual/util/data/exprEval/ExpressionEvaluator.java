@@ -16,41 +16,38 @@
 
 package io.continual.util.data.exprEval;
 
-import java.util.Map;
-
 public class ExpressionEvaluator
 {
-	/**
-	 * Evaluate the given expression against the given root object and return 
-	 * a string representation. If the evaluation is null, an empty string is returned.
-	 * @param root
-	 * @param expression
-	 * @return a string
-	 */
-	public static String evalToString ( ExprDataSource root, String expression )
+	public ExpressionEvaluator ( ExprDataSource... srcs )
 	{
-		final Object result = root.eval ( expression );
-		if ( result == null ) return "";
-		return result.toString ();
+		fSources = srcs;
+	}
+
+	public Object evaluateSymbol ( String expr )
+	{
+		return evaluateSymbol ( expr, fSources );
+	}
+
+	public String evaluateText ( String expr )
+	{
+		return evaluateText ( expr, fSources );
 	}
 
 	/**
-	 * eval to string using a string map as a data source
-	 * @param map
-	 * @param expression
-	 * @return a string
+	 * Evaluate the given expression against the given data sources and return 
+	 * an object. If no source can resolve the symbol, null is returned.
+	 * @param symbol
+	 * @param srcs a set of data sources, evaluated in order
+	 * @return an object if found
 	 */
-	public static String evalToString ( final Map<String,String> map, String expression )
+	public static Object evaluateSymbol ( String symbol, ExprDataSource... srcs )
 	{
-		return evalToString ( new ExprDataSource(){
-
-			@Override
-			public Object eval ( String label )
-			{
-				return map.get ( label );
-			}
-			
-		}, expression );
+		for ( ExprDataSource src : srcs )
+		{
+			final Object result = src.eval ( symbol );
+			if ( result != null ) return result;
+		}
+		return null;
 	}
 
 	/**
@@ -59,7 +56,7 @@ public class ExpressionEvaluator
 	 * @param root
 	 * @return a string
 	 */
-	public static String evaluate ( String sourceString, ExprDataSource root )
+	public static String evaluateText ( String sourceString, ExprDataSource... srcs )
 	{
 		if ( sourceString == null ) return null;
 
@@ -87,7 +84,8 @@ public class ExpressionEvaluator
 				{
 					sb.append ( sourceString.substring ( 0, open ) );
 					final String key = sourceString.substring ( open+2, closer );
-					sb.append ( evalToString ( root, key ) );
+					final Object symval = evaluateSymbol ( key, srcs );
+					sb.append ( symval == null ? "" : symval.toString () );
 					sourceString = sourceString.substring ( closer + 1 );
 				}
 			}
@@ -96,4 +94,6 @@ public class ExpressionEvaluator
 		
 		return sb.toString ();
 	}
+
+	private final ExprDataSource[] fSources;
 }

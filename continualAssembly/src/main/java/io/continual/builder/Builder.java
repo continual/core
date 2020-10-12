@@ -41,6 +41,7 @@ public class Builder<T>
 	{
 		public BuildFailure ( Throwable t ) { super ( t ); }
 		public BuildFailure ( String msg ) { super ( msg ); }
+		public BuildFailure ( String msg, Throwable t ) { super ( msg, t ); }
 		private static final long serialVersionUID = 1L;
 	}
 
@@ -73,7 +74,7 @@ public class Builder<T>
 			.usingData ( new BuilderJsonDataSource ( data ) )
 			.build ();
 	}
-	
+
 	/**
 	 * construct a builder
 	 * @param base

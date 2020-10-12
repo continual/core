@@ -1,0 +1,63 @@
+{
+	"packages":
+	[
+		"io.continual.services.processor.aging"
+	],
+
+	"sources":
+	{
+		"src":
+		{
+			"class": "MessageGenerator",
+			"everyMs": 1000,
+
+			"message":
+			{
+				"foo": "bar"
+			},
+
+			"pipeline": "default",
+
+			"services":
+			{
+				"aging":
+				{
+					"class": "Aging",
+					"onComplete": "postAging"
+					// "onCanceled": null
+				}
+			}
+		}
+	},
+
+	"sinks":
+	{
+	},
+
+	"pipelines":
+	{
+		"default":
+		[
+			{
+				"if":
+				{
+					"class": "HasField", "key": "foo"
+				},
+				"then":[
+					{ "class":"Log", "format":"pre aging {}" },
+					{ "class":"StartAging", "agingMs": 15000 }
+				],
+				"else":[]
+			}
+		],
+
+		"postAging":
+		[
+			{
+				"then":[
+					{ "class":"Log", "format":"post aging {}" }
+				]
+			}
+		]
+	}
+}

@@ -22,15 +22,19 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.continual.util.console.ConsoleProgram.StartupFailureException;
 
 import io.continual.builder.Builder;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.builder.sources.BuilderJsonDataSource;
 import io.continual.util.collections.MultiMap;
+import io.continual.util.console.ConsoleProgram.StartupFailureException;
+import io.continual.util.data.exprEval.EnvDataSource;
+import io.continual.util.data.exprEval.ExprDataSourceStack;
+import io.continual.util.data.exprEval.ExpressionEvaluator;
+import io.continual.util.data.exprEval.JsonDataSource;
 import io.continual.util.nv.NvReadable;
 
 public class ServiceContainer
@@ -223,6 +227,15 @@ public class ServiceContainer
 				if ( s.isRunning () ) runCount++;
 			}
 		}
+	}
+
+	public ExpressionEvaluator getExprEval ( JSONObject data )
+	{
+		final ExprDataSourceStack stack = new ExprDataSourceStack (
+			new JsonDataSource ( data ),
+			new EnvDataSource ()
+		);
+		return new ExpressionEvaluator ( stack );
 	}
 	
 	private final LinkedList<Service> fServices;

@@ -24,4 +24,16 @@ public interface ExprDataSource
 	 * @return a data object
 	 */
 	Object eval ( String label );
+
+	default String evalToString ( String label )
+	{
+		return evalToString ( label, null );
+	}
+
+	default String evalToString ( String label, String defval )
+	{
+		final Object val = eval ( label );
+		if ( val != null ) return val.toString ();
+		return defval;
+	}
 }

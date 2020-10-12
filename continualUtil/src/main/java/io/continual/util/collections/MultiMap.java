@@ -62,7 +62,13 @@ public class MultiMap<K,V>
 		}
 		return newMap;
 	}
-	
+
+	@Override
+	public String toString ()
+	{
+		return fMultiMap.toString ();
+	}
+
 	public synchronized void put ( K k )
 	{
 		getOrCreateFor ( k );
