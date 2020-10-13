@@ -3,12 +3,19 @@
 
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>io.continual</groupId>
+	<parent>
+		<groupId>io.continual</groupId>
+		<version>0.2.1</version>
+		<artifactId>continualBase</artifactId>
+		<relativePath>../continualBase</relativePath>
+	</parent>
+
 	<artifactId>continualClient</artifactId>
 	<packaging>jar</packaging>
-	<version>0.2.1</version>
 
 	<name>continual.io clients</name>
+	<description>continual service clients</description>
+	<url>https://continual.io</url>
 
 	<dependencies>
 
