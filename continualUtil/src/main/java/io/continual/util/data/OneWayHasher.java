@@ -30,7 +30,7 @@ public class OneWayHasher
 {
 	/**
 	 * Create a digest of a message string.
-	 * @param input
+	 * @param input the string to digest
 	 * @return a digest string.
 	 */
 	public static String digest ( String input )
@@ -40,8 +40,8 @@ public class OneWayHasher
 
 	/**
 	 * Create a hash of an input string and a salt string.
-	 * @param input
-	 * @param salt
+	 * @param input the string to hash
+	 * @param salt the salt to use in hashing
 	 * @return a hash
 	 */
 	public static String hash ( String input, String salt )
@@ -51,8 +51,8 @@ public class OneWayHasher
 
 	/**
 	 * Create a hash using pbkd2Hash and return the result as a string of hex characters.
-	 * @param input
-	 * @param salt
+	 * @param input the string to hash
+	 * @param salt the salt to use in hashing
 	 * @return a string of hex characters.
 	 */
 	public static String pbkdf2HashToString ( String input, String salt )
@@ -63,8 +63,8 @@ public class OneWayHasher
 
 	/**
 	 * Create a hash using the PBKDF2WithHmacSHA1 algorithm given an input string and salt string.
-	 * @param input
-	 * @param salt
+	 * @param input the string to hash
+	 * @param salt the salt to use in hashing
 	 * @return a hash in a byte array
 	 */
 	public static byte[] pbkdf2Hash ( String input, String salt )
@@ -91,7 +91,7 @@ public class OneWayHasher
 
 	/**
 	 * Run this utility as a program.
-	 * @param args
+	 * @param args the command line arguments
 	 */
 	static public void main ( String args[] )
 	{

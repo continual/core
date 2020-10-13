@@ -141,8 +141,7 @@ public class HumanReadableHelper
 
 	/**
 	 * Extend a number with 0s to a required width. Intended for decimal-side extension.
-	 * @param v
-	 * @param width
+	 * @param v a long value
 	 * @return a string extended to the required length
 	 */
 	private static String buildCents ( long v )
@@ -278,7 +277,8 @@ public class HumanReadableHelper
 
 	/**
 	 * parse a time duration like "6h" or "10d" into ms
-	 * @param duration
+	 * @param duration a time duration string
+	 * @return milliseconds
 	 */
 	public static long parseDuration ( String duration )
 	{
@@ -312,9 +312,9 @@ public class HumanReadableHelper
 	/**
 	 * Parse date strings as they're typically seen in configuration or input. Note that this isn't tuned to be
 	 * especially fast -- use it for occasional interpretation, not high volume transactions.
-	 * @param optString
+	 * @param d a date string 
 	 * @return a date
-	 * @throws ParseException 
+	 * @throws ParseException if the date's format is unrecognizable 
 	 */
 	public static Date parseTypicalDates ( String d ) throws ParseException
 	{
@@ -419,9 +419,9 @@ public class HumanReadableHelper
 	/**
 	 * Return a string that is a list of items separated by separator and using
 	 * the final conjunction. For example, { "A", "B", "C" } --&gt; "A, B, and C"
-	 * @param items
-	 * @param separator
-	 * @param finalConjunction
+	 * @param items the input list
+	 * @param separator the separator to use in the sequence
+	 * @param finalConjunction the final conjunction (e.g. "and") 
 	 * @return a list of items
 	 */
 	public static String listOfItems ( List<String> items, String separator, String finalConjunction )

@@ -55,7 +55,7 @@ public class CmdLinePrefs extends nvWriteableTable
 	
 	/**
 	 * find out if an option was explicitly set by the caller
-	 * @param optionWord
+	 * @param optionWord the option name
 	 * @return true or false
 	 */
 	public boolean wasExplicitlySet ( String optionWord )

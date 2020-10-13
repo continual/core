@@ -47,7 +47,7 @@ public class ContinualMessage implements JsonSerialized
 	{
 		/**
 		 * Add the creation time to this message
-		 * @param timeMs
+		 * @param timeMs timestamp
 		 * @return this builder
 		 */
 		public Builder createdAt ( long timeMs )
@@ -61,7 +61,7 @@ public class ContinualMessage implements JsonSerialized
 
 		/**
 		 * Add the message creator to this message
-		 * @param user
+		 * @param user a user
 		 * @return this builder
 		 */
 		public Builder createdBy ( Identity user )
@@ -75,7 +75,7 @@ public class ContinualMessage implements JsonSerialized
 
 		/**
 		 * Add message data to the message
-		 * @param data
+		 * @param data message payload
 		 * @return this builder
 		 */
 		public Builder withMessageData ( JSONObject data )
@@ -86,7 +86,7 @@ public class ContinualMessage implements JsonSerialized
 
 		/**
 		 * Add message data to the message
-		 * @param data
+		 * @param data message payload
 		 * @return this builder
 		 */
 		public Builder withMessageData ( String data )
@@ -97,7 +97,7 @@ public class ContinualMessage implements JsonSerialized
 
 		/**
 		 * Start a metadata section
-		 * @param sectionName
+		 * @param sectionName a section of metadata
 		 * @return a metadata section that must be closed
 		 */
 		public MetadataSectionBuilder withMetaDataSection ( String sectionName )
@@ -146,7 +146,6 @@ public class ContinualMessage implements JsonSerialized
 	/**
 	 * Construct a message from JSON data
 	 * @param data if null, an empty JSON document is used. If this contains our standard metadata tag, that part is overwritten
-	 * @param meta a metadata structure
 	 */
 	public ContinualMessage ( JSONObject data )
 	{

@@ -57,8 +57,8 @@ public interface ModelAccount extends JsonSerialized, ProtectedResource
 	/**
 	 * Initialize a model
 	 * @param mrc
-	 * @param acctId
 	 * @param modelName
+	 * @return a model
 	 * @throws ModelServiceRequestException 
 	 * @throws ModelServiceIoException 
 	 */
@@ -69,6 +69,8 @@ public interface ModelAccount extends JsonSerialized, ProtectedResource
 	 * @param mrc
 	 * @param modelName
 	 * @return a model
+	 * @throws ModelServiceRequestException 
+	 * @throws ModelServiceIoException 
 	 */
 	Model getModel ( ModelRequestContext mrc, String modelName ) throws ModelServiceIoException, ModelServiceRequestException;
 }

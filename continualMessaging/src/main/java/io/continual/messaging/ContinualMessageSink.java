@@ -12,7 +12,8 @@ public interface ContinualMessageSink
 {
 	/**
 	 * Send a message to the sink using its general message stream.
-	 * @param message
+	 * @param msg a message
+	 * @throws MessagePublishException when a message cannot be published
 	 */
 	default void send ( ContinualMessage msg ) throws MessagePublishException
 	{
@@ -21,7 +22,8 @@ public interface ContinualMessageSink
 
 	/**
 	 * Send a list of messages to the sink using its general message stream.
-	 * @param msgs
+	 * @param msgs messages
+	 * @throws MessagePublishException when a message cannot be published
 	 */
 	default void send ( ContinualMessage... msgs ) throws MessagePublishException
 	{
@@ -30,7 +32,8 @@ public interface ContinualMessageSink
 
 	/**
 	 * Send a list of messages to the sink using its general message stream.
-	 * @param msgs
+	 * @param msgs messages
+	 * @throws MessagePublishException when a message cannot be published
 	 */
 	default void send ( Collection<ContinualMessage> msgs ) throws MessagePublishException
 	{
@@ -39,8 +42,9 @@ public interface ContinualMessageSink
 
 	/**
 	 * Send a message to the sink using the given message stream.
-	 * @param stream
-	 * @param message
+	 * @param stream a stream
+	 * @param message a message
+	 * @throws MessagePublishException when a message cannot be published
 	 */
 	default void send ( ContinualMessageStream stream, ContinualMessage message ) throws MessagePublishException
 	{
@@ -49,8 +53,9 @@ public interface ContinualMessageSink
 
 	/**
 	 * Send a list of messages to the sink using the given message stream.
-	 * @param stream
-	 * @param msgs
+	 * @param stream a stream
+	 * @param msgs messages
+	 * @throws MessagePublishException when a message cannot be published
 	 */
 	default void send ( ContinualMessageStream stream, ContinualMessage... msgs ) throws MessagePublishException
 	{
@@ -59,8 +64,9 @@ public interface ContinualMessageSink
 
 	/**
 	 * Send a collection (iterated in order) of messages to the sink using the given message stream.
-	 * @param stream
-	 * @param msgs
+	 * @param stream a stream
+	 * @param msgs messsages
+	 * @throws MessagePublishException when a message cannot be published
 	 */
 	void send ( ContinualMessageStream stream, Collection<ContinualMessage> msgs ) throws MessagePublishException;
 

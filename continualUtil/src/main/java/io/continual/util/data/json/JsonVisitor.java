@@ -32,10 +32,10 @@ public class JsonVisitor
 	{
 		/**
 		 * Visit an array entry. Return false to stop iteration.
-		 * @param t
-		 * @return
-		 * @throws JSONException
-		 * @throws E
+		 * @param t an item of type T
+		 * @return if true, iteration continues
+		 * @throws JSONException when an underlying JSON operation throws
+		 * @throws E an additional exception type that your processing may throw
 		 */
 		boolean visit ( T t ) throws JSONException, E;
 	}
@@ -219,11 +219,11 @@ public class JsonVisitor
 	{
 		/**
 		 * Visit an entry.
-		 * @param key
-		 * @param t
+		 * @param key the string key of the entry
+		 * @param t the value of type T of the entry
 		 * @return true to continue, false to exit the loop
-		 * @throws JSONException
-		 * @throws E
+		 * @throws JSONException when an underlying JSON operation throws
+		 * @throws E an additional exception type your code may throw
 		 */
 		boolean visit ( String key, T t ) throws JSONException, E;
 	}

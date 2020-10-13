@@ -110,8 +110,8 @@ public class CsvStream
 
 	/**
 	 * Get a record by row number. Note that the returned map can include nulls for values.
-	 * @param row
-	 * @return
+	 * @param row the row number
+	 * @return a record key/value map
 	 */
 	public Map<String,String> getRecord ( int row )
 	{

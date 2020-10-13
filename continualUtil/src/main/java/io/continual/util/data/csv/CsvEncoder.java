@@ -68,7 +68,7 @@ public class CsvEncoder
 
 	/**
 	 * Encode the date into an Excel compatible string in the UTC timezone
-	 * @param value
+	 * @param value the date value
 	 * @return a string date
 	 */
 	public static String encodeForCsv ( Date value )
@@ -81,9 +81,9 @@ public class CsvEncoder
 	 * (If it's not excel compatible, it's ISO8601.)  Also note that Excel's compatibility
 	 * is based on the user's locale settings.
 	 * 
-	 * @param value
-	 * @param intoTz
-	 * @param excelCompatible
+	 * @param value the date value
+	 * @param intoTz the target timezone
+	 * @param excelCompatible if true, write a date that excel likes
 	 * @return a string date
 	 */
 	public static String encodeForCsv ( Date value, TimeZone intoTz, boolean excelCompatible )

@@ -34,9 +34,9 @@ public class JsonObjectFile implements Closeable
 {
 	/**
 	 * Initialize a JSON object file
-	 * @param file
-	 * @param blockSize
-	 * @throws IOException
+	 * @param file the underlying file
+	 * @param blockSize the size of blocks in the file
+	 * @throws IOException if the underlying file operation throws it
 	 */
 	public static void initialize ( File file, int blockSize ) throws IOException
 	{
@@ -45,8 +45,8 @@ public class JsonObjectFile implements Closeable
 
 	/**
 	 * Open a writable JSON object file
-	 * @param f
-	 * @throws IOException
+	 * @param f the underlying file
+	 * @throws IOException if the underlying file operation throws it
 	 */
 	public JsonObjectFile ( File f ) throws IOException
 	{
@@ -55,9 +55,9 @@ public class JsonObjectFile implements Closeable
 
 	/**
 	 * Open a JSON object file, optionally for writing
-	 * @param f
-	 * @param withWrite
-	 * @throws IOException
+	 * @param f the underlying file
+	 * @param withWrite if true, writes are allowed
+	 * @throws IOException if the underlying file operation throws it
 	 */
 	public JsonObjectFile ( File f, boolean withWrite ) throws IOException
 	{
@@ -66,10 +66,10 @@ public class JsonObjectFile implements Closeable
 
 	/**
 	 * Open a JSON object file, optionally for writing, with the given password.
-	 * @param f
-	 * @param withWrite
+	 * @param f the underlying file
+	 * @param withWrite if true, writes are allowed
 	 * @param passwd A password, if used, or null.
-	 * @throws IOException
+	 * @throws IOException if the underlying file operation throws it
 	 */
 	public JsonObjectFile ( File f, boolean withWrite, String passwd ) throws IOException
 	{
@@ -87,7 +87,7 @@ public class JsonObjectFile implements Closeable
 	
 	/**
 	 * Close this file
-	 * @throws IOException
+	 * @throws IOException if the underlying file operation throws it
 	 */
 	public void close () throws IOException
 	{
@@ -96,9 +96,9 @@ public class JsonObjectFile implements Closeable
 
 	/**
 	 * Read the object at the given address.
-	 * @param address
+	 * @param address the block address in the file
 	 * @return an object, or null
-	 * @throws IOException
+	 * @throws IOException if the underlying file operation throws it
 	 */
 	public JSONObject read ( long address ) throws IOException
 	{
@@ -121,9 +121,9 @@ public class JsonObjectFile implements Closeable
 
 	/**
 	 * Write a new object into the file and return its address.
-	 * @param o
+	 * @param o the object to add to the file
 	 * @return the address of the new object
-	 * @throws IOException
+	 * @throws IOException if the underlying file operation throws it
 	 */
 	public long write ( JSONObject o ) throws IOException
 	{
@@ -133,9 +133,9 @@ public class JsonObjectFile implements Closeable
 
 	/**
 	 * Overwrite an object at the given address.
-	 * @param address
-	 * @param o
-	 * @throws IOException
+	 * @param address the address of the block to overwrite
+	 * @param o the object to overwrite into the block
+	 * @throws IOException if the underlying file operation throws it
 	 */
 	public void overwrite ( long address, JSONObject o ) throws IOException
 	{
@@ -145,8 +145,8 @@ public class JsonObjectFile implements Closeable
 
 	/**
 	 * Delete an object at the given address.
-	 * @param address
-	 * @throws IOException
+	 * @param address the address of the block to remove
+	 * @throws IOException if the underlying file operation throws it
 	 */
 	public void delete ( long address ) throws IOException
 	{
@@ -155,7 +155,7 @@ public class JsonObjectFile implements Closeable
 
 	/**
 	 * @see BlockFile#indexToAddress(long)
-	 * @param index
+	 * @param index the 0-based block index to convert to an address
 	 * @return an address
 	 */
 	public long indexToAddress ( long index )

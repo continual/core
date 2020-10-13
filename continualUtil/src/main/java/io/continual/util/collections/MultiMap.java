@@ -29,8 +29,8 @@ import java.util.Map.Entry;
  * could create a map that's not completely independent in terms of the
  * values stored.
  *
- * @param <K>
- * @param <V>
+ * @param <K> a key type for the map
+ * @param <V> a value type for the map
  */
 public class MultiMap<K,V>
 {
@@ -103,8 +103,8 @@ public class MultiMap<K,V>
 
 	/**
 	 * Get the values for a given key. A list is always returned, but it may be empty.
-	 * @param k
-	 * @return
+	 * @param k a key
+	 * @return a list of values which may be empty
 	 */
 	public synchronized List<V> get ( K k )
 	{
@@ -118,8 +118,8 @@ public class MultiMap<K,V>
 
 	/**
 	 * Get the first value for the given key, or return null if none exists.
-	 * @param k
-	 * @return
+	 * @param k a key
+	 * @return a value or null
 	 */
 	public V getFirst ( K k )
 	{

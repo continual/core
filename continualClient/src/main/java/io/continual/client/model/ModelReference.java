@@ -11,22 +11,22 @@ public interface ModelReference
 	 * Get the JSON data for an object
 	 * @return JSON data
 	 * @throws IOException 
-	 * @throws HttpException 
+	 * @throws ModelServiceException 
 	 */
 	String getData () throws ModelServiceException, IOException;
 
 	/**
 	 * Overwrite the data stored with the object
-	 * @param data
+	 * @param jsonData
 	 * @return this object
 	 * @throws IOException 
-	 * @throws HttpException 
+	 * @throws ModelServiceException 
 	 */
 	ModelReference putData ( String jsonData ) throws ModelServiceException, IOException;
 	
 	/**
 	 * Patch (merge) the data stored with the object
-	 * @param data
+	 * @param jsonData
 	 * @return this object
 	 */
 	ModelReference patchData ( String jsonData );

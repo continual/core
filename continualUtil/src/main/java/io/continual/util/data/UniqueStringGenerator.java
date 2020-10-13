@@ -34,8 +34,8 @@ public class UniqueStringGenerator
 	 * to help create license-key style strings, where the alphabet is restricted
 	 * to all upper case Latin letter and numbers, for example.
 	 * 
-	 * @param nonsense
-	 * @param alphabet
+	 * @param nonsense text added to the "seed" for value generation
+	 * @param alphabet the set of characters allowed in the output string
 	 * @return a likely unique string using the given alphabet.
 	 */
 	public static String createKeyUsingAlphabet ( String nonsense, String alphabet )
@@ -54,9 +54,9 @@ public class UniqueStringGenerator
 
 	/**
 	 * Create a key string using the given alphabet of characters, with the requested length.
-	 * @param nonsense
-	 * @param alphabet
-	 * @param length
+	 * @param nonsense text added to the "seed" for value generation
+	 * @param alphabet the set of characters allowed in the output string
+	 * @param length the length of the output string
 	 * @return a likely unique string of the given length using the given alphabet.
 	 */
 	public static String createKeyUsingAlphabet ( String nonsense, String alphabet, int length )
@@ -71,7 +71,7 @@ public class UniqueStringGenerator
 
 	/**
 	 * Create a URL compatible unique key
-	 * @param nonsense
+	 * @param nonsense text added to the "seed" for value generation
 	 * @return a likely unique string that works easily in URLs
 	 */
 	public static String createUrlKey ( String nonsense )
@@ -81,7 +81,7 @@ public class UniqueStringGenerator
 
 	/**
 	 * Create a key string that uses a Microsoft style license key alphabet. 
-	 * @param nonsense
+	 * @param nonsense text added to the "seed" for value generation
 	 * @return a Microsoft style license key string
 	 */
 	public static String createMsStyleKeyString ( String nonsense )

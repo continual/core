@@ -77,9 +77,9 @@ public class ApiContextHelper
 		/**
 		 * Handle the request as the given user and return a JSON string.
 		 * 
-		 * @param context
-		 * @param acct
-		 * @param user
+		 * @param context the request context
+		 * @param servlet the servlet
+		 * @param uc the user context
 		 * @return a JSON string
 		 * @throws IOException 
 		 */

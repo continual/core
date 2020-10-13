@@ -6,7 +6,7 @@
 	<groupId>io.continual</groupId>
 	<artifactId>continualClient</artifactId>
 	<packaging>jar</packaging>
-	<version>0.2.0</version>
+	<version>0.2.1</version>
 
 	<name>continual.io clients</name>
 

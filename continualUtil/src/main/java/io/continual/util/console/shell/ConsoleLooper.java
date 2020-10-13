@@ -207,8 +207,9 @@ public class ConsoleLooper implements ConsoleProgram.Looper
 
 	/**
 	 * override this to handle input before its been parsed in the usual way
-	 * @param input
-	 * @param outputTo
+	 * @param p settings
+	 * @param input the input string
+	 * @param outputTo the output for commands to write into
 	 * @return true to continue, false to exit
 	 */
 	protected InputResult handleInput ( NvReadable p, String input, PrintStream outputTo )
@@ -230,6 +231,8 @@ public class ConsoleLooper implements ConsoleProgram.Looper
 
 	/**
 	 * default handling for empty lines -- just ignore them
+	 * @param p the settings
+	 * @param outputTo the output stream for commands
 	 * @return true
 	 */
 	protected InputResult handleEmptyLine ( NvReadable p, PrintStream outputTo )
@@ -239,8 +242,9 @@ public class ConsoleLooper implements ConsoleProgram.Looper
 
 	/**
 	 * consoles can override this to change how command lines are processed
-	 * @param commandLine
-	 * @param outputTo
+	 * @param p the settings
+	 * @param commandLine the command line componennts
+	 * @param outputTo the output stream
 	 * @return true to continue, false to exit
 	 */
 	protected InputResult handleCommand ( NvReadable p, String[] commandLine, PrintStream outputTo )
@@ -286,6 +290,8 @@ public class ConsoleLooper implements ConsoleProgram.Looper
 	
 	/**
 	 * default handling for unrecognized commands
+	 * @param commandLine the command line componennts
+	 * @param outputTo the output stream
 	 * @return inResult.kReady
 	 */
 	protected InputResult handleUnrecognizedCommand ( String[] commandLine, PrintStream outputTo )
@@ -296,6 +302,9 @@ public class ConsoleLooper implements ConsoleProgram.Looper
 
 	/**
 	 * default handling for invocation problems
+	 * @param commandLine the command line componennts
+	 * @param x an exception
+	 * @param outputTo the output stream
 	 * @return inResult.kReady
 	 */
 	protected InputResult handleInvocationException ( String[] commandLine, Exception x, PrintStream outputTo )
@@ -356,7 +365,7 @@ public class ConsoleLooper implements ConsoleProgram.Looper
 
 	/**
 	 * split a string on its whitespace into individual tokens
-	 * @param line
+	 * @param line the input string
 	 * @return split array
 	 */
 	static String[] splitLine ( final String line )

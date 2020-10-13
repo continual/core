@@ -40,10 +40,9 @@ public class JwtCredential
 
 	/**
 	 * Build a JWT credential from a header value (normally Authorization)
-	 * @param authHeader
-	 * @param sha256Key
+	 * @param authHeader the authentication header value
 	 * @return a JwtCredential
-	 * @throws InvalidJwtToken
+	 * @throws InvalidJwtToken when the token is invalid
 	 */
 	public static JwtCredential fromHeader ( String authHeader ) throws InvalidJwtToken
 	{
@@ -60,9 +59,8 @@ public class JwtCredential
 
 	/**
 	 * Build a JWT credential from a token with an sha256 key used for signing
-	 * @param jwtToken
-	 * @param sha256Key
-	 * @throws InvalidJwtToken
+	 * @param jwtToken a token
+	 * @throws InvalidJwtToken when the token is invalid
 	 */
 	public JwtCredential ( String jwtToken ) throws InvalidJwtToken
 	{

@@ -22,7 +22,7 @@ public interface Filter extends JsonSerialized
 {
 	/**
 	 * Return true if the Filter passes the message in the given context.
-	 * @param m
+	 * @param ctx the message processing context
 	 * @return true if the filter passes the message
 	 */
 	boolean passes ( MessageProcessingContext ctx );

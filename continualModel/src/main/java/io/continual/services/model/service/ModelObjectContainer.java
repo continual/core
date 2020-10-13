@@ -47,7 +47,6 @@ public interface ModelObjectContainer extends ModelObject, ProtectedResource
 	 * @param op
 	 * @throws ModelServiceAccessException
 	 * @throws ModelServiceIoException
-	 * @return true if the user can perform the operation, false otherwise
 	 */
 	void checkUser ( Identity user, ModelOperation op ) throws ModelServiceAccessException, ModelServiceIoException;
 
@@ -55,7 +54,7 @@ public interface ModelObjectContainer extends ModelObject, ProtectedResource
 	 * Check if a child object exists
 	 * @param context
 	 * @param itemName
-	 * @return
+	 * @return true if the child exists
 	 * @throws ModelServiceIoException 
 	 * @throws ModelServiceRequestException 
 	 */

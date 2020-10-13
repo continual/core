@@ -75,9 +75,9 @@ public class StreamTools
 	 * Reads the stream into a byte array using a default-sized array for each read,
 	 * then closes the input stream.
 	 * 
-	 * @param is
+	 * @param is an input stream
 	 * @return a byte array
-	 * @throws IOException
+	 * @throws IOException any I/O exception from the underlying read calls
 	 */
 	public static byte[] readBytes ( InputStream is ) throws IOException
 	{
@@ -88,10 +88,10 @@ public class StreamTools
 	 * Reads the stream into a byte array using a bufferSize array for each read,
 	 * then closes the input stream.
 	 * 
-	 * @param is
-	 * @param bufferSize
+	 * @param is an input stream
+	 * @param bufferSize number of bytes to read at a time
 	 * @return a byte array
-	 * @throws IOException
+	 * @throws IOException any I/O exception from the underlying read calls
 	 */
 	public static byte[] readBytes ( InputStream is, int bufferSize ) throws IOException
 	{
@@ -103,11 +103,11 @@ public class StreamTools
 	 * then closes the input stream. If limit &gt;= 0, at most limit bytes are read.<br>
 	 * Note: even with a negative limit, 2GB is the limit.
 	 * 
-	 * @param is
-	 * @param bufferSize
-	 * @param limit
+	 * @param is an input stream
+	 * @param bufferSize number of bytes to read at a time
+	 * @param limit max byte count to read. If negative, no limit other than hard 2GB limit
 	 * @return a byte array
-	 * @throws IOException
+	 * @throws IOException any I/O exception from the underlying read calls
 	 */
 	public static byte[] readBytes ( InputStream is, int bufferSize, int limit ) throws IOException
 	{
@@ -138,9 +138,9 @@ public class StreamTools
 
 	/**
 	 * Copy from the input stream to the output stream, then close the output stream.
-	 * @param in
-	 * @param out
-	 * @throws IOException
+	 * @param in the input stream
+	 * @param out the target output stream
+	 * @throws IOException if an underlying file operation throws
 	 */
 	public static void copyStream ( InputStream in, OutputStream out ) throws IOException
 	{
@@ -149,10 +149,10 @@ public class StreamTools
 
 	/**
 	 * Copy from the input stream to the output stream, then close the output stream.
-	 * @param in
-	 * @param out
-	 * @param bufferSize
-	 * @throws IOException
+	 * @param in the input stream
+	 * @param out the target output stream
+	 * @param bufferSize the number of bytes to transfer at a time
+	 * @throws IOException if an underlying file operation throws
 	 */
 	public static void copyStream ( InputStream in, OutputStream out, int bufferSize ) throws IOException
 	{
@@ -162,11 +162,11 @@ public class StreamTools
 
 	/**
 	 * Copy from the input stream to the output stream, then close the output stream.
-	 * @param in
-	 * @param out
-	 * @param bufferSize
-	 * @param closeOutputStream
-	 * @throws IOException
+	 * @param in the input stream
+	 * @param out the target output stream
+	 * @param bufferSize the number of bytes to transfer at a time
+	 * @param closeOutputStream if true, close the output stream at the end of the call
+	 * @throws IOException if an underlying file operation throws
 	 */
 	public static void copyStream ( InputStream in, OutputStream out, int bufferSize, boolean closeOutputStream ) throws IOException
 	{

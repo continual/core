@@ -50,7 +50,7 @@ public interface NvReadable
 
 	/**
 	 * For use with systems like Velocity, that introspect for "get(key)" and expect a value or null
-	 * @param key
+	 * @param key the key
 	 * @return a value, or null
 	 */
 	String get ( String key );
@@ -80,9 +80,9 @@ public interface NvReadable
 	 * Get a set of strings given a key. Most implementations expect to use "getString()" and then
 	 * split the value by commas.
 	 *  
-	 * @param key
+	 * @param key a key
 	 * @return a string array
-	 * @throws MissingReqdSettingException
+	 * @throws MissingReqdSettingException if a required setting is not present
 	 */
 	String[] getStrings ( String key ) throws MissingReqdSettingException;
 	String[] getStrings ( String key, String[] defValue );

@@ -36,7 +36,7 @@ public class ExpressionEvaluator
 	/**
 	 * Evaluate the given expression against the given data sources and return 
 	 * an object. If no source can resolve the symbol, null is returned.
-	 * @param symbol
+	 * @param symbol the symbol to evaluate
 	 * @param srcs a set of data sources, evaluated in order
 	 * @return an object if found
 	 */
@@ -52,8 +52,8 @@ public class ExpressionEvaluator
 
 	/**
 	 * substitute any occurrence of ${&lt;expr&gt;} with the evaluation of that expression 
-	 * @param sourceString
-	 * @param root
+	 * @param sourceString the original string
+	 * @param srcs a set of data sources, evaluated in order 
 	 * @return a string
 	 */
 	public static String evaluateText ( String sourceString, ExprDataSource... srcs )

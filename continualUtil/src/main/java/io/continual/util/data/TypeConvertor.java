@@ -39,7 +39,7 @@ public class TypeConvertor
 
 	/**
 	 * equivalent to Boolean.parseBoolean(s)
-	 * @param s
+	 * @param s the input string
 	 * @return true/false
 	 */
 	static public boolean convertToBoolean ( String s )
@@ -50,7 +50,7 @@ public class TypeConvertor
 	/**
 	 * a broader conversion of common strings for boolean values (e.g. yes/no,
 	 * true/false, on/off). A null argument produces false.
-	 * @param s
+	 * @param s the input string
 	 * @return true/false
 	 */
 	static public boolean convertToBooleanBroad ( String s )
@@ -464,7 +464,7 @@ public class TypeConvertor
 
 	/**
 	 * Replace any double quote with &quot;
-	 * @param s
+	 * @param s an input string
 	 * @return a string that can be used as an input field's value
 	 */
 	public static String requoteHtmlInputValue ( String s )
@@ -484,8 +484,8 @@ public class TypeConvertor
 
 	/**
 	 * encode the source string so that any occurrence of 'special' is duplicated
-	 * @param source
-	 * @param special
+	 * @param source input string
+	 * @param special the escaping character, which gets doubled if it occurs
 	 * @return an encoded string
 	 */
 	public static String encode ( String source, char special )
@@ -498,10 +498,10 @@ public class TypeConvertor
 	 * with an escape sequence started by 'special'. If 'special' occurs, it'll occur twice
 	 * in the encoded string.
 	 * 
-	 * @param source
-	 * @param special
-	 * @param illegals
-	 * @param replacements
+	 * @param source input string
+	 * @param special the escaping character, which gets doubled if it occurs and otherwise is used to signal illegal chars
+	 * @param illegals chars that may not appear
+	 * @param replacements chars that replace the illegal chars
 	 * @return an encoded string
 	 */
 	public static String encode ( String source, char special, char[] illegals, char[] replacements )

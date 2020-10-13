@@ -29,7 +29,7 @@ public class LruCache <K extends Object, T extends Object>
 
 	/**
 	 * Construct an LRU Cache with the given max size. 
-	 * @param maxSize
+	 * @param maxSize the maximum number of entries in the cache
 	 */
 	public LruCache ( long maxSize )
 	{
@@ -55,13 +55,13 @@ public class LruCache <K extends Object, T extends Object>
 	}
 
 	/**
-	 * Lookup the value for a key. If a max age is specified (>-1) and the
+	 * Lookup the value for a key. If a max age is specified (&lt;-1) and the
 	 * entry exists but is older than the max age, the entry is removed from
 	 * the cache.
 	 * 
-	 * @param key
-	 * @param maxAgeMs
-	 * @return
+	 * @param key a key to search for
+	 * @param maxAgeMs the max age allowed for the value
+	 * @return a value for the given key or null if no value exists within the time range specified
 	 */
 	public synchronized T lookup ( K key, long maxAgeMs )
 	{
@@ -154,7 +154,7 @@ public class LruCache <K extends Object, T extends Object>
 
 	/**
 	 * Clear the cache of all entries, optionally calling the expulsion listeners associated with them.
-	 * @param callExpulsionListeners
+	 * @param callExpulsionListeners if true, explusion listeners are notitifed
 	 */
 	public synchronized void clear ( boolean callExpulsionListeners )
 	{

@@ -18,7 +18,6 @@ package io.continual.util.db.file;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -55,9 +54,9 @@ public class BlockFile
 	 * Initialize a block file with the given block size. If the file exists,
 	 * its contents are destroyed.
 	 * 
-	 * @param file
-	 * @param blockSize
-	 * @throws IOException
+	 * @param file the file to initialize
+	 * @param blockSize the block size for the file
+	 * @throws IOException if an operation fails
 	 */
 	public static void initialize ( File file, int blockSize ) throws IOException
 	{
@@ -91,8 +90,8 @@ public class BlockFile
 	/**
 	 * Open an existing block file in read-write mode, and without a password.
 	 * 
-	 * @param file
-	 * @throws IOException
+	 * @param file the underlying file
+	 * @throws IOException if a file operation fails
 	 */
 	public BlockFile ( File file ) throws IOException
 	{
@@ -103,9 +102,9 @@ public class BlockFile
 	 * Open an existing block file with the given read-write mode, and without
 	 * a password.
 	 * 
-	 * @param file
-	 * @param withWrite
-	 * @throws IOException
+	 * @param file the underlying file
+	 * @param withWrite if true, writes are allowed
+	 * @throws IOException if a file operation fails
 	 */
 	public BlockFile ( File file, boolean withWrite ) throws IOException
 	{
@@ -114,10 +113,11 @@ public class BlockFile
 
 	/**
 	 * open an existing block file for read or read/write access
-	 * @param file
-	 * @param withWrite when true, open for writes
+	 * 
+	 * @param file the underlying file
+	 * @param withWrite if true, writes are allowed
 	 * @param passwd a password for the file, which can be null
-	 * @throws FileNotFoundException
+	 * @throws IOException if a file operation fails
 	 */
 	public BlockFile ( File file, boolean withWrite, String passwd ) throws IOException
 	{
@@ -164,7 +164,7 @@ public class BlockFile
 	
 	/**
 	 * Close the file.
-	 * @throws IOException
+	 * @throws IOException if the underlying file operation throws it
 	 */
 	public void close () throws IOException
 	{
@@ -176,7 +176,7 @@ public class BlockFile
 	 * file. Note this is not generally useful, but applications that are careful can construct
 	 * data in such as way as to place the data in known locations. For example, the first byte
 	 * array (at "indexToAddress(0)") might contain a map to other important byte arrays.
-	 * @param index
+	 * @param index a 0-based block index
 	 * @return an address value
 	 */
 	public long indexToAddress ( long index )
@@ -186,9 +186,9 @@ public class BlockFile
 
 	/**
 	 * Add a byte array to this file and return its address.
-	 * @param bytes
+	 * @param bytes the data to write into the new block
 	 * @return the address for the stored byte array
-	 * @throws IOException
+	 * @throws IOException if the underlying file operation throws it
 	 */
 	public long create ( byte[] bytes ) throws IOException
 	{
@@ -200,7 +200,7 @@ public class BlockFile
 	 * Add a byte array from an input stream and return its address.
 	 * @param is an input stream
 	 * @return the address for the stored byte array
-	 * @throws IOException
+	 * @throws IOException if the underlying file operation throws it
 	 */
 	public long create ( InputStream is ) throws IOException
 	{
@@ -213,9 +213,9 @@ public class BlockFile
 
 	/**
 	 * read a byte array from the file given its address
-	 * @param address
+	 * @param address a 0-based block index
 	 * @return an array of bytes stored at the given address
-	 * @throws IOException
+	 * @throws IOException if the underlying file operation throws it
 	 */
 	public byte[] read ( long address ) throws IOException
 	{
@@ -232,9 +232,9 @@ public class BlockFile
 	 * NOTE: It's critical that no other methods on this object are called until
 	 * you're finished reading the stream.
 	 * <p>
-	 * @param address
+	 * @param address a 0-based block index
 	 * @return a stream to read
-	 * @throws IOException
+	 * @throws IOException if the underlying file operation throws it
 	 */
 	public InputStream readToStream ( long address ) throws IOException
 	{
@@ -256,9 +256,9 @@ public class BlockFile
 	 * In clear files, the operation seeks to the end of the existing block
 	 * chain and appends the new data.
 	 * 
-	 * @param address
-	 * @param bytes
-	 * @throws IOException
+	 * @param address a 0-based block index
+	 * @param bytes the data to append
+	 * @throws IOException if the underlying file operation throws it
 	 */
 	public void append ( long address, byte[] bytes ) throws IOException
 	{
@@ -283,9 +283,9 @@ public class BlockFile
 
 	/**
 	 * Overwrite the existing byte array at 'address' with the given byte array.
-	 * @param address
-	 * @param bytes
-	 * @throws IOException
+	 * @param address a 0-based block index
+	 * @param bytes the data to overwrite the block with
+	 * @throws IOException if the underlying file operation throws it
 	 */
 	public void overwrite ( long address, byte[] bytes ) throws IOException
 	{
@@ -296,9 +296,9 @@ public class BlockFile
 	/**
 	 * Overwrite the existing byte array at 'address' with bytes from the given
 	 * input stream.
-	 * @param address
-	 * @param bytes
-	 * @throws IOException
+	 * @param address a 0-based block index
+	 * @param bytes the data to overwrite the block with
+	 * @throws IOException if the underlying file operation throws it
 	 */
 	public void overwrite ( long address, InputStream bytes ) throws IOException
 	{
@@ -309,8 +309,8 @@ public class BlockFile
 
 	/**
 	 * Delete the byte array at 'address'.
-	 * @param address
-	 * @throws IOException
+	 * @param address a 0-based block index
+	 * @throws IOException if the underlying file operation throws it
 	 */
 	public void delete ( long address ) throws IOException
 	{

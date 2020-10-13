@@ -33,8 +33,8 @@ public class JsonEval
 	 * Evaluate an expression against a JSON structure. If the expression refers to a non-existent
 	 * node, null is returned.
 	 *  
-	 * @param root
-	 * @param expression
+	 * @param root the root JSON document
+	 * @param expression an expression to evaluate
 	 * @return a JSON element or a primitive
 	 */
 	public static Object eval ( JSONObject root, String expression )
@@ -58,9 +58,9 @@ public class JsonEval
 	/**
 	 * Evaluate an expression against a JSON structure, using a default value if the referenced value
 	 * doesn't exist.
-	 * @param root
-	 * @param expression
-	 * @param defval
+	 * @param root the root JSON document
+	 * @param expression an expression to evaluate
+	 * @param defval the value to use if the expression evals to null
 	 * @return a JSON value or the default provided
 	 */
 	public static String eval ( JSONObject root, String expression, String defval )
@@ -72,8 +72,8 @@ public class JsonEval
 	/**
 	 * Evaluate the given expression against the given root JSON object and return 
 	 * a string representation. If the evaluation is null, an empty string is returned.
-	 * @param root
-	 * @param expression
+	 * @param root the root JSON document
+	 * @param expression an expression to evaluate
 	 * @return a string
 	 */
 	public static String evalToString ( JSONObject root, String expression )
@@ -89,8 +89,8 @@ public class JsonEval
 	 * the evaluation results in a JSON boolean, the value is returned. Anything else
 	 * is converted to a string (via toString) and converted to a boolean via
 	 * rrConvertor.convertToBooleanBroad
-	 * @param root
-	 * @param expression
+	 * @param root the root JSON document
+	 * @param expression an expression to evaluate
 	 * @return true or false
 	 */
 	public static boolean evalToBoolean ( JSONObject root, String expression )
@@ -111,9 +111,9 @@ public class JsonEval
 	 * and then converted to an integer via rrConvertor.convertToInt with the default
 	 * value as the default.
 	 * 
-	 * @param root
-	 * @param expression
-	 * @param defaultValue
+	 * @param root the root JSON document
+	 * @param expression an expression to evaluate
+	 * @param defaultValue the default int value to use if the evaluation results in null
 	 * @return an integer
 	 */
 	public static int evalToInt ( JSONObject root, String expression, int defaultValue )
@@ -134,9 +134,9 @@ public class JsonEval
 	 * and then converted to a dboule via rrConvertor.convertToDouble with the default
 	 * value as the default.
 	 * 
-	 * @param root
-	 * @param expression
-	 * @param defaultValue
+	 * @param root the root JSON document
+	 * @param expression an expression to evaluate
+	 * @param defaultValue the default double value to use if the evaluation results in null
 	 * @return a double
 	 */
 	public static double evalToDouble ( JSONObject root, String expression, double defaultValue )
@@ -155,8 +155,8 @@ public class JsonEval
 	 * an object. If the evaluation is null, an empty object is returned. If the value
 	 * is not an object, IllegalArgumentException is thrown
 	 * 
-	 * @param root
-	 * @param expression
+	 * @param root the root JSON document
+	 * @param expression an expression to evaluate
 	 * @return an object, which is empty if none exists at the expression
 	 */
 	public static JSONObject evalToObject ( JSONObject root, String expression ) throws IllegalArgumentException
@@ -175,8 +175,8 @@ public class JsonEval
 	 * an array. If the evaluation is null, an empty array is returned. If the value
 	 * is not an array, IllegalArgumentException is thrown
 	 * 
-	 * @param root
-	 * @param expression
+	 * @param root the root JSON document
+	 * @param expression an expression to evaluate
 	 * @return an object, which is empty if none exists at the expression
 	 */
 	public static JSONArray evalToArray ( JSONObject root, String expression ) throws IllegalArgumentException
@@ -192,8 +192,8 @@ public class JsonEval
 
 	/**
 	 * substitute any occurrence of ${&lt;expr&gt;} with the evaluation of that expression 
-	 * @param sourceString
-	 * @param root
+	 * @param sourceString the initial string
+	 * @param root the root JSON document
 	 * @return a string
 	 */
 	public static String substitute ( String sourceString, JSONObject root )

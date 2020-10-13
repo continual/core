@@ -100,18 +100,18 @@ public abstract class SimpleCommand implements Command
 
 	/**
 	 * Override this to run the command. 
-	 * @param workspace
-	 * @param p
-	 * @param outTo
+	 * @param workspace the console workspace
+	 * @param p command line preferences
+	 * @param outTo the output stream for user feedback
 	 * @return true to continue, false to exit
-	 * @throws UsageException 
-	 * @throws NvReadable.MissingReqdSettingException 
+	 * @throws UsageException if the command is used incorrectly
+	 * @throws NvReadable.MissingReqdSettingException  if a required setting is missing from the command
 	 */
 	protected abstract ConsoleLooper.InputResult execute ( HashMap<String,Object> workspace, CmdLinePrefs p, PrintStream outTo ) throws UsageException, MissingReqdSettingException;
 
 	/**
 	 * override this to specify arguments for the command
-	 * @param clp
+	 * @param clp the command line parser
 	 */
 	protected void setupParser ( CmdLineParser clp ) {}
 

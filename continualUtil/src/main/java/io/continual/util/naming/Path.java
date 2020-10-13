@@ -27,7 +27,7 @@ public class Path implements Comparable<Path>
 	/**
 	 * Construct a path from a string. The path string must be absolute -- that is,
 	 * it must start with a path separator.
-	 * @param path
+	 * @param path a path
 	 * @return a Path
 	 */
 	public static Path fromString ( String path )
@@ -46,6 +46,7 @@ public class Path implements Comparable<Path>
 
 	/**
 	 * Get the unique name for this path as a resource
+	 * @return the unique name for this path as a resource
 	 */
 	public String getId ()
 	{
@@ -88,7 +89,7 @@ public class Path implements Comparable<Path>
 
 	/**
 	 * Does this full path start with the given text?
-	 * @param text
+	 * @param text the text 
 	 * @return true if the path starts with the given text
 	 */
 	public boolean startsWith ( String text )
@@ -98,7 +99,7 @@ public class Path implements Comparable<Path>
 
 	/**
 	 * Is this path contained by the given path?
-	 * @param parentPath
+	 * @param parentPath the parent path
 	 * @return true if this path is equal to or contained by the given path
 	 */
 	public boolean startsWith ( Path parentPath )
@@ -111,7 +112,7 @@ public class Path implements Comparable<Path>
 
 	/**
 	 * Make a child item's path given this item and a child name.
-	 * @param name
+	 * @param name the name of the child item
 	 * @return the child's path
 	 */
 	public Path makeChildItem ( Name name )
@@ -121,7 +122,7 @@ public class Path implements Comparable<Path>
 
 	/**
 	 * Make the given path a path below the current path.
-	 * @param childPath
+	 * @param childPath the path of the child item
 	 * @return a new path
 	 */
 	public Path makeChildPath ( Path childPath )

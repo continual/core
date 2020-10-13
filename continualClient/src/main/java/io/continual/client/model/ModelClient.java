@@ -18,7 +18,7 @@ public interface ModelClient
 	 * @param acctId
 	 * @return a list of readable models
 	 * @throws IOException 
-	 * @throws HttpException 
+	 * @throws ModelServiceException 
 	 */
 	List<String> getModels ( String acctId ) throws IOException, ModelServiceException;
 

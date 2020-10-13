@@ -32,9 +32,9 @@ public class StringUtils
 	 * Return s, up to the first occurrence of delim. If delim does not occur, s
 	 * is returned in full.
 	 * 
-	 * @param s
-	 * @param delim
-	 * @return
+	 * @param s original string
+	 * @param delim the delimiter
+	 * @return s, up to the first occurrence of delim
 	 */
 	public static String substringTo ( String s, char delim )
 	{

@@ -20,7 +20,7 @@ public interface ExprDataSource
 {
 	/**
 	 * get the value of an object given a label
-	 * @param label
+	 * @param label the data value's key
 	 * @return a data object
 	 */
 	Object eval ( String label );

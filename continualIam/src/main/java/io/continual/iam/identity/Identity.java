@@ -36,14 +36,15 @@ public interface Identity extends UserDataHolder
 	/**
 	 * Is this identity enabled?
 	 * @return true if enabled
+	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	boolean isEnabled () throws IamSvcException;
 
 	/**
 	 * Enable or disable the user. When disabled, authentication will fail.
 	 * 
-	 * @param enable
-	 * @throws IamSvcException
+	 * @param enable if true, enable the user 
+	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	void enable ( boolean enable ) throws IamSvcException;
 
@@ -52,8 +53,8 @@ public interface Identity extends UserDataHolder
 	 * to store the password indirectly (e.g. via salted hash), but this is not enforced
 	 * at the interface layer.
 	 * 
-	 * @param password
-	 * @throws IamSvcException
+	 * @param password a password
+	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	void setPassword ( String password ) throws IamSvcException;
 
@@ -62,34 +63,33 @@ public interface Identity extends UserDataHolder
 	 * distributed to the user via email as a link. The user acknowledges the password
 	 * change request by clicking the link. The link handler then calls completePasswordReset().
 	 * 
-	 * @param secondsUntilExpire
-	 * @param nonce
+	 * @param secondsUntilExpire amount of time until the generated tag expires
+	 * @param nonce arbitrary user data used to create the tag
 	 * @return a unique tag 
-	 * @throws IamSvcException
-	 * @throws IamIdentityDoesNotExist
-	 * @throws IamBadRequestException
+	 * @throws IamSvcException when the call cannot be completed due to a service error
+	 * @throws IamIdentityDoesNotExist when the identity doesn't exist
+	 * @throws IamBadRequestException when the request is now allowed
 	 */
 	String requestPasswordReset ( long secondsUntilExpire, String nonce ) throws IamSvcException, IamBadRequestException;
 
 	/**
 	 * Create an API key for this user.
 	 * @return an API key
-	 * @throws IamSvcException
-	 * @throws IamSvcException
+	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	ApiKey createApiKey () throws IamSvcException;
 
 	/**
 	 * Load the set of API keys for this user.
 	 * @return a set of 0 or more API keys
-	 * @throws IamSvcException
+	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	Collection<String> loadApiKeysForUser () throws IamSvcException;
 
 	/**
 	 * Delete an API key from the user.
 	 * @param key
-	 * @throws IamSvcException
+	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	void deleteApiKey ( ApiKey key ) throws IamSvcException;
 	
@@ -109,7 +109,7 @@ public interface Identity extends UserDataHolder
 	 * Get a group by ID if the user is a member. Otherwise, null is returned.
 	 * @param groupId
 	 * @return a group or null if not a member
-	 * @throws IamSvcException 
+	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	Group getGroup ( String groupId ) throws IamSvcException;
 }

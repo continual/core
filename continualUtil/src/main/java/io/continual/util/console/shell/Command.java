@@ -28,7 +28,9 @@ public interface Command
 
 	/**
 	 * check the arguments provided
-	 * @param args
+	 * @param p the preferences structure
+	 * @param args the user's arguments
+	 * @throws UsageException if the call does not conform to correct usage
 	 */
 	void checkArgs ( NvReadable p, String[] args ) throws UsageException;
 
@@ -43,9 +45,10 @@ public interface Command
 	String getHelp ();
 
 	/**
-	 * @param outTo
+	 * @param workspace the data workspace for this program
+	 * @param outTo the output stream for commands
 	 * @return an input result
-	 * @throws UsageException 
+	 * @throws UsageException if the call does not conform to correct usage
 	 */
 	ConsoleLooper.InputResult execute ( HashMap<String,Object> workspace, PrintStream outTo ) throws UsageException;
 }

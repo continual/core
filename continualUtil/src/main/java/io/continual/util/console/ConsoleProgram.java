@@ -16,7 +16,6 @@
 package io.continual.util.console;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -28,14 +27,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.continual.util.nv.NvReadable;
+import io.continual.util.nv.NvReadable.InvalidSettingValueException;
+import io.continual.util.nv.NvReadable.LoadException;
+import io.continual.util.nv.NvReadable.MissingReqdSettingException;
 import io.continual.util.nv.NvWriteable;
 import io.continual.util.nv.impl.nvEnvProperties;
 import io.continual.util.nv.impl.nvInstallTypeWrapper;
 import io.continual.util.nv.impl.nvReadableStack;
 import io.continual.util.nv.impl.nvWriteableTable;
-import io.continual.util.nv.NvReadable.InvalidSettingValueException;
-import io.continual.util.nv.NvReadable.LoadException;
-import io.continual.util.nv.NvReadable.MissingReqdSettingException;
 
 /**
  * A console program runs on the command line.
@@ -68,8 +67,8 @@ public class ConsoleProgram
 	{
 		/**
 		 * setup the looper and return true to continue. Called once.
-		 * @param prefs
-		 * @param cmdLine
+		 * @param prefs the preferences structure
+		 * @param cmdLine command line preferences
 		 * @return true/false
 		 */
 		boolean setup ( NvReadable prefs, CmdLinePrefs cmdLine );
@@ -78,13 +77,14 @@ public class ConsoleProgram
 		 * Run a loop iteration, return true to continue, false to exit. (Note 
 		 * that nothing requires this implementation to do a small amount of
 		 * work vs. lengthy processing.)
+		 * @param prefs the preferences structure
 		 * @return true to continue, false to exit
 		 */
 		boolean loop ( NvReadable prefs );
 
 		/**
 		 * teardown the looper. called once.
-		 * @param prefs
+		 * @param prefs the preferences structure
 		 */
 		void teardown ( NvReadable prefs );
 	}
@@ -155,7 +155,8 @@ public class ConsoleProgram
 
 	/**
 	 * Override this to setup default settings for the program. 
-	 * @param pt
+	 * @param pt a writeable preferences table in which to add defaults
+	 * @return this console program
 	 */
 	protected ConsoleProgram setupDefaults ( NvWriteable pt ) { return this; }
 
@@ -166,7 +167,8 @@ public class ConsoleProgram
 	 * a key and having a key as a default value. When stacked, if the command line parser
 	 * states that it has a key, then any explicit setting further down the stack will not
 	 * be used.
-	 * @param p
+	 * @param p a command line parser
+	 * @return this console program
 	 */
 	protected ConsoleProgram setupOptions ( CmdLineParser p ) { return this; }
 
@@ -174,9 +176,10 @@ public class ConsoleProgram
 	 * Override this to load additional configuration. If a non-null config is returned,
 	 * it's inserted into the preferences stack between the default settings and the command line
 	 * settings. That way, the command line arguments have precedence.
-	 * @param currentPrefs
-	 * @throws NvReadable.LoadException 
-	 * @throws NvReadable.MissingReqdSettingException 
+	 * @param currentPrefs the current preferences
+	 * @return the updated configuration
+	 * @throws NvReadable.LoadException if the system cannot load additional preferences
+	 * @throws NvReadable.MissingReqdSettingException if a required setting is missing
 	 */
 	protected NvReadable loadAdditionalConfig ( NvReadable currentPrefs ) throws LoadException, MissingReqdSettingException { return null; }
 
@@ -186,8 +189,9 @@ public class ConsoleProgram
 	 * @param p settings
 	 * @param cmdLine command line values
 	 * @return non-null to continue, null to exit
-	 * @throws NvReadable.MissingReqdSettingException
-	 * @throws NvReadable.InvalidSettingValueException 
+	 * @throws NvReadable.MissingReqdSettingException if a required setting is missing
+	 * @throws NvReadable.InvalidSettingValueException  if a setting is invalid
+	 * @throws StartupFailureException if the program couldn't start
 	 */
 	protected Looper init ( NvReadable p, CmdLinePrefs cmdLine ) throws MissingReqdSettingException, InvalidSettingValueException, StartupFailureException { return null; }
 
@@ -198,11 +202,10 @@ public class ConsoleProgram
 
 	/**
 	 * expand a file argument ("*" matches, etc.)
-	 * @param arg
-	 * @return
-	 * @throws FileNotFoundException
+	 * @param arg a file argument, possibly with wildcards
+	 * @return a list of files that match the argument
 	 */
-	protected List<File> expandFileArg ( String arg ) throws FileNotFoundException
+	protected List<File> expandFileArg ( String arg ) 
 	{
 		final LinkedList<File> fileList=  new LinkedList<File> ();
 

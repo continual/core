@@ -19,7 +19,7 @@ public interface CommandList
 {
 	/**
 	 * return the command for a text command, or null
-	 * @param cmd
+	 * @param cmd the command string
 	 * @return information about the command, or null
 	 */
 	Command getCommandFor ( String cmd );

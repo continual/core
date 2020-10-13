@@ -57,7 +57,7 @@ public class CsvInspector
 	 * examine some lines. the call will return true if the inspector has 
 	 * a reasonable idea of what the format looks like. If false, there's no
 	 * need to call other methods. 
-	 * @param is
+	 * @param is an input stream
 	 * @return true if the input sample had enough data
 	 */
 	public boolean readStreamForSample ( InputStream is )
@@ -99,7 +99,7 @@ public class CsvInspector
 	 * examine some lines. the call will return true if the inspector has 
 	 * a reasonable idea of what the format looks like. If false, there's no
 	 * need to call other methods. 
-	 * @param lines
+	 * @param lines sample lines
 	 * @return true if the input sample had enough data
 	 */
 	public boolean inputSample ( List<String> lines )

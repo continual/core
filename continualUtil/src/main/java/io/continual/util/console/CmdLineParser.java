@@ -39,7 +39,8 @@ public class CmdLineParser
 	 * Register a boolean option. 
 	 * @param word e.g. "force"
 	 * @param singleChar e.g. "f". 
-	 * @param defValue
+	 * @param defValue the default value for this option
+	 * @return this command line parser
 	 */
 	public CmdLineParser registerOnOffOption ( String word, Character singleChar, boolean defValue )
 	{
@@ -69,6 +70,7 @@ public class CmdLineParser
 	 * @param singleChar a single char representation of this option, e.g. "v". Can be null.
 	 * @param defValue the default value for the option if none is provided
 	 * @param allowed if not null, a limited range of values for the option
+	 * @return this command line parser
 	 */
 	public CmdLineParser registerOptionWithValue ( String word, String singleChar, String defValue, String[] allowed )
 	{
@@ -94,6 +96,7 @@ public class CmdLineParser
 
 	/**
 	 * allows no file arguments
+	 * @return this command line parser
 	 */
 	public CmdLineParser requireNoFileArguments ()
 	{
@@ -102,6 +105,7 @@ public class CmdLineParser
 
 	/**
 	 * allows exactly one file argument
+	 * @return this command line parser
 	 */
 	public CmdLineParser requireOneFileArgument ()
 	{
@@ -110,7 +114,8 @@ public class CmdLineParser
 
 	/**
 	 * sets the range for required file args from the given min to no max
-	 * @param min
+	 * @param min the minimum number of file arguments
+	 * @return this command line parser
 	 */
 	public CmdLineParser requireMinFileArguments ( int min )
 	{
@@ -119,7 +124,8 @@ public class CmdLineParser
 
 	/**
 	 * require a specific number of file arguments
-	 * @param exactly
+	 * @param exactly the exact number of file arguments
+	 * @return this command line parser
 	 */
 	public CmdLineParser requireFileArguments ( int exactly )
 	{
@@ -130,6 +136,7 @@ public class CmdLineParser
 	 * set a range for file arg count for the parser 
 	 * @param min 0 or higher
 	 * @param max 0 or higher, use Integer.MAX_VALUE for no max
+	 * @return this command line parser
 	 */
 	public CmdLineParser requireFileArguments ( int min, int max )
 	{
@@ -140,7 +147,7 @@ public class CmdLineParser
 	
 	/**
 	 * find out if an option has a value (or is just on/off)
-	 * @param optionWord
+	 * @param optionWord the option word
 	 * @return the value for the option
 	 */
 	public boolean hasArg ( String optionWord )
@@ -150,7 +157,7 @@ public class CmdLineParser
 
 	/**
 	 * find out if a boolean option has been set
-	 * @param optionWord
+	 * @param optionWord the option word
 	 * @return true if the value for the option is set
 	 */
 	public boolean isSet ( String optionWord )
@@ -161,7 +168,7 @@ public class CmdLineParser
 
 	/**
 	 * get the default value for a given option
-	 * @param optionWord
+	 * @param optionWord the option word
 	 * @return the default value for the option
 	 */
 	public String getArgFor ( String optionWord )
@@ -172,7 +179,9 @@ public class CmdLineParser
 
 	/**
 	 * reads command line arguments
-	 * @param args
+	 * @param args the command line arguments
+	 * @return this command line parser
+	 * @throws UsageException if the arguments don't meet the requirements
 	 */
 	public CmdLinePrefs processArgs ( String[] args ) throws UsageException
 	{

@@ -271,8 +271,8 @@ public class JsonUtil
 
 	/**
 	 * Sort a JSON array of JSON objects using the value retrieved by the value expression.
-	 * @param a
-	 * @param valueExpression
+	 * @param a an array
+	 * @param valueExpression an expression
 	 */
 	public static void sortArrayOfObjects ( final JSONArray a, final String valueExpression )
 	{
@@ -281,9 +281,9 @@ public class JsonUtil
 
 	/**
 	 * Sort a JSON array of JSON objects using the value retrieved by the value expression.
-	 * @param a
-	 * @param valueExpression
-	 * @param reverse
+	 * @param a an array
+	 * @param valueExpression an expression
+	 * @param reverse if true, reverse the array
 	 */
 	public static void sortArrayOfObjects ( final JSONArray a, final String valueExpression, boolean reverse )
 	{
@@ -344,8 +344,8 @@ public class JsonUtil
 	/**
 	 * If the "local" object contains "$ref", return the referenced object, else 
 	 * return the original. If the reference is invalid (the target does not exist), return null.
-	 * @param topLevel
-	 * @param local
+	 * @param topLevel the top-level document
+	 * @param local the object which may contain $ref
 	 * @return an object or null if the reference is given but does not resolve to an object
 	 */
 	public static JSONObject resolveRef ( JSONObject topLevel, JSONObject local ) throws JSONException
@@ -407,7 +407,7 @@ public class JsonUtil
 	/**
 	 * Write a string representation of a json object with a consistent format. Two
 	 * objects with the same keys and values produce the same string each time.
-	 * @param o
+	 * @param o the object to write
 	 * @return a string representation of the object
 	 */
 	public static String writeConsistently ( JSONObject o )
@@ -440,7 +440,7 @@ public class JsonUtil
 
 	/**
 	 * Hash a json object
-	 * @param o a json object
+	 * @param o a json object 
 	 * @return a hash code for this object
 	 */
 	public static int hash ( JSONObject o )

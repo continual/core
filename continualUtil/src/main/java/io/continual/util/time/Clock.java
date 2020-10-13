@@ -37,7 +37,7 @@ public class Clock
 
 	/**
 	 * Provided for testing only. 
-	 * @param c
+	 * @param c the replacement clock
 	 */
 	public static void replaceClock ( Clock c )
 	{

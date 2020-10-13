@@ -42,7 +42,7 @@ public interface Model extends ModelObjectContainer, JsonSerialized
 	/**
 	 * Does the given path exist?
 	 * @param context
-	 * @param id
+	 * @param objectPath
 	 * @return true if the path exists (for this user)
 	 * @throws ModelServiceIoException
 	 * @throws ModelServiceRequestException
@@ -52,7 +52,7 @@ public interface Model extends ModelObjectContainer, JsonSerialized
 	/**
 	 * Load an object
 	 * @param context
-	 * @param id
+	 * @param objectPath
 	 * @return an object
 	 * @throws ModelItemDoesNotExistException
 	 * @throws ModelServiceIoException
@@ -63,9 +63,8 @@ public interface Model extends ModelObjectContainer, JsonSerialized
 	/**
 	 * Store the given object at the given path
 	 * @param context
-	 * @param id
+	 * @param objectPath
 	 * @param o
-	 * @param metadata
 	 * @throws ModelServiceRequestException
 	 * @throws ModelServiceIoException
 	 */
@@ -74,9 +73,8 @@ public interface Model extends ModelObjectContainer, JsonSerialized
 	/**
 	 * Store the given JSON as an object at the given path
 	 * @param context
-	 * @param id
+	 * @param objectPath
 	 * @param jsonData
-	 * @param metadata
 	 * @throws ModelServiceRequestException
 	 * @throws ModelServiceIoException
 	 */
@@ -85,9 +83,8 @@ public interface Model extends ModelObjectContainer, JsonSerialized
 	/**
 	 * Update an existing object. If the object doesn't exist, it's created.
 	 * @param context
-	 * @param id
+	 * @param objectPath
 	 * @param o the object update tool
-	 * @param metadata
 	 * @throws ModelServiceRequestException
 	 * @throws ModelServiceIoException
 	 */
@@ -96,7 +93,7 @@ public interface Model extends ModelObjectContainer, JsonSerialized
 	/**
 	 * Remove (delete) an object from the model
 	 * @param context
-	 * @param id
+	 * @param objectPath
 	 * @return true if and only if an object was removed
 	 * @throws ModelServiceRequestException 
 	 * @throws ModelServiceIoException 
@@ -105,6 +102,7 @@ public interface Model extends ModelObjectContainer, JsonSerialized
 
 	/**
 	 * Relate two objects with a relationship in the graph. If the relation already exists, the request has no effect.
+	 * @param context
 	 * @param reln
 	 * @throws ModelServiceIoException
 	 * @throws ModelServiceRequestException
@@ -113,6 +111,7 @@ public interface Model extends ModelObjectContainer, JsonSerialized
 
 	/**
 	 * Relate two objects with a relationship in the graph. If the relation already exists, the request has no effect.
+	 * @param context
 	 * @param relns
 	 * @throws ModelServiceIoException
 	 * @throws ModelServiceRequestException
@@ -121,6 +120,7 @@ public interface Model extends ModelObjectContainer, JsonSerialized
 
 	/**
 	 * Remove a relation between two objects.
+	 * @param context
 	 * @param reln
 	 * @return true if the relationship existed 
 	 * @throws ModelServiceIoException
@@ -130,6 +130,7 @@ public interface Model extends ModelObjectContainer, JsonSerialized
 
 	/**
 	 * Get all related objects from a given object
+	 * @param context
 	 * @param forObject
 	 * @return a list of 0 or more relations
 	 * @throws ModelServiceIoException
@@ -139,6 +140,7 @@ public interface Model extends ModelObjectContainer, JsonSerialized
 
 	/**
 	 * Get inbound related objects from a given object
+	 * @param context
 	 * @param forObject
 	 * @return a list of 0 or more relations, with getTo set to forObject
 	 * @throws ModelServiceIoException
@@ -148,6 +150,7 @@ public interface Model extends ModelObjectContainer, JsonSerialized
 
 	/**
 	 * Get outbound related objects from a given object
+	 * @param context
 	 * @param forObject
 	 * @return a list of 0 or more relations, with getFrom set to forObject
 	 * @throws ModelServiceIoException
@@ -157,6 +160,7 @@ public interface Model extends ModelObjectContainer, JsonSerialized
 
 	/**
 	 * Get inbound related objects with a given name from a given object
+	 * @param context
 	 * @param forObject
 	 * @param named
 	 * @return a list of 0 or more relations, with getTo set to forObject and getName set to named
@@ -167,6 +171,7 @@ public interface Model extends ModelObjectContainer, JsonSerialized
 
 	/**
 	 * Get outbound related objects with a given name from a given object
+	 * @param context
 	 * @param forObject
 	 * @param named
 	 * @return a list of 0 or more relations, with getFrom set to forObject and getName set to named

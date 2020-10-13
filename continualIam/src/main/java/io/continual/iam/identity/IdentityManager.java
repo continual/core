@@ -36,9 +36,9 @@ public interface IdentityManager<I extends Identity> extends IdentityDb<I>
 {
 	/**
 	 * Find out if a given user exists.
-	 * @param userId
+	 * @param userId a user ID
 	 * @return true if the user exists in the identity manager.
-	 * @throws IamSvcException
+	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	boolean userExists ( String userId ) throws IamSvcException;
 
@@ -46,15 +46,15 @@ public interface IdentityManager<I extends Identity> extends IdentityDb<I>
 	 * Find out if a given user or alias exists.
 	 * @param userIdOrAlias
 	 * @return true if the user exists by userId or alias in the identity manager.
-	 * @throws IamSvcException
+	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	boolean userOrAliasExists ( String userIdOrAlias ) throws IamSvcException;
 
 	/**
 	 * Load a user from the identity manager. 
-	 * @param userId 
+	 * @param userId a user ID
 	 * @return a user or null if the user doesn't exist
-	 * @throws IamSvcException
+	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	I loadUser ( String userId ) throws IamSvcException;
 
@@ -62,15 +62,15 @@ public interface IdentityManager<I extends Identity> extends IdentityDb<I>
 	 * Load a user from the identity manager. 
 	 * @param userIdOrAlias the actual userId or an alias
 	 * @return a user or null if the user doesn't exist
-	 * @throws IamSvcException
+	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	I loadUserOrAlias ( String userIdOrAlias ) throws IamSvcException;
 
 	/**
 	 * Find users with a user ID that starts with the given string
-	 * @param startingWith
+	 * @param startingWith a prefix for users
 	 * @return a list of 0 or more matching user IDs
-	 * @throws IamSvcException
+	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	List<String> findUsers ( String startingWith ) throws IamSvcException;
 
@@ -78,24 +78,24 @@ public interface IdentityManager<I extends Identity> extends IdentityDb<I>
 	 * Create a new user in the identity manager. The username for this user
 	 * defaults to the userId value provided here.
 	 * 
-	 * @param userId
+	 * @param userId a user ID
 	 * @return the new user
 	 * @throws IamIdentityExists if the user exists
-	 * @throws IamSvcException
+	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	I createUser ( String userId ) throws IamIdentityExists, IamSvcException;
 
 	/**
 	 * Create a new anonymous user in the identity manager. 
 	 * @return a new anonymous user 
-	 * @throws IamSvcException
+	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	I createAnonymousUser () throws IamSvcException;
 
 	/**
 	 * Delete a user from the identity manager.
-	 * @param userId
-	 * @throws IamSvcException
+	 * @param userId a user ID
+	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	void deleteUser ( String userId ) throws IamSvcException;
 
@@ -104,29 +104,29 @@ public interface IdentityManager<I extends Identity> extends IdentityDb<I>
 	 * multiple aliases (username, email, mobile phone, etc.). Tracking them
 	 * beyond being references to an identity record is done at the application level.
 	 * 
-	 * @param userId
-	 * @param alias
-	 * @throws IamSvcException
-	 * @throws IamBadRequestException 
+	 * @param userId a user ID
+	 * @param alias an alias
+	 * @throws IamSvcException when the call cannot be completed due to a service error
+	 * @throws IamBadRequestException if the request is illegal
 	 */
 	void addAlias ( String userId, String alias ) throws IamSvcException, IamBadRequestException;
 	
 	/**
 	 * Remove a username/alias from the database. A userId may not be removed
 	 * (disable the user instead).
-	 * @param alias
+	 * @param alias an alias
 	 * @throws IamBadRequestException If a userId is provided.
-	 * @throws IamSvcException
+	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	void removeAlias ( String alias ) throws IamBadRequestException, IamSvcException;
 
 	/**
 	 * Get the aliases for a userId. The result must be non-null but may be empty. The userId
 	 * is not included in the list.
-	 * @param userId
+	 * @param userId a user ID
 	 * @return a collection of 0 or more aliases for a userId
-	 * @throws IamSvcException
-	 * @throws IamIdentityDoesNotExist 
+	 * @throws IamSvcException when the call cannot be completed due to a service error
+	 * @throws IamIdentityDoesNotExist if the identity does not exist
 	 */
 	Collection<String> getAliasesFor ( String userId ) throws IamSvcException, IamIdentityDoesNotExist;
 	
@@ -136,18 +136,18 @@ public interface IdentityManager<I extends Identity> extends IdentityDb<I>
 	 * {@link Identity#requestPasswordReset(long, String) requestPasswordReset}
 	 * for details on creating a password reset tag.
 	 * 
-	 * @param tag
-	 * @param newPassword
+	 * @param tag a tag
+	 * @param newPassword a new password
 	 * @return true if the password was updated successfully.
-	 * @throws IamSvcException
+	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	boolean completePasswordReset ( String tag, String newPassword ) throws IamSvcException;
 
 	/**
 	 * Load an API key record based on the API key ID.
-	 * @param apiKey
+	 * @param apiKey an API key
 	 * @return an API key or null if it doesn't exist
-	 * @throws IamSvcException
+	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	ApiKey loadApiKeyRecord ( String apiKey ) throws IamSvcException;
 
@@ -156,7 +156,7 @@ public interface IdentityManager<I extends Identity> extends IdentityDb<I>
 	 * users. For larger scale, this call may throw an IamSvcException signaling that
 	 * the underlying database won't return a user list. 
 	 * @return a collection of user Ids
-	 * @throws IamSvcException
+	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	Collection<String> getAllUsers () throws IamSvcException;
 	
@@ -164,6 +164,8 @@ public interface IdentityManager<I extends Identity> extends IdentityDb<I>
 	 * Load all users in this identity manager. Clearly not suitable for systems beyond a
 	 * few thousand users. For larger scale, this call may throw an IamSvcException
 	 * signaling that the underlying database won't return a user list.
+	 * @return a map of user ID to identity
+	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	Map<String,I> loadAllUsers () throws IamSvcException;
 }

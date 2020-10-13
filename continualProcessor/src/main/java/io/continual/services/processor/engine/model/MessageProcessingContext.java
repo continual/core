@@ -69,7 +69,7 @@ public interface MessageProcessingContext
 
 	/**
 	 * Get a named source from the program
-	 * @param sourceName
+	 * @param srcName the name of a source
 	 * @return a source, or null if none by that name
 	 */
 	Source getSource ( String srcName );

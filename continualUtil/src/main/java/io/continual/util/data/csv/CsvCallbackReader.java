@@ -39,7 +39,7 @@ public class CsvCallbackReader
 	{
 		/**
 		 * handle a CSV line
-		 * @param fields
+		 * @param fields the field values for a record
 		 * @return true to continue
 		 */
 		boolean handler ( Map<String,String> fields );
