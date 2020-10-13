@@ -17,6 +17,8 @@
 package io.continual.restHttp;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -39,6 +41,7 @@ import io.continual.metrics.MetricsCatalog;
 import io.continual.metrics.MetricsService;
 import io.continual.services.Service;
 import io.continual.services.ServiceContainer;
+import io.continual.util.data.StreamTools;
 
 public class HttpService implements Service
 {
@@ -55,6 +58,8 @@ public class HttpService implements Service
 	private final String kSetting_KeystorePassword = "password";
 	private final String kDefault_KeystorePassword = "changeme";
 
+	private final String kSetting_KeystorePasswordFile = "passwordFile";
+	
 	private final String kSetting_Port = "port";
 
 	public HttpService ( ServiceContainer sc, JSONObject settings ) throws BuildFailure
@@ -150,9 +155,9 @@ public class HttpService implements Service
 				{
 					final Connector connector = new Connector ( Http11NioProtocol.class.getName () );
 	
-					final JSONObject keystore = httpsConfig.getJSONObject ( kSetting_Keystore );
+					final JSONObject keystoreConfig = httpsConfig.getJSONObject ( kSetting_Keystore );
 	
-					String keystoreFilename = keystore.getString ( kSetting_KeystoreFile );
+					String keystoreFilename = keystoreConfig.getString ( kSetting_KeystoreFile );
 					final File keystoreFile = new File ( keystoreFilename );
 					if ( !keystoreFile.isAbsolute () )
 					{
@@ -163,12 +168,33 @@ public class HttpService implements Service
 						keystoreFilename = file.getAbsolutePath ();
 						log.info ( "Using absolute path [" + keystoreFilename + "] for keystore." );
 					}
-		
+
+					// the keystore password can be delivered directly in configuration, or loaded from a file
+					String keystorePassword = "";
+					if ( keystoreConfig.has ( kSetting_KeystorePassword ) )
+					{
+						keystorePassword = keystoreConfig.optString ( kSetting_KeystorePassword, kDefault_KeystorePassword );
+					}
+					else if ( keystoreConfig.has ( kSetting_KeystorePasswordFile ) )
+					{
+						final String pwdFileName = keystoreConfig.optString ( kSetting_KeystorePasswordFile, null );
+						final File pwdFile = new File ( pwdFileName );
+						try ( FileInputStream fis = new FileInputStream ( pwdFile ) )
+						{
+							final byte[] pwdData = StreamTools.readBytes ( fis );
+							keystorePassword = new String ( pwdData );
+						}
+						catch ( IOException x )
+						{
+							log.warn ( "There was a problem trying to read {}: {}", pwdFileName, x.getMessage () );
+						}
+					}
+					
 					connector.setScheme ( "https" );
 					connector.setSecure ( true );
 					connector.setAttribute ( "keystoreFile", keystoreFilename );
-					connector.setAttribute ( "keystorePass", keystore.optString ( kSetting_KeystorePassword, kDefault_KeystorePassword ) );
-					connector.setAttribute ( "keyAlias", keystore.optString ( kSetting_KeystoreAlias, kDefault_KeystoreAlias ) );
+					connector.setAttribute ( "keystorePass", keystorePassword );
+					connector.setAttribute ( "keyAlias", keystoreConfig.optString ( kSetting_KeystoreAlias, kDefault_KeystoreAlias ) );
 					connector.setAttribute ( "clientAuth", "false" );
 					connector.setAttribute ( "sslProtocol", "TLS" );
 					connector.setAttribute ( "SSLEnabled", true );
