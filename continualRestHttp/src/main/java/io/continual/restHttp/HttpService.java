@@ -21,6 +21,11 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
@@ -54,6 +59,8 @@ public class HttpService implements Service
 
 	private final String kSetting_KeystoreAlias = "alias";
 	private final String kDefault_KeystoreAlias = "tomcat";
+
+	private final String kSetting_KeystoreAliasScan = "scanForAlias";
 
 	private final String kSetting_KeystorePassword = "password";
 	private final String kDefault_KeystorePassword = "changeme";
@@ -170,10 +177,10 @@ public class HttpService implements Service
 					}
 
 					// the keystore password can be delivered directly in configuration, or loaded from a file
-					String keystorePassword = "";
+					String keystorePassword = kDefault_KeystorePassword;
 					if ( keystoreConfig.has ( kSetting_KeystorePassword ) )
 					{
-						keystorePassword = keystoreConfig.optString ( kSetting_KeystorePassword, kDefault_KeystorePassword );
+						keystorePassword = keystoreConfig.getString ( kSetting_KeystorePassword );
 					}
 					else if ( keystoreConfig.has ( kSetting_KeystorePasswordFile ) )
 					{
@@ -182,19 +189,30 @@ public class HttpService implements Service
 						try ( FileInputStream fis = new FileInputStream ( pwdFile ) )
 						{
 							final byte[] pwdData = StreamTools.readBytes ( fis );
-							keystorePassword = new String ( pwdData );
+							keystorePassword = new String ( pwdData ).trim ();
 						}
 						catch ( IOException x )
 						{
 							log.warn ( "There was a problem trying to read {}: {}", pwdFileName, x.getMessage () );
 						}
 					}
-					
+
+					// the keystore alias can be delivered directly in configuration, or determined by a scan of the keystore
+					String keystoreAlias = kDefault_KeystoreAlias;
+					if ( keystoreConfig.has ( kSetting_KeystoreAlias ) )
+					{
+						keystoreAlias = keystoreConfig.getString ( kSetting_KeystoreAlias );
+					}
+					else if ( keystoreConfig.optBoolean ( kSetting_KeystoreAliasScan, false ) )
+					{
+						keystoreAlias = scanKeystoreForPrivateKey ( keystoreFilename, keystorePassword );
+					}
+
 					connector.setScheme ( "https" );
 					connector.setSecure ( true );
 					connector.setAttribute ( "keystoreFile", keystoreFilename );
 					connector.setAttribute ( "keystorePass", keystorePassword );
-					connector.setAttribute ( "keyAlias", keystoreConfig.optString ( kSetting_KeystoreAlias, kDefault_KeystoreAlias ) );
+					connector.setAttribute ( "keyAlias", keystoreAlias );
 					connector.setAttribute ( "clientAuth", "false" );
 					connector.setAttribute ( "sslProtocol", "TLS" );
 					connector.setAttribute ( "SSLEnabled", true );
@@ -301,4 +319,33 @@ public class HttpService implements Service
 	private final File fWorkDir;
 
 	private static final Logger log = LoggerFactory.getLogger ( HttpService.class );
+
+	private static String scanKeystoreForPrivateKey ( String keystoreFilename, String keystorePassword )
+	{
+		try
+		{
+			log.info ( "Scanning {} for its first private key...", keystoreFilename );
+
+			final KeyStore ks = KeyStore.getInstance ( "JKS" );
+			ks.load ( new FileInputStream ( keystoreFilename ), keystorePassword.toCharArray () );
+
+			log.info ( "Keystore {} loaded...", keystoreFilename );
+
+			final Enumeration<String> enumeration = ks.aliases ();
+			while ( enumeration.hasMoreElements () )
+			{
+				final String alias = enumeration.nextElement ();
+				if ( ks.entryInstanceOf ( alias, KeyStore.PrivateKeyEntry.class ) )
+				{
+					log.info ( "Found private key {}.", alias );
+					return alias;
+				}
+			}
+		}
+		catch ( IOException | KeyStoreException | NoSuchAlgorithmException | CertificateException x )
+		{
+			log.warn ( "Exception inspecting keystore {} for alias: {}", keystoreFilename, x.getMessage () );
+		}
+		return "";
+	}
 }
