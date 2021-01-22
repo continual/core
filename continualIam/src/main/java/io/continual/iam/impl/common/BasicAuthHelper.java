@@ -31,8 +31,8 @@ public class BasicAuthHelper
 	/**
 	 * Build an UsernamePasswordCredential from an inbound HTTP header.
 	 * 
-	 * @param settings 
-	 * @param hr
+	 * @param settings a settings source
+	 * @param hr a header reader to isolate this code from the web technology
 	 * @return username password credential or null if the header is malformed, etc.
 	 */
 	public static UsernamePasswordCredential readUsernamePasswordCredential ( NvReadable settings, HeaderReader hr )

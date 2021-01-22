@@ -31,21 +31,21 @@ public interface IamServiceManager<I extends Identity, G extends Group> extends 
 	/**
 	 * Get the identity manager
 	 * @return the identity manager
-	 * @throws IamSvcException
+	 * @throws IamSvcException if there's a problem in the IAM service
 	 */
 	IdentityManager<I> getIdentityManager () throws IamSvcException;
 
 	/**
 	 * Get the access manager
 	 * @return the access manager
-	 * @throws IamSvcException
+	 * @throws IamSvcException if there's a problem in the IAM service
 	 */
 	AccessManager<G> getAccessManager () throws IamSvcException;
 
 	/**
 	 * Get the tag manager
 	 * @return  the tag manager
-	 * @throws IamSvcException
+	 * @throws IamSvcException if there's a problem in the IAM service
 	 */
 	TagManager getTagManager () throws IamSvcException;
 }

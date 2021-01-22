@@ -44,7 +44,7 @@ public interface IdentityManager<I extends Identity> extends IdentityDb<I>
 
 	/**
 	 * Find out if a given user or alias exists.
-	 * @param userIdOrAlias
+	 * @param userIdOrAlias the user ID or an alias
 	 * @return true if the user exists by userId or alias in the identity manager.
 	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */

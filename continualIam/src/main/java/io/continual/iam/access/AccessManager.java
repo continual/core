@@ -30,6 +30,7 @@ public interface AccessManager<G extends Group> extends AccessDb<G>
 	 * Create a group
 	 * @param groupDesc the group description 
 	 * @return a new group with the given description
+	 * @throws IamGroupExists if the group already exists
 	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	G createGroup ( String groupDesc ) throws IamGroupExists, IamSvcException;
@@ -39,6 +40,7 @@ public interface AccessManager<G extends Group> extends AccessDb<G>
 	 * @param groupId a group ID
 	 * @param groupDesc a group description
 	 * @return a new group with the given id and description
+	 * @throws IamGroupExists if the group already exists
 	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	G createGroup ( String groupId, String groupDesc ) throws IamGroupExists, IamSvcException;
@@ -49,6 +51,7 @@ public interface AccessManager<G extends Group> extends AccessDb<G>
 	 * @param userId a user ID
 	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 * @throws IamIdentityDoesNotExist when the identity doesn't exist
+	 * @throws IamGroupDoesNotExist if the group does not exist
 	 */
 	void addUserToGroup ( String groupId, String userId ) throws IamSvcException, IamIdentityDoesNotExist, IamGroupDoesNotExist;
 
@@ -58,6 +61,7 @@ public interface AccessManager<G extends Group> extends AccessDb<G>
 	 * @param userId a user ID
 	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 * @throws IamIdentityDoesNotExist when the identity doesn't exist
+	 * @throws IamGroupDoesNotExist if the group does not exist
 	 */
 	void removeUserFromGroup ( String groupId, String userId ) throws IamSvcException, IamIdentityDoesNotExist, IamGroupDoesNotExist;
 

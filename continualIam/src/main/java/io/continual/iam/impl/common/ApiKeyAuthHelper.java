@@ -36,9 +36,9 @@ public class ApiKeyAuthHelper
 	/**
 	 * Build an ApiKeyCredential from an inbound HTTP header.
 	 * 
-	 * @param settings 
-	 * @param hr
-	 * @param serviceName
+	 * @param settings a settings source
+	 * @param hr a header reader, to isolate web server tech from this class
+	 * @param serviceName the name of the service fpr signed content
 	 * @return an API key credential, or null if the header is malformed, etc.
 	 */
 	public static ApiKeyCredential readApiKeyCredential ( NvReadable settings, HeaderReader hr, String serviceName )

@@ -27,35 +27,36 @@ public interface UserDataHolder
 {
 	/**
 	 * reload this object from the server
-	 * @throws IamSvcException 
+	 * @throws IamSvcException if there's a problem in the IAM service 
 	 */
 	void reload () throws IamSvcException;
 
 	/**
 	 * Get a named data value.
-	 * @param key
+	 * @param key a key for a user data entry
 	 * @return a value or null
-	 * @throws IamSvcException
+	 * @throws IamSvcException if there's a problem in the IAM service 
 	 */
 	String getUserData ( String key ) throws IamSvcException;
 
 	/**
 	 * Put a named data value.
-	 * @param key
-	 * @param val
-	 * @throws IamSvcException
+	 * @param key a key for the user data entry
+	 * @param val a value to store
+	 * @throws IamSvcException if there's a problem in the IAM service 
 	 */
 	void putUserData ( String key, String val ) throws IamSvcException;
 
 	/**
 	 * Remove a named data value.
+	 * @param key a key for a user data entry
 	 */
 	void removeUserData ( String key ) throws IamSvcException;
 
 	/**
 	 * Get all of the user data
 	 * @return a map of user data
-	 * @throws IamSvcException
+	 * @throws IamSvcException if there's a problem in the IAM service 
 	 */
 	Map<String,String> getAllUserData () throws IamSvcException;
 }

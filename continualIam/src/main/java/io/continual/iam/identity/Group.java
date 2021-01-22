@@ -38,16 +38,16 @@ public interface Group extends UserDataHolder
 
 	/**
 	 * Is the given user a member of this group?
-	 * @param userId
+	 * @param userId a user ID
 	 * @return true if the user is a member
-	 * @throws IamSvcException 
+	 * @throws IamSvcException if there's a problem in the IAM service 
 	 */
 	boolean isMember ( String userId ) throws IamSvcException;
 
 	/**
 	 * Get members of the group
 	 * @return a set of 0 or more user IDs
-	 * @throws IamSvcException
+	 * @throws IamSvcException if there's a problem in the IAM service 
 	 */
 	Set<String> getMembers () throws IamSvcException;
 }

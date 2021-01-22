@@ -88,7 +88,7 @@ public interface Identity extends UserDataHolder
 
 	/**
 	 * Delete an API key from the user.
-	 * @param key
+	 * @param key the API key to remove
 	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	void deleteApiKey ( ApiKey key ) throws IamSvcException;
@@ -107,7 +107,7 @@ public interface Identity extends UserDataHolder
 
 	/**
 	 * Get a group by ID if the user is a member. Otherwise, null is returned.
-	 * @param groupId
+	 * @param groupId the ID of the group to retrieve
 	 * @return a group or null if not a member
 	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */

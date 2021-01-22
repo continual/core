@@ -84,8 +84,8 @@ public class AccessControlList
 	 * Clear matching entries. This method removes a matching entry and is different
 	 * from deny(), which adds an entry that explicitly denies access. 
 	 *  
-	 * @param userOrGroupId
-	 * @param op
+	 * @param userOrGroupId the user or group to clear entries for
+	 * @param op the operation to clear entries for
 	 * @return this ACL
 	 */
 	public AccessControlList clear ( String userOrGroupId, String op )
@@ -97,10 +97,9 @@ public class AccessControlList
 	 * Clear matching entries. This method removes a matching entry and is different
 	 * from deny(), which adds an entry that explicitly denies access. 
 	 *  
-	 * @param userOrGroupId
-	 * @param ops
+	 * @param userOrGroupId the user or group to clear entries for
+	 * @param ops the operations to clear entries for
 	 * @return this ACL
-	 * @throws AclUpdateException 
 	 */
 	public AccessControlList clear ( String userOrGroupId, String[] ops )
 	{

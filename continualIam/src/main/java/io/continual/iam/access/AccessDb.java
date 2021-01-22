@@ -33,6 +33,7 @@ public interface AccessDb<G extends Group>
 	 * Get a group by its identifier.
 	 * @param id the group's ID
 	 * @return a group, or null if it does not exist
+	 * @throws IamSvcException if there's a problem in the IAM service
 	 */
 	G loadGroup ( String id ) throws IamSvcException;
 
@@ -40,6 +41,7 @@ public interface AccessDb<G extends Group>
 	 * load an ACL for a resource
 	 * @param resource the resource for which you want the ACL
 	 * @return an ACL, or null if there is none
+	 * @throws IamSvcException if there's a problem in the IAM service
 	 */
 	AccessControlList getAclFor ( Resource resource ) throws IamSvcException;
 
@@ -50,6 +52,7 @@ public interface AccessDb<G extends Group>
 	 * @param resource the resource on which access is requested
 	 * @param operation the operation
 	 * @return true if the user is allowed to perform the operation, false otherwise
+	 * @throws IamSvcException if there's a problem in the IAM service
 	 */
 	boolean canUser ( String id, Resource resource, String operation ) throws IamSvcException;
 }

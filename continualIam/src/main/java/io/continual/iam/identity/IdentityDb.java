@@ -27,7 +27,7 @@ public interface IdentityDb<I extends Identity>
 {
 	/**
 	 * Authenticate with a username and password
-	 * @param upc
+	 * @param upc the username/password credential
 	 * @return an authenticated identity or null
 	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
@@ -35,7 +35,7 @@ public interface IdentityDb<I extends Identity>
 
 	/**
 	 * Authenticate with an API key and signature
-	 * @param akc
+	 * @param akc the API key credential
 	 * @return an authenticated identity or null
 	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
@@ -43,7 +43,7 @@ public interface IdentityDb<I extends Identity>
 
 	/**
 	 * Authenticate with a JWT token
-	 * @param jwt
+	 * @param jwt the JWT credential
 	 * @return an authenticated identity or null
 	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
@@ -51,7 +51,7 @@ public interface IdentityDb<I extends Identity>
 
 	/**
 	 * Create a JWT token for the given identity.
-	 * @param ii
+	 * @param ii an identity
 	 * @return a JWT token
 	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
@@ -59,7 +59,7 @@ public interface IdentityDb<I extends Identity>
 
 	/**
 	 * Invalidate the given JWT token
-	 * @param jwtToken
+	 * @param jwtToken a JWT token
 	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	void invalidateJwtToken ( String jwtToken ) throws IamSvcException;

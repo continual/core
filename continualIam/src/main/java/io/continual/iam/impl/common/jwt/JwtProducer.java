@@ -36,7 +36,7 @@ public class JwtProducer extends JwtValidator
 
 	/**
 	 * Create a JWT token for the given identity. The audience is this issuer.
-	 * @param ii
+	 * @param ii an identity for which to create the JWT
 	 * @return a JWT token string
 	 */
 	public String createJwtToken ( Identity ii )

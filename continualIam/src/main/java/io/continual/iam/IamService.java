@@ -31,14 +31,14 @@ public interface IamService<I extends Identity, G extends Group>
 	/**
 	 * Get the identity database
 	 * @return the identity database
-	 * @throws IamSvcException
+	 * @throws IamSvcException if there's a problem in the IAM service
 	 */
 	IdentityDb<I> getIdentityDb () throws IamSvcException;
 
 	/**
 	 * Get the access database
 	 * @return the access database
-	 * @throws IamSvcException
+	 * @throws IamSvcException if there's a problem in the IAM service
 	 */
 	AccessDb<G> getAccessDb () throws IamSvcException;
 }

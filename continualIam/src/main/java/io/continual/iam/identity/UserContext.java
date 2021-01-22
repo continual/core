@@ -37,14 +37,14 @@ public class UserContext<I extends Identity> implements JsonSerialized
 
 	/**
 	 * Get the identity for the user that this transaction is being "executed as".
-	 * @return
+	 * @return an identity
 	 */
 	public I getUser () { return fIdentity; }
 
 	/**
 	 * Get the identity of the user that is actually authenticated, which may be
 	 * different from the "executed as" user.
-	 * @return
+	 * @return an identity
 	 */
 	public Identity getSponsor () { return fSponsor != null ? fSponsor : fIdentity; }
 

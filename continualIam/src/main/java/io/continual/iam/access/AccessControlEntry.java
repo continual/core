@@ -123,7 +123,7 @@ public class AccessControlEntry
 
 	/**
 	 * Remove the operation.
-	 * @param op
+	 * @param op the operation to remove
 	 * @return true if there was a change
 	 */
 	public boolean removeOperation ( String op )
