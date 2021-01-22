@@ -22,12 +22,11 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.ServiceContainer;
-import io.continual.util.data.json.JsonVisitor;
-import io.continual.util.data.json.JsonVisitor.ArrayVisitor;
-
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.Filter;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
+import io.continual.util.data.json.JsonVisitor;
+import io.continual.util.data.json.JsonVisitor.ArrayVisitor;
 
 public class OneOf implements Filter
 {
@@ -46,7 +45,7 @@ public class OneOf implements Filter
 		this ( null, config );
 	}
 
-	public OneOf ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public OneOf ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 		fKey = config.getString ( "key" );
 		fValues = new TreeSet<String> ();

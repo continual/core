@@ -14,7 +14,10 @@ public class JsonDataSource implements ExprDataSource
 	@Override
 	public Object eval ( String label )
 	{
-		return JsonEval.eval ( fData, label );
+		return fData != null ?
+			JsonEval.eval ( fData, label ) :
+			null
+		;
 	}
 
 	private final JSONObject fData;

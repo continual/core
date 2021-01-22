@@ -19,13 +19,13 @@ package io.continual.services.processor.engine.library.filters;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.Filter;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 
 public class Equals implements Filter
 {
-	public Equals ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public Equals ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 		this ( config );
 	}

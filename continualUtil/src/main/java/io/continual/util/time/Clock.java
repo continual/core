@@ -83,11 +83,11 @@ public class Clock
 		@Override
 		public long nowMs () { return nowMs; }
 
-		public void set ( long ms ) { nowMs = ms; }
-		public void add ( long ms ) { nowMs += ms; }
-		public void add ( long val, TimeUnit tu )
+		public TestClock set ( long ms ) { nowMs = ms; return this; }
+		public TestClock add ( long ms ) { nowMs += ms; return this; }
+		public TestClock add ( long val, TimeUnit tu )
 		{
-			add ( TimeUnit.MILLISECONDS.convert ( val, tu ) );
+			return add ( TimeUnit.MILLISECONDS.convert ( val, tu ) );
 		}
 
 		private long nowMs = 1;

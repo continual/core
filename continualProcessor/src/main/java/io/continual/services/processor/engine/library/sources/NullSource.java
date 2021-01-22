@@ -22,8 +22,7 @@ import java.util.concurrent.TimeUnit;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.ServiceContainer;
-
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.MessageAndRouting;
 import io.continual.services.processor.engine.model.Source;
 import io.continual.services.processor.engine.model.StreamProcessingContext;
@@ -38,7 +37,7 @@ public class NullSource implements Source
 		this ( null, config );
 	}
 
-	public NullSource ( final ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public NullSource ( final ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 	}
 

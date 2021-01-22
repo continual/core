@@ -98,6 +98,22 @@ public class JsonDocDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	}
 
 	@Override
+	public Collection<String> getAllGroups () throws IamSvcException
+	{
+		final TreeSet<String> result = new TreeSet<String> ();
+		JsonVisitor.forEachElement ( fTop.optJSONObject ( "groups" ), new ObjectVisitor<JSONObject,JSONException> ()
+		{
+			@Override
+			public boolean visit ( String userId, JSONObject user ) throws JSONException
+			{
+				result.add ( userId );
+				return true;
+			}
+		} );
+		return result;
+	}
+
+	@Override
 	public Map<String, CommonJsonIdentity> loadAllUsers () throws IamSvcException
 	{
 		final HashMap<String,CommonJsonIdentity> result = new HashMap<String,CommonJsonIdentity> ();

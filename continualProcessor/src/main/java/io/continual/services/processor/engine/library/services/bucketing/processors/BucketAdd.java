@@ -2,14 +2,14 @@ package io.continual.services.processor.engine.library.services.bucketing.proces
 
 import org.json.JSONObject;
 
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.library.services.bucketing.BucketingService;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.Processor;
 
 public class BucketAdd implements Processor
 {
-	public BucketAdd ( ServiceContainer sc, JSONObject config )
+	public BucketAdd ( ConfigLoadContext sc, JSONObject config )
 	{
 		fSet = null;
 		fSetNamed = config.getString ( "set" );

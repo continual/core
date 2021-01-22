@@ -18,8 +18,7 @@ package io.continual.services.processor.engine.library.filters;
 
 import org.json.JSONObject;
 
-import io.continual.services.ServiceContainer;
-
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.Filter;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 
@@ -30,7 +29,7 @@ public class FlagSet implements Filter
 		fFlagName = flagName;
 	}
 
-	public FlagSet ( ServiceContainer sc, JSONObject config )
+	public FlagSet ( ConfigLoadContext sc, JSONObject config )
 	{
 		fFlagName = config.getString ( "key" );
 	}

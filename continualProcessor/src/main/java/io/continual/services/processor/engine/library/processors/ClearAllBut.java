@@ -21,7 +21,7 @@ import java.util.TreeSet;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.Processor;
@@ -35,7 +35,7 @@ public class ClearAllBut implements Processor
 		fKeys.addAll ( JsonVisitor.arrayToList ( config.optJSONArray ( "keys" ) ) );
 	}
 
-	public ClearAllBut ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public ClearAllBut ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 		this ( config );
 	}

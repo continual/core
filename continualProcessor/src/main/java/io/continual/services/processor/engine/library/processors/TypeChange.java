@@ -20,12 +20,11 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.ServiceContainer;
-import io.continual.util.data.TypeConvertor;
-
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.Processor;
+import io.continual.util.data.TypeConvertor;
 
 public class TypeChange implements Processor
 {
@@ -36,7 +35,7 @@ public class TypeChange implements Processor
 		BOOLEAN
 	}
 
-	public TypeChange ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public TypeChange ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 		this ( config );
 	}

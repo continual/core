@@ -1,0 +1,62 @@
+{
+	"config":
+	{
+		"aws":
+		{
+			"accessKey": "XXXXX",
+			"secretKey": "YYYYY"
+		}
+	},
+
+	"services":
+	[
+		// Metrics service
+		{
+			"name": "metrics",
+			"class": "io.continual.metrics.MetricsService",
+		},
+
+		//
+		//	Rathravane/Continual's Clerk service for account management, backed by AWS S3
+		//
+		{
+			"name": "accounts",
+			"class": "io.continual.iam.impl.s3.S3IamServiceManager",
+
+			"bucketId": "com.cfgex.shippingapp",
+			"pathPrefix": "clerk",
+
+			"jwt":
+			{
+				"issuer": "continual.io",
+				"sha256Key": "continual.iam.engine.EC13ED3D-F59E-4ED7-BA29-5A6085B2105C"
+			}
+		},
+
+		//
+		//	An HTTP server for API network presence
+		//
+		{
+			"name": "HttpService",
+			"class":"io.continual.restHttp.HttpService",
+			"port": "6060"
+		},
+
+		//
+		//	The API service layered over the HTTP service
+		//
+		{
+			"name": "IamApiServer",
+			"class":"io.continual.iam.apiserver.IamHttpApiService",
+
+			"httpService": "HttpService",
+			"accounts": "accounts",
+
+			"accessRequired": "cfgexAdministration"
+		}
+	],
+
+	"profiles":
+	{
+	}
+}

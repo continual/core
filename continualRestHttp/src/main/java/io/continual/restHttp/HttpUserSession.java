@@ -88,7 +88,7 @@ public class HttpUserSession implements CHttpConnection
 			if ( user != null )
 			{
 				log.info ( "LOGIN_OK [" + user.getId() + "]." );
-				fUser = new UserContext.Builder ().forUser ( user ).build ();
+				fUser = new UserContext.Builder<Identity> ().forUser ( user ).build ();
 			}
 			else
 			{
@@ -114,7 +114,7 @@ public class HttpUserSession implements CHttpConnection
 	{
 		if ( isLoggedIn () ) logout ();
 		log.info ( "LOGIN_REPLACED [" + user.getId() + "]." );
-		fUser = new UserContext.Builder ().forUser ( user ).build ();
+		fUser = new UserContext.Builder<Identity> ().forUser ( user ).build ();
 	}
 
 	public boolean isLoggedIn ()
@@ -122,7 +122,7 @@ public class HttpUserSession implements CHttpConnection
 		return fUser != null;
 	}
 
-	public UserContext getUser ()
+	public UserContext<?> getUser ()
 	{
 		return fUser;
 	}
@@ -158,6 +158,6 @@ public class HttpUserSession implements CHttpConnection
 	}
 
 	private final IamService<?,?> fAccounts;
-	private UserContext fUser;
+	private UserContext<?> fUser;
 	private static final Logger log = LoggerFactory.getLogger ( HttpUserSession.class );
 }

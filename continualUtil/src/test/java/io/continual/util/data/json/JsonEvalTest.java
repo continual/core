@@ -16,12 +16,11 @@
 
 package io.continual.util.data.json;
 
-import io.continual.util.data.json.JsonEval;
-import junit.framework.TestCase;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
+
+import junit.framework.TestCase;
 
 public class JsonEvalTest extends TestCase
 {

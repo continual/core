@@ -19,27 +19,27 @@ import org.json.JSONObject;
 
 import io.continual.util.data.json.JsonSerialized;
 
-public class UserContext implements JsonSerialized
+public class UserContext<I extends Identity> implements JsonSerialized
 {
-	public static class Builder
+	public static class Builder<I extends Identity>
 	{
-		public Builder forUser ( Identity i ) { fForWhom = i; return this; }
-		public Builder sponsoredByUser ( Identity i ) { fByWhom = i; return this; }
+		public Builder<I> forUser ( I i ) { fForWhom = i; return this; }
+		public Builder<I> sponsoredByUser ( I i ) { fByWhom = i; return this; }
 
-		public UserContext build ()
+		public UserContext<I> build ()
 		{
-			return new UserContext ( fForWhom, fByWhom );
+			return new UserContext<I> ( fForWhom, fByWhom );
 		}
 
-		private Identity fForWhom;
-		private Identity fByWhom;
+		private I fForWhom;
+		private I fByWhom;
 	};
 
 	/**
 	 * Get the identity for the user that this transaction is being "executed as".
 	 * @return
 	 */
-	public Identity getUser () { return fIdentity; }
+	public I getUser () { return fIdentity; }
 
 	/**
 	 * Get the identity of the user that is actually authenticated, which may be
@@ -86,12 +86,12 @@ public class UserContext implements JsonSerialized
 		return result;
 	}
 
-	private UserContext ( Identity user, Identity byWhom )
+	private UserContext ( I user, I byWhom )
 	{
 		fIdentity = user;
 		fSponsor = ( byWhom != null && !byWhom.getId ().equals ( user.getId () ) ) ? byWhom : null;
 	}
 
-	private final Identity fIdentity;
-	private final Identity fSponsor;
+	private final I fIdentity;
+	private final I fSponsor;
 }

@@ -20,7 +20,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.Processor;
 import io.continual.services.processor.engine.model.Sink;
@@ -34,7 +34,7 @@ public class SendToSink implements Processor
 		fSinkLookupComplete = false;
 	}
 
-	public SendToSink ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public SendToSink ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 		try
 		{

@@ -396,7 +396,8 @@ public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends Common
 						}
 						catch ( IamSvcException e )
 						{
-							log.warn ( "Couldn't store ACL: " + e.getMessage (), e );
+							// FIXME: this exception should propagate upward
+							log.warn ( "Couldn't store ACL: " + e.getMessage () );
 						}
 					}
 				};

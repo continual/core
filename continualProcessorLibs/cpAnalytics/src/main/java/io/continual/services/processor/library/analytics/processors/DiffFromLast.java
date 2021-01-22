@@ -3,7 +3,7 @@ package io.continual.services.processor.library.analytics.processors;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.Processor;
 
@@ -11,10 +11,10 @@ public class DiffFromLast implements Processor
 {
 	public DiffFromLast ( JSONObject config ) throws BuildFailure
 	{
-		this ( (ServiceContainer)null, config );
+		this ( (ConfigLoadContext)null, config );
 	}
 
-	public DiffFromLast ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public DiffFromLast ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 		fId = config.getString ( "entryId" );
 		fVal = config.getString ( "value" );

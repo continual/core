@@ -162,9 +162,10 @@ public class Engine extends SimpleService implements Service
 		return null;
 	}
 
-	public void setUserData ( String key, String value )
+	public Engine setUserData ( String key, String value )
 	{
 		fUserData.put ( key, value );
+		return this;
 	}
 
 	public String getUserData ( String key )

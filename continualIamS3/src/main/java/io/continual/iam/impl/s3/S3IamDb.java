@@ -188,6 +188,22 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	}
 
 	@Override
+	public Collection<String> getAllGroups () throws IamSvcException
+	{
+		final String prefix = concatPathParts ( getPrefix (), "groups/" );
+		final LinkedList<String> result = new LinkedList<String> ();
+		for ( String key : loadKeysBelow ( prefix ) )
+		{
+			final String localPart = key.substring ( prefix.length () );
+			if ( localPart.length () > 0 )
+			{
+				result.add ( localPart );
+			}
+		}
+		return result;
+	}
+
+	@Override
 	public List<String> findUsers ( String startingWith ) throws IamSvcException
 	{
 		final String sysPrefix = concatPathParts ( getPrefix (), "users" );

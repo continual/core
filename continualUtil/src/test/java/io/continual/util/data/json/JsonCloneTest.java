@@ -16,7 +16,6 @@
 
 package io.continual.util.data.json;
 
-import io.continual.util.data.json.JsonUtil;
 import org.json.JSONObject;
 import org.junit.Test;
 

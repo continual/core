@@ -20,8 +20,7 @@ import org.json.JSONObject;
 
 import io.continual.builder.Builder;
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.ServiceContainer;
-
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.Filter;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 
@@ -32,10 +31,12 @@ public class Not implements Filter
 		fFilter = f;
 	}
 
-	public Not ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public Not ( ConfigLoadContext clc, JSONObject config ) throws BuildFailure
 	{
 		fFilter = Builder.withBaseClass ( Filter.class )
 			.withClassNameInData ()
+			.searchingPaths ( clc.getSearchPathPackages () )
+			.providingContext ( clc )
 			.usingData ( config.optJSONObject ( "filter" ) )
 			.build ()
 		;

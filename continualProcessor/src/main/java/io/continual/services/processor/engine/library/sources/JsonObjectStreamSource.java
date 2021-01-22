@@ -18,12 +18,11 @@ package io.continual.services.processor.engine.library.sources;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
 
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageAndRouting;
 import io.continual.services.processor.engine.model.StreamProcessingContext;
@@ -33,7 +32,7 @@ import io.continual.services.processor.engine.model.StreamProcessingContext;
  */
 public class JsonObjectStreamSource extends BasicSource
 {
-	public JsonObjectStreamSource ( final ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public JsonObjectStreamSource ( final ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 		super ( config );
 
@@ -72,21 +71,12 @@ public class JsonObjectStreamSource extends BasicSource
 	}
 
 	@Override
-	protected synchronized MessageAndRouting internalGetNextMessage ( StreamProcessingContext spc, long timeUnit, TimeUnit units ) throws IOException, InterruptedException
+	protected synchronized MessageAndRouting internalGetNextMessage ( StreamProcessingContext spc ) throws IOException, InterruptedException
 	{
 		if ( fPending.size () > 0 )
 		{
 			return makeDefRoutingMessage ( new Message ( fPending.remove ( 0 ) ) );
 		}
-		
-		// nothing here; wait for a notification
-		wait ( TimeUnit.MILLISECONDS.convert ( timeUnit, units ) );
-
-		if ( fPending.size () > 0 )
-		{
-			return makeDefRoutingMessage ( new Message ( fPending.remove ( 0 ) ) );
-		}
-
 		return null;
 	}
 

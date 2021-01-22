@@ -13,7 +13,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.library.sources.JsonObjectStreamSource;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
@@ -136,7 +136,7 @@ public class BucketingService extends SimpleProcessingService
 		return Period.getBucketTimestamp ( time.getTime (), p );
 	}
 
-	public BucketingService ( ServiceContainer sc, JSONObject config )
+	public BucketingService ( ConfigLoadContext sc, JSONObject config )
 	{
 		fSize = Period.readFrom ( config.optString ( "period", Period.MINUTES.toString () ) );
 		fOffsetSeconds = config.optLong ( "bucketTimeOffset", 0L );

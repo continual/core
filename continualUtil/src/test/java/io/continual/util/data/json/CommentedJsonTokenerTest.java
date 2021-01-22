@@ -19,8 +19,6 @@ package io.continual.util.data.json;
 import org.json.JSONObject;
 import org.junit.Test;
 
-import io.continual.util.data.json.CommentedJsonTokener;
-
 import junit.framework.TestCase;
 
 public class CommentedJsonTokenerTest extends TestCase

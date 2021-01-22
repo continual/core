@@ -19,8 +19,7 @@ package io.continual.services.processor.engine.library.filters;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.ServiceContainer;
-
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.Filter;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 
@@ -33,7 +32,7 @@ public class RangeLimit implements Filter
 		fMax = max;
 	}
 
-	public RangeLimit ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public RangeLimit ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 		fKey = config.getString ( "key" );
 		fMin = config.optDouble ( "min" );

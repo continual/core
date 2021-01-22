@@ -15,6 +15,7 @@
  */
 package io.continual.iam.access;
 
+import java.util.Collection;
 import java.util.Set;
 
 import io.continual.iam.exceptions.IamGroupDoesNotExist;
@@ -77,4 +78,13 @@ public interface AccessManager<G extends Group> extends AccessDb<G>
 	 * @throws IamGroupDoesNotExist when the identity doesn't exist
 	 */
 	Set<String> getUsersInGroup ( String groupId ) throws IamSvcException, IamGroupDoesNotExist;
+
+	/**
+	 * Get all group IDs in this db. Clearly not suitable for systems beyond a few thousand
+	 * groups. For larger scale, this call may throw an IamSvcException signaling that
+	 * the underlying database won't return a group list. 
+	 * @return a collection of group Ids
+	 * @throws IamSvcException when the call cannot be completed due to a service error
+	 */
+	Collection<String> getAllGroups () throws IamSvcException;
 }

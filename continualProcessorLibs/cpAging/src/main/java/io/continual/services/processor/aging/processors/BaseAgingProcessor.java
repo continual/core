@@ -18,15 +18,15 @@ package io.continual.services.processor.aging.processors;
 
 import org.json.JSONObject;
 
-import io.continual.services.ServiceContainer;
 import io.continual.services.processor.aging.services.Aging;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.Processor;
 import io.continual.services.processor.engine.model.StreamProcessingContext.NoSuitableObjectException;
 
 abstract class BaseAgingProcessor implements Processor
 {
-	public BaseAgingProcessor ( ServiceContainer sc, JSONObject config )
+	public BaseAgingProcessor ( ConfigLoadContext sc, JSONObject config )
 	{
 		fAgingSvcName = config.optString ( "agingServiceName", "aging" );
 	}

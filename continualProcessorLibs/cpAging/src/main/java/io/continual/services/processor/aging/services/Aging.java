@@ -25,7 +25,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageAndRouting;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
@@ -34,7 +34,7 @@ import io.continual.util.time.Clock;
 
 public class Aging extends SimpleProcessingService
 {
-	public Aging ( ServiceContainer sc, JSONObject config )
+	public Aging ( ConfigLoadContext sc, JSONObject config )
 	{
 		fPending = new DelayQueue<> ();
 		fThread = new ServiceThread ();

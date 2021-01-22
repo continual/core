@@ -95,11 +95,24 @@ public class StringUtils
 		return sb.toString ();
 	}
 
+	/**
+	 * Remove surrounding quotes, either double quote or single quote, if one occurs
+	 * on both ends of the string. This method does *not* deal with escaped internal quotes.
+	 * @param s
+	 * @return an unquoted string
+	 */
 	public static String dequote ( String s )
 	{
 		return dequote ( s, new char [] { '"', '\'' } );
 	}
 
+	/**
+	 * Remove surrounding characters, if one occurs on both ends of the string.
+	 * This method does *not* deal with escaped internal quotes.
+	 * @param s
+	 * @param quoteChars chars considered quotes
+	 * @return an unquoted string
+	 */
 	public static String dequote ( String s, char[] quoteChars )
 	{
 		String result = s;

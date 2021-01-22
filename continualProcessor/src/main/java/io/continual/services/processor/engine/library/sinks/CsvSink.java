@@ -26,7 +26,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.Sink;
 import io.continual.util.data.TypeConvertor;
@@ -60,7 +60,7 @@ public class CsvSink implements Sink
 		this ( null, config );
 	}
 
-	public CsvSink ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public CsvSink ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 		try
 		{
@@ -95,7 +95,9 @@ public class CsvSink implements Sink
 				}
 			} );
 
-			fOutputHeader = false;
+			// hasOutputHeader = false will generate a header
+			final boolean wantHeader = config.optBoolean ( "outputHeader", true );
+			fHasOutputHeader = !wantHeader;
 		}
 		catch ( FileNotFoundException | JSONException e )
 		{
@@ -137,7 +139,7 @@ public class CsvSink implements Sink
 	@Override
 	public void process ( Message msg )
 	{
-		if ( !fOutputHeader )
+		if ( !fHasOutputHeader )
 		{
 			// output the header line
 			final CsvLineBuilder clb = new CsvLineBuilder ();
@@ -146,7 +148,7 @@ public class CsvSink implements Sink
 				clb.append ( ci.getKey() );
 			}
 			fStream.println ( clb.toString () );
-			fOutputHeader = true;
+			fHasOutputHeader = true;
 		}
 
 		final JSONObject msgJson = msg.toJson ();
@@ -191,7 +193,7 @@ public class CsvSink implements Sink
 	private final PrintStream fStream;
 	private final boolean fCloseStream;
 	private final ArrayList<ColInfo> fCols;
-	private boolean fOutputHeader;
+	private boolean fHasOutputHeader;
 
 	private static class ColInfo
 	{

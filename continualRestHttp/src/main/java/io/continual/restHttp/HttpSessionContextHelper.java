@@ -26,6 +26,7 @@ import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.http.util.http.standards.HttpStatusCodes;
 import io.continual.http.util.http.standards.MimeTypes;
 import io.continual.iam.IamServiceManager;
+import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.Identity;
 import io.continual.iam.identity.UserContext;
 
@@ -49,12 +50,12 @@ public class HttpSessionContextHelper
 		void handle ( CHttpRequestContext context, HttpServlet servlet, Identity user ) throws IOException;
 	}
 
-	public static void handleWithUserSession ( CHttpRequestContext context, SessionHandler h ) throws NoLoginException 
+	public static void handleWithUserSession ( CHttpRequestContext context, SessionHandler h ) throws NoLoginException, IamSvcException 
 	{
 		try
 		{
 			final HttpServlet servlet = (HttpServlet) context.getServlet ();
-			final UserContext user = getUser ( context );
+			final UserContext<?> user = getUser ( context );
 			if ( user != null )
 			{
 				h.handle ( context, servlet, user.getUser () );
@@ -71,20 +72,20 @@ public class HttpSessionContextHelper
 		}
 	}
 
-	public static UserContext getUserNoThrow ( final CHttpRequestContext context )
+	public static UserContext<?> getUserNoThrow ( final CHttpRequestContext context )
 	{
 		return HttpUserSession.getSession ( context ).getUser ();
 	}
 
-	public static UserContext getUser ( final CHttpRequestContext context ) throws NoLoginException
+	public static UserContext<?> getUser ( final CHttpRequestContext context ) throws NoLoginException, IamSvcException
 	{
 		if ( context.session () != null )
 		{
-			final UserContext ii = HttpUserSession.getSession ( context ).getUser ();
+			final UserContext<?> ii = HttpUserSession.getSession ( context ).getUser ();
 			if ( ii != null ) return ii;
 		}
 
-		UserContext ii = ApiContextHelper.getUser ( getAccountsSvc(context), context );
+		UserContext<?> ii = ApiContextHelper.getUser ( getAccountsSvc(context), context );
 		if ( ii == null )
 		{
 			throw new NoLoginException ();

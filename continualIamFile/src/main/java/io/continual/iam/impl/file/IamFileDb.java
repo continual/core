@@ -172,6 +172,18 @@ public class IamFileDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	}
 
 	@Override
+	public Collection<String> getAllGroups() throws IamSvcException
+	{
+		final TreeSet<String> result = new TreeSet<> ();
+		final JSONObject groupIndex = fMainIndex.optJSONObject ( "groups" );
+		if ( groupIndex != null )
+		{
+			result.addAll ( groupIndex.keySet () );
+		}
+		return result;
+	}
+
+	@Override
 	public List<String> findUsers ( String startingWith ) throws IamSvcException
 	{
 		final ArrayList<String> result = new ArrayList<> ();

@@ -135,6 +135,23 @@ public class Path implements Comparable<Path>
 	}
 
 	/**
+	 * Make a new path that's the path within the given parent path.
+	 * @param parentPath
+	 * @return a new path
+	 */
+	public Path makePathWithinParent ( Path parentPath )
+	{
+		// if our target is within the relativeTo path, just return what's left after the parent is removed
+		if ( !startsWith ( parentPath ) )
+		{
+			throw new IllegalArgumentException ( "The target path [" + toString () +
+				"] is not a child of [" + parentPath.toString () +"]." );
+		}
+		final String substr = toString ().substring ( parentPath.toString ().length () );
+		return substr.length () == 0 ? getRootPath() : Path.fromString ( substr );
+	}
+	
+	/**
 	 * Break a path into its name segments. /foo/bar = [ "foo", "bar" ] and
 	 * the root path (/) = [].
 	 * @return an array of names

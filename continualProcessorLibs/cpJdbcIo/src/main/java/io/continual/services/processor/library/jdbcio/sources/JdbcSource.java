@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageAndRouting;
 import io.continual.services.processor.engine.model.Source;
@@ -40,10 +40,10 @@ public class JdbcSource extends DbConnector implements Source
 {
 	public JdbcSource ( JSONObject config ) throws BuildFailure
 	{
-		this ( (ServiceContainer)null, config );
+		this ( (ConfigLoadContext)null, config );
 	}
 
-	public JdbcSource ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public JdbcSource ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 		this ( dbConnectionFromConfig ( config ), config );
 	}

@@ -17,5 +17,6 @@ package io.continual.iam.access;
 
 public interface AclUpdateListener
 {
+	// FIXME: this method should throw IamSvcException in the future
 	void onAclUpdate ( AccessControlList accessControlList );
 }

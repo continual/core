@@ -32,7 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.Sink;
 import io.continual.services.processor.library.jdbcio.DbConnection;
@@ -45,8 +45,7 @@ public class JdbcSink extends DbConnector implements Sink
 {
 	private static final String kSetting_BufferSize = "postBuffer";
 	private static final int kDefault_BufferSize = 64;
-	
-	
+
 	public JdbcSink () throws BuildFailure
 	{
 		this ( new JSONObject () );
@@ -54,10 +53,10 @@ public class JdbcSink extends DbConnector implements Sink
 
 	public JdbcSink ( JSONObject config ) throws BuildFailure
 	{
-		this ( (ServiceContainer)null, config );
+		this ( (ConfigLoadContext)null, config );
 	}
 
-	public JdbcSink ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public JdbcSink ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 		this ( dbConnectionFromConfig ( config ), config );
 	}
@@ -218,10 +217,11 @@ public class JdbcSink extends DbConnector implements Sink
 					}
 					else if ( targetClass.equals ( Double.class ) )
 					{
+						double valToUse = 0.0;
 						if ( val.trim ().length () == 0 )
 						{
 							// huh? (it seems to happen...)
-							fPending.setDouble ( param, 0.0 );
+							valToUse = 0.0;
 						}
 						else
 						{
@@ -231,8 +231,17 @@ public class JdbcSink extends DbConnector implements Sink
 							{
 								d = ( Math.round ( d * r ) ) / r;
 							}
-							fPending.setDouble ( param, d );
+							if ( !Double.isFinite ( d ) )
+							{
+								valToUse = -1.0;
+							}
+							else
+							{
+								valToUse = d;
+							}
 						}
+						fPending.setDouble ( param, valToUse );
+						rec.add ( "(" + param + ": " + valToUse + ")" );
 					}
 					else if ( targetClass.equals ( Boolean.class ) )
 					{
@@ -286,11 +295,11 @@ public class JdbcSink extends DbConnector implements Sink
 				param++;
 			}
 
+			log.debug ( "batch record " + fPendingCount + ": " + rec.toString () );
+
 			fPending.addBatch ();
 			fPendingCount++;
 
-			log.debug ( rec.toString () );
-			
 			if ( fPendingCount % fBufferSize == 0 )
 			{
 				sendToDb ();

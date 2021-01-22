@@ -19,13 +19,11 @@ package io.continual.services.processor.engine.library.sources;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.json.JSONObject;
 
 import io.continual.services.processor.engine.model.MessageAndRouting;
 import io.continual.services.processor.engine.model.StreamProcessingContext;
-import io.continual.util.time.Clock;
 
 public abstract class QueuingSource extends BasicSource
 {
@@ -36,14 +34,8 @@ public abstract class QueuingSource extends BasicSource
 	}
 
 	@Override
-	protected MessageAndRouting internalGetNextMessage ( StreamProcessingContext spc, long timeUnit, TimeUnit units ) throws IOException, InterruptedException
+	protected MessageAndRouting internalGetNextMessage ( StreamProcessingContext spc ) throws IOException, InterruptedException
 	{
-		final long expireAtMs = Clock.now () + units.convert ( timeUnit, TimeUnit.MILLISECONDS );
-		while ( !isEof () && !hasMessagesReady ( spc ) && Clock.now () < expireAtMs )
-		{
-			Thread.sleep ( 10 );
-		}
-
 		if ( !isEof () && hasMessagesReady ( spc ) )
 		{
 			return getNextPendingMessage ();

@@ -20,9 +20,35 @@ import java.io.InputStream;
 
 import io.continual.services.processor.engine.model.Program;
 
+/**
+ * A configuration reader.
+ */
 public interface ConfigReader
 {
-	public Program read ( String resName ) throws ConfigReadException;
+	/**
+	 * Read a program from a named resource.
+	 * @param resName
+	 * @return a program
+	 * @throws ConfigReadException
+	 */
+	default public Program read ( String resName ) throws ConfigReadException
+	{
+		return read ( new String[] { resName } );
+	}
 
+	/**
+	 * Read a program from a set of named sources
+	 * @param resNames
+	 * @return a program
+	 * @throws ConfigReadException
+	 */
+	public Program read ( String[] resNames ) throws ConfigReadException;
+
+	/**
+	 * Read a program from an input stream.
+	 * @param stream
+	 * @return a program
+	 * @throws ConfigReadException
+	 */
 	public Program read ( InputStream stream ) throws ConfigReadException;
 }

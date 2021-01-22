@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.Processor;
 
@@ -13,10 +13,10 @@ public class RateOfChange implements Processor
 {
 	public RateOfChange ( JSONObject config ) throws BuildFailure
 	{
-		this ( (ServiceContainer)null, config );
+		this ( (ConfigLoadContext)null, config );
 	}
 
-	public RateOfChange ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public RateOfChange ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 		fId = config.getString ( "entryId" );
 		fTs = config.getString ( "timestamp" );
@@ -48,10 +48,19 @@ public class RateOfChange implements Processor
 			final double valDiff = ( val - fLastVal ) / fLastVal;
 			final long tsDiff = fTimeUnit.convert ( tsDiffSecs, TimeUnit.SECONDS );
 			final double roc = ( valDiff / tsDiff );
-			context.getMessage ()
-				.putValue ( fToField, roc )
-				.putValue ( "invalid", false )
-			;
+			if ( Double.isFinite ( roc ) )
+			{
+				context.getMessage ()
+					.putValue ( fToField, roc )
+					.putValue ( "invalid", false )
+				;
+			}
+			else
+			{
+				context.getMessage ()
+					.putValue ( "invalid", false )
+				;
+			}
 		}
 
 		fLastTs = ts;

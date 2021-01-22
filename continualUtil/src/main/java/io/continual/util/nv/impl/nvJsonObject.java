@@ -17,6 +17,7 @@ package io.continual.util.nv.impl;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -27,11 +28,12 @@ import org.json.JSONObject;
 
 import io.continual.util.data.TypeConvertor;
 import io.continual.util.data.json.JsonEval;
+import io.continual.util.data.json.JsonSerialized;
+import io.continual.util.data.json.JsonUtil;
 import io.continual.util.data.json.JsonVisitor;
-
 import io.continual.util.nv.NvWriteable;
 
-public class nvJsonObject implements NvWriteable
+public class nvJsonObject implements NvWriteable, JsonSerialized
 {
 	public nvJsonObject ()
 	{
@@ -41,6 +43,12 @@ public class nvJsonObject implements NvWriteable
 	public nvJsonObject ( JSONObject o )
 	{
 		fObject = o;
+	}
+
+	@Override
+	public JSONObject toJson ()
+	{
+		return JsonUtil.clone ( fObject );
 	}
 
 	@Override
@@ -370,6 +378,16 @@ public class nvJsonObject implements NvWriteable
 
 	@Override
 	public void set ( String key, String[] values )
+	{
+		final JSONArray a = new JSONArray ();
+		for ( String s : values )
+		{
+			a.put ( s );
+		}
+		fObject.put ( key, a );
+	}
+
+	public void set ( String key, List<String> values )
 	{
 		final JSONArray a = new JSONArray ();
 		for ( String s : values )

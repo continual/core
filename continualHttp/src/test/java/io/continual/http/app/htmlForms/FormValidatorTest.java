@@ -18,15 +18,11 @@ package io.continual.http.app.htmlForms;
 
 import java.util.HashMap;
 
-import junit.framework.TestCase;
-
 import org.junit.Test;
 
-import io.continual.http.app.htmlForms.CHttpFormPostWrapper;
-import io.continual.http.app.htmlForms.CHttpFormValidator;
-import io.continual.http.app.htmlForms.CHttpInvalidFormException;
 import io.continual.http.app.htmlForms.CHttpFormPostWrapper.ParseException;
 import io.continual.http.service.framework.CHttpConnection;
+import junit.framework.TestCase;
 
 public class FormValidatorTest<C extends CHttpConnection> extends TestCase
 {

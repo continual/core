@@ -21,14 +21,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.ServiceContainer;
-
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.Processor;
 
 public class Log implements Processor
 {
-	public Log ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public Log ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 		fLog = LoggerFactory.getLogger ( config.optString ( "logName", "" ) );
 		fFormat = config.optString ( "format", "{}" );

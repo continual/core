@@ -24,7 +24,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.Processor;
@@ -38,7 +38,7 @@ public class DateFormat implements Processor
 		TEXT
 	}
 
-	public DateFormat ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public DateFormat ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 		this ( config );
 	}
@@ -80,7 +80,7 @@ public class DateFormat implements Processor
 			else
 			{
 				fToType = DateFormatType.TEXT;
-				fToFormatter = new SimpleDateFormat ( fFromFormat );
+				fToFormatter = new SimpleDateFormat ( fTargetFormat );
 			}
 		}
 		catch ( IllegalArgumentException | JSONException e )
@@ -92,53 +92,60 @@ public class DateFormat implements Processor
 	@Override
 	public void process ( MessageProcessingContext context )
 	{
-		final Message msg = context.getMessage ();
-		final String fromVal = msg.getValueAsString ( fFromField );
-
-		long epochMs = 0L;
-		switch ( fFromType )
+		try
 		{
-			case EPOCH_SECONDS:
-				epochMs = Long.parseLong ( fromVal ) * 1000L;
-				break;
-
-			case EPOCH_MILLIS:
-				epochMs = Long.parseLong ( fromVal );
-				break;
-
-			case TEXT:
+			final Message msg = context.getMessage ();
+			final String fromVal = msg.getValueAsString ( fFromField );
+	
+			long epochMs = 0L;
+			switch ( fFromType )
 			{
-				try
+				case EPOCH_SECONDS:
+					epochMs = Long.parseLong ( fromVal ) * 1000L;
+					break;
+	
+				case EPOCH_MILLIS:
+					epochMs = Long.parseLong ( fromVal );
+					break;
+	
+				case TEXT:
 				{
-					epochMs = fFromFormatter.parse ( fromVal ).getTime ();
+					try
+					{
+						epochMs = fFromFormatter.parse ( fromVal ).getTime ();
+					}
+					catch ( ParseException e )
+					{
+						context.warn ( "DateFormat could parse [" + fromVal + "] using [" + fFromFormatter + "]." );
+						return;
+					}
 				}
-				catch ( ParseException e )
-				{
-					context.warn ( "DateFormat could parse [" + fromVal + "] using [" + fFromFormatter + "]." );
-					return;
-				}
+				break;
 			}
-			break;
+	
+			String result = "";
+			switch ( fToType )
+			{
+				case EPOCH_SECONDS:
+					result = Long.toString ( epochMs / 1000L );
+					break;
+	
+				case EPOCH_MILLIS:
+					result = Long.toString ( epochMs );
+					break;
+	
+				case TEXT:
+					result = fToFormatter.format ( new Date ( epochMs ) );
+					break;
+			}
+	
+			final String to = fToField == null ? fFromField : fToField;
+			msg.putValue ( to, result );
 		}
-
-		String result = "";
-		switch ( fToType )
+		catch ( NumberFormatException x )
 		{
-			case EPOCH_SECONDS:
-				result = Long.toString ( epochMs / 1000L );
-				break;
-
-			case EPOCH_MILLIS:
-				result = Long.toString ( epochMs );
-				break;
-
-			case TEXT:
-				result = fToFormatter.format ( new Date ( epochMs ) );
-				break;
+			context.warn ( "Number format problem: " + x.getMessage () );
 		}
-
-		final String to = fToField == null ? fFromField : fToField;
-		msg.putValue ( to, result );
 	}
 
 	private final String fFromField;

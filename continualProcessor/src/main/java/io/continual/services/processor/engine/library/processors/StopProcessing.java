@@ -19,8 +19,7 @@ package io.continual.services.processor.engine.library.processors;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.ServiceContainer;
-
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.Processor;
 
@@ -30,7 +29,7 @@ public class StopProcessing implements Processor
 	{
 	}
 
-	public StopProcessing ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public StopProcessing ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 		this ();
 	}

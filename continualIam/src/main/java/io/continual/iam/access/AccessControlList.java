@@ -100,6 +100,7 @@ public class AccessControlList
 	 * @param userOrGroupId
 	 * @param ops
 	 * @return this ACL
+	 * @throws AclUpdateException 
 	 */
 	public AccessControlList clear ( String userOrGroupId, String[] ops )
 	{

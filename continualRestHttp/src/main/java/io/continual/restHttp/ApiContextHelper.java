@@ -46,7 +46,7 @@ import io.continual.util.data.json.CommentedJsonTokener;
 import io.continual.util.data.json.JsonUtil;
 import io.continual.util.nv.NvReadable;
 
-public class ApiContextHelper
+public class ApiContextHelper<I extends Identity>
 {
 	public ApiContextHelper ()
 	{
@@ -72,7 +72,7 @@ public class ApiContextHelper
 	public static final String kDefault_DateLineHeader = "X-Continual-Date";
 	public static final String kDefault_MagicLineHeader = "X-Continual-Magic";
 
-	public interface ApiHandler
+	public interface ApiHandler<I extends Identity>
 	{
 		/**
 		 * Handle the request as the given user and return a JSON string.
@@ -83,7 +83,7 @@ public class ApiContextHelper
 		 * @return a JSON string
 		 * @throws IOException 
 		 */
-		String handle ( CHttpRequestContext context, HttpServlet servlet, UserContext uc ) throws IOException;
+		String handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<I> uc ) throws IOException;
 	}
 
 	protected static void sendStatusCodeAndMessage ( CHttpRequestContext context, int statusCode, String msg )
@@ -139,7 +139,7 @@ public class ApiContextHelper
 		);
 	}
 
-	public static void handleWithApiAuth ( CHttpRequestContext context, ApiHandler h )
+	public static <I extends Identity> void handleWithApiAuth ( CHttpRequestContext context, ApiHandler<I> h )
 	{
 		handleWithApiAuthAndAccess ( context, h );
 	}
@@ -152,16 +152,16 @@ public class ApiContextHelper
 		public final String fOp;
 	}
 	
-	public static void handleWithApiAuthAndAccess ( CHttpRequestContext context, ApiHandler h, ResourceAccess... accessReqd )
+	public static <I extends Identity> void handleWithApiAuthAndAccess ( CHttpRequestContext context, ApiHandler<I> h, ResourceAccess... accessReqd )
 	{
 		try
 		{
 			final HttpServlet servlet = (HttpServlet) context.getServlet ();
-			final IamServiceManager<?,?> am = getAccountsSvc ( context );
+			final IamServiceManager<I,?> am = getAccountsSvc ( context );
 
 			setupCorsHeaders ( context );
 
-			final UserContext user = getUser ( am, context );
+			final UserContext<I> user = getUser ( am, context );
 			if ( user == null )
 			{
 				sendNotAuth ( context );
@@ -201,14 +201,14 @@ public class ApiContextHelper
 		}
 	}
 
-	public static UserContext getUser ( final CHttpRequestContext context )
+	public static <I extends Identity> UserContext<I> getUser ( final CHttpRequestContext context ) throws IamSvcException
 	{
 		return getUser ( getAccountsSvc ( context ), context );
 	}
 
-	private interface Authenticator
+	private interface Authenticator<I extends Identity>
 	{
-		Identity authenticate ( IamServiceManager<?,?> am, CHttpRequestContext context ) throws IamSvcException;
+		I authenticate ( IamServiceManager<I,?> am, CHttpRequestContext context ) throws IamSvcException;
 	}
 
 	private static class LocalHeaderReader implements HeaderReader
@@ -224,93 +224,107 @@ public class ApiContextHelper
 		}
 		private final CHttpRequestContext fContext;
 	}
-	
-	private static final LinkedList<Authenticator> fAuthenticators = new LinkedList<>();
-	static
+
+	private static class AuthList<I extends Identity> implements Authenticator<I>
 	{
-		// API key...
-		fAuthenticators.add ( new Authenticator ()
+		public AuthList ()
 		{
-			@Override
-			public Identity authenticate ( IamServiceManager<?,?> am, final CHttpRequestContext context ) throws IamSvcException
+			fAuthenticators = new LinkedList<>();
+
+			// API key...
+			fAuthenticators.add ( new Authenticator<I> ()
 			{
-				final NvReadable ds = context.systemSettings ();
-
-				Identity authUser = null;
-				final ApiKeyCredential creds = ApiKeyAuthHelper.readApiKeyCredential ( ds, new LocalHeaderReader ( context ),
-					ds.getString ( kSetting_ContinualProductTag, kContinualProductTag )
-				);
-				if ( creds != null )
+				@Override
+				public I authenticate ( IamServiceManager<I,?> am, final CHttpRequestContext context ) throws IamSvcException
 				{
-					authUser = am.getIdentityDb ().authenticate ( creds );
-					if ( authUser != null ) IamAuthLog.authenticationEvent ( authUser.getId (), "API Key", context.request ().getBestRemoteAddress () );
-				}
+					final NvReadable ds = context.systemSettings ();
 
-				return authUser;
-			}
-		} );
-
-		// JWT...
-		fAuthenticators.add ( new Authenticator ()
-		{
-			@Override
-			public Identity authenticate ( IamServiceManager<?,?> am, final CHttpRequestContext context ) throws IamSvcException
-			{
-				Identity authUser = null;
-				try
-				{
-					final String authHeader = context.request ().getFirstHeader ( "Authorization" );
-					if ( authHeader != null && authHeader.startsWith ( "Bearer " ) )
+					I authUser = null;
+					final ApiKeyCredential creds = ApiKeyAuthHelper.readApiKeyCredential ( ds, new LocalHeaderReader ( context ),
+						ds.getString ( kSetting_ContinualProductTag, kContinualProductTag )
+					);
+					if ( creds != null )
 					{
-						final String[] parts = authHeader.split ( " " );
-						if ( parts.length == 2 )
+						authUser = am.getIdentityDb ().authenticate ( creds );
+						if ( authUser != null ) IamAuthLog.authenticationEvent ( authUser.getId (), "API Key", context.request ().getBestRemoteAddress () );
+					}
+
+					return authUser;
+				}
+			} );
+
+			// JWT...
+			fAuthenticators.add ( new Authenticator<I> ()
+			{
+				@Override
+				public I authenticate ( IamServiceManager<I,?> am, final CHttpRequestContext context ) throws IamSvcException
+				{
+					I authUser = null;
+					try
+					{
+						final String authHeader = context.request ().getFirstHeader ( "Authorization" );
+						if ( authHeader != null && authHeader.startsWith ( "Bearer " ) )
 						{
-							final JwtCredential cred = JwtCredential.fromHeader ( authHeader );
-							authUser = am.getIdentityDb ().authenticate ( cred );
-							if ( authUser != null ) IamAuthLog.authenticationEvent ( authUser.getId (), "JWT", context.request ().getBestRemoteAddress () );
+							final String[] parts = authHeader.split ( " " );
+							if ( parts.length == 2 )
+							{
+								final JwtCredential cred = JwtCredential.fromHeader ( authHeader );
+								authUser = am.getIdentityDb ().authenticate ( cred );
+								if ( authUser != null ) IamAuthLog.authenticationEvent ( authUser.getId (), "JWT", context.request ().getBestRemoteAddress () );
+							}
 						}
 					}
+					catch ( InvalidJwtToken e )
+					{
+						// ignore, can't authenticate this way
+					}
+					return authUser;
 				}
-				catch ( InvalidJwtToken e )
-				{
-					// ignore, can't authenticate this way
-				}
-				return authUser;
-			}
-		} );
+			} );
 
-		// username/password...
-		fAuthenticators.add ( new Authenticator ()
-		{
-			@Override
-			public Identity authenticate ( IamServiceManager<?,?> am, final CHttpRequestContext context ) throws IamSvcException
+			// username/password...
+			fAuthenticators.add ( new Authenticator<I> ()
 			{
-				final NvReadable ds = context.systemSettings ();
-
-				Identity authUser = null;
-				final UsernamePasswordCredential upc = BasicAuthHelper.readUsernamePasswordCredential ( ds, new LocalHeaderReader ( context ) );
-				if ( upc != null )
+				@Override
+				public I authenticate ( IamServiceManager<I,?> am, final CHttpRequestContext context ) throws IamSvcException
 				{
-					authUser = am.getIdentityDb().authenticate ( upc );
-					if ( authUser != null ) IamAuthLog.authenticationEvent ( authUser.getId (), "Username/Password", context.request ().getBestRemoteAddress () );
+					final NvReadable ds = context.systemSettings ();
+
+					I authUser = null;
+					final UsernamePasswordCredential upc = BasicAuthHelper.readUsernamePasswordCredential ( ds, new LocalHeaderReader ( context ) );
+					if ( upc != null )
+					{
+						authUser = am.getIdentityDb().authenticate ( upc );
+						if ( authUser != null ) IamAuthLog.authenticationEvent ( authUser.getId (), "Username/Password", context.request ().getBestRemoteAddress () );
+					}
+					return authUser;
 				}
-				return authUser;
+			} );
+		}
+
+		@Override
+		public I authenticate ( IamServiceManager<I, ?> am, CHttpRequestContext context ) throws IamSvcException
+		{
+			for ( Authenticator<I> inner : fAuthenticators )
+			{
+				I result = inner.authenticate ( am, context );
+				if ( result != null ) return result;
 			}
-		} );
+			return null;
+		}
+
+		private final LinkedList<Authenticator<I>> fAuthenticators;
 	}
-	
-	public static UserContext getUser ( IamServiceManager<?,?> am, final CHttpRequestContext context )
+
+	public static <I extends Identity> UserContext<I> getUser ( IamServiceManager<I,?> am, final CHttpRequestContext context ) throws IamSvcException
 	{
-		UserContext result = null;
-		Identity authUser = null;
+		UserContext<I> result = null;
+		I authUser = null;
 		try
 		{
 			// get this user authenticated
-			for ( Authenticator aa : fAuthenticators )
-			{
-				authUser = aa.authenticate ( am, context );
-				if ( authUser != null ) break;
-			}
+			final AuthList<I> al = new AuthList<> ();
+			authUser = al.authenticate ( am, context );
 
 			// if we have an authentic user, build a user context
 			if ( authUser != null )
@@ -321,13 +335,13 @@ public class ApiContextHelper
 					// authorized user is vouching for another...
 					
 					// get that user's identity
-					final Identity authForUser = am.getIdentityManager ().loadUser( authFor );
+					final I authForUser = am.getIdentityManager ().loadUser( authFor );
 
 					// if the user exists and this user is authorized...
 					if ( authForUser != null && authUser.getGroup ( kContinualSystemsGroup ) != null )
 					{
 						// auth user is part of the special systems group
-						result = new UserContext.Builder ()
+						result = new UserContext.Builder<I> ()
 							.forUser ( authForUser )
 							.sponsoredByUser ( authUser )
 							.build ()
@@ -337,21 +351,20 @@ public class ApiContextHelper
 				}
 				else	// no auth-for or it's the same user
 				{
-					result = new UserContext.Builder ()
+					result = new UserContext.Builder<I> ()
 						.forUser ( authUser )
 						.build ()
 					;
 				}
 			}
-			// this is a failed request
+
+			return result;
 		}
 		catch ( IamSvcException x )
 		{
-			result = null;
 			log.warn ( "Error processing authentication: " + x.getMessage () );
+			throw x;
 		}
-
-		return result;
 	}
 
 	/**
@@ -359,7 +372,8 @@ public class ApiContextHelper
 	 * @param context
 	 * @return an account service
 	 */
-	protected static IamServiceManager<?,?> getAccountsSvc ( CHttpRequestContext context )
+	@SuppressWarnings("unchecked")
+	protected static <I extends Identity> IamServiceManager<I,?> getAccountsSvc ( CHttpRequestContext context )
 	{
 		return HttpServlet.getServices ( context ).get ( "accounts", IamServiceManager.class );
 	}

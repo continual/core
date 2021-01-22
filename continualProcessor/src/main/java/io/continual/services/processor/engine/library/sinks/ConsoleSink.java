@@ -21,7 +21,7 @@ import java.io.PrintStream;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.Sink;
 
@@ -45,7 +45,7 @@ public class ConsoleSink implements Sink
 		this ( null, config );
 	}
 
-	public ConsoleSink ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public ConsoleSink ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 		final String to = config.optString ( "to", stdout );
 		if ( to.equals ( stdout ) )

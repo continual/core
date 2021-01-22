@@ -18,15 +18,14 @@ package io.continual.services.processor.engine.library.filters;
 
 import org.json.JSONObject;
 
-import io.continual.services.ServiceContainer;
-
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.Filter;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.util.data.json.JsonEval;
 
 public class HasField implements Filter
 {
-	public HasField ( ServiceContainer sc, JSONObject config )
+	public HasField ( ConfigLoadContext sc, JSONObject config )
 	{
 		fFieldName = config.getString ( "key" );
 	}

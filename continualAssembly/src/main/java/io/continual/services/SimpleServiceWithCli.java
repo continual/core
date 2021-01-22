@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 
-import io.continual.services.SimpleService;
 import io.continual.util.console.CmdLinePrefs;
 import io.continual.util.console.shell.Command;
 import io.continual.util.console.shell.ConsoleLooper.InputResult;

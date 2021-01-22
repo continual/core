@@ -17,9 +17,16 @@ public interface Timer
 
 	void time ( Runnable event );
 
-	interface Context
+	interface Context extends AutoCloseable
 	{
+		/**
+		 * Stop this timer and return the elapsed time in nanoseconds.
+		 * @return
+		 */
 		long stop ();
+
+		default void close () { stop (); }
 	}
+
 	Context time ();
 }

@@ -21,7 +21,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
@@ -38,7 +37,7 @@ import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.resources.ResourceLoader;
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.library.sources.BasicSource;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageAndRouting;
@@ -73,7 +72,7 @@ public class ExcelSource extends BasicSource
 		}
 	}
 
-	public ExcelSource ( final ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public ExcelSource ( final ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 		super ( config );
 		try
@@ -129,7 +128,7 @@ public class ExcelSource extends BasicSource
 	}
 
 	@Override
-	protected MessageAndRouting internalGetNextMessage ( StreamProcessingContext spc, long timeUnit, TimeUnit units ) throws IOException
+	protected MessageAndRouting internalGetNextMessage ( StreamProcessingContext spc ) throws IOException
 	{
 		// normal processing...
 		init ( spc );

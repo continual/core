@@ -19,15 +19,12 @@ package io.continual.util.data.json;
 import java.util.Iterator;
 import java.util.List;
 
-import io.continual.util.data.json.JsonUtil;
-import io.continual.util.data.json.JsonVisitor;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Test;
 
 import io.continual.util.data.json.JsonVisitor.ArrayOfObjectVisitor;
-
 import junit.framework.TestCase;
 
 public class JsonUtilTest extends TestCase

@@ -23,7 +23,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.config.readers.ConfigReadException;
 import io.continual.services.processor.config.readers.JsonConfigReader;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
@@ -36,13 +36,13 @@ import io.continual.util.data.json.JsonVisitor.ObjectVisitor;
 
 public class ForEachObject implements Processor
 {
-	public ForEachObject ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public ForEachObject ( ConfigLoadContext clc, JSONObject config ) throws BuildFailure
 	{
 		try
 		{
 			fSet = config.getString ( "set" );
 			fPipeline = new JsonConfigReader ()
-				.readPipeline ( "internal", config.optJSONArray ( "processing" ), new ArrayList<String>(), sc )
+				.readPipeline ( "internal", config.optJSONArray ( "processing" ), new ArrayList<String>(), clc )
 			;
 		}
 		catch ( JSONException | ConfigReadException e )

@@ -51,17 +51,23 @@ import io.continual.util.data.json.JsonVisitor.ObjectVisitor;
 public class JsonConfigReader implements ConfigReader
 {
 	/**
-	 * Read a program from a named resource containing a JSON configuration
-	 * @param resName
+	 * Read a program from a set of named resources containing JSON configurations
+	 * @param resNames
 	 * @return a program
 	 * @throws ConfigReadException
 	 */
 	@Override
-	public Program read ( String resName ) throws ConfigReadException
+	public Program read ( String[] resNames ) throws ConfigReadException
 	{
 		try
 		{
-			return read ( ResourceLoader.load ( resName ) );
+			final Program p = new Program ();
+			final ServiceContainer sc = new ServiceContainer (); 
+			for ( String resName : resNames )
+			{
+				readInto ( sc, JsonUtil.readJsonObject ( ResourceLoader.load ( resName ) ), p );
+			}
+			return p;
 		}
 		catch ( IOException e )
 		{
@@ -111,8 +117,12 @@ public class JsonConfigReader implements ConfigReader
 		}
 
 		final Program p = new Program ();
-		log.info ( "Loading program..." );
-
+		readInto ( sc, obj, p );
+		return p;
+	}
+		
+	public void readInto ( ServiceContainer sc, JSONObject obj, Program p ) throws ConfigReadException
+	{		
 		final ArrayList<String> pkgs = new ArrayList<> ();
 
 		// add standard packages
@@ -137,6 +147,22 @@ public class JsonConfigReader implements ConfigReader
 			}
 		} );
 
+		// build context
+		final ConfigLoadContext clc = new ConfigLoadContext ()
+		{
+			@Override
+			public ServiceContainer getServiceContainer ()
+			{
+				return sc;
+			}
+
+			@Override
+			public List<String> getSearchPathPackages ()
+			{
+				return pkgs;
+			}
+		};
+
 		// read sinks
 		JsonVisitor.forEachElement ( obj.optJSONObject ( "sinks" ), new ObjectVisitor<JSONObject,ConfigReadException> ()
 		{
@@ -151,7 +177,7 @@ public class JsonConfigReader implements ConfigReader
 							.withClassNameInData ()
 							.searchingPath ( NullSink.class.getPackage ().getName () )
 							.searchingPaths ( pkgs )
-							.providingContext ( sc )
+							.providingContext ( clc )
 							.usingData ( sink )
 							.build ()
 					);
@@ -172,7 +198,7 @@ public class JsonConfigReader implements ConfigReader
 			@Override
 			public boolean visit ( String pipelineName, JSONArray rules ) throws ConfigReadException
 			{
-				final Pipeline pl = readPipeline ( pipelineName, rules, pkgs, sc );
+				final Pipeline pl = readPipeline ( pipelineName, rules, pkgs, clc );
 				p.addPipeline ( pipelineName, pl );
 				log.info ( "\twith pipeline {}...", pipelineName );
 
@@ -189,7 +215,7 @@ public class JsonConfigReader implements ConfigReader
 				try
 				{
 					source.put ( "name", srcName );
-					readSource ( sc, p, pkgs, srcName, source );
+					readSource ( clc, p, pkgs, srcName, source );
 				}
 				catch ( BuildFailure | JSONException e )
 				{
@@ -198,11 +224,9 @@ public class JsonConfigReader implements ConfigReader
 				return true;
 			}
 		} );
-
-		return p;
 	}
 
-	public Pipeline readPipeline ( String pipelineName, JSONArray rules, ArrayList<String> pkgs, ServiceContainer sc ) throws ConfigReadException
+	public Pipeline readPipeline ( String pipelineName, JSONArray rules, ArrayList<String> pkgs, ConfigLoadContext clc ) throws ConfigReadException
 	{
 		try
 		{
@@ -226,7 +250,7 @@ public class JsonConfigReader implements ConfigReader
 								.withClassNameInData ()
 								.searchingPath ( Any.class.getPackage ().getName () )
 								.searchingPaths ( pkgs )
-								.providingContext ( sc )
+								.providingContext ( clc )
 								.usingData ( rule.getJSONObject ( "if" ) )
 								.build ()
 							;
@@ -238,8 +262,8 @@ public class JsonConfigReader implements ConfigReader
 						}
 
 						// get THEN and ELSE processing
-						final List<Processor> thenSteps = readProcessorArray ( sc, pkgs, rule.optJSONArray ( isAlways ? "always" : "then" ) );
-						final List<Processor> elseSteps = isAlways ? new ArrayList<> () : readProcessorArray ( sc, pkgs, rule.optJSONArray ( "else" ) );
+						final List<Processor> thenSteps = readProcessorArray ( clc, pkgs, rule.optJSONArray ( isAlways ? "always" : "then" ) );
+						final List<Processor> elseSteps = isAlways ? new ArrayList<> () : readProcessorArray ( clc, pkgs, rule.optJSONArray ( "else" ) );
 
 						// build the rule and add it to the pipeline
 						pl.addRule (
@@ -265,28 +289,28 @@ public class JsonConfigReader implements ConfigReader
 		}
 	}
 
-	private Source readSource ( ServiceContainer sc, Program p, List<String> pkgs, String srcName, JSONObject source ) throws BuildFailure
+	private Source readSource ( ConfigLoadContext clc, Program p, List<String> pkgs, String srcName, JSONObject source ) throws BuildFailure
 	{
 		final Source src = Builder.withBaseClass ( Source.class )
 			.withClassNameInData ()
 			.searchingPath ( NullSource.class.getPackage ().getName () )
 			.searchingPaths ( pkgs )
-			.providingContext ( sc )
+			.providingContext ( clc )
 			.usingData ( source )
 			.build ()
 		;
 		p.addSource ( srcName, src );
 		log.info ( "\twith source {}...", srcName );
 
-		JsonVisitor.forEachElement ( source.optJSONObject ( "services" ), new ObjectVisitor<JSONObject,BuildFailure> () {
-
+		JsonVisitor.forEachElement ( source.optJSONObject ( "services" ), new ObjectVisitor<JSONObject,BuildFailure> ()
+		{
 			@Override
 			public boolean visit ( String serviceName, JSONObject svcBlock ) throws JSONException, BuildFailure
 			{
 				final ProcessingService ps = Builder.withBaseClass ( ProcessingService.class )
 					.withClassNameInData ()
 					.searchingPaths ( pkgs )
-					.providingContext ( sc )
+					.providingContext ( clc )
 					.usingData ( svcBlock )
 					.build ()
 				;
@@ -300,7 +324,7 @@ public class JsonConfigReader implements ConfigReader
 		return src;
 	}
 	
-	private List<Processor> readProcessorArray ( ServiceContainer sc, List<String> pkgs, JSONArray block ) throws ConfigReadException
+	private List<Processor> readProcessorArray ( ConfigLoadContext clc, List<String> pkgs, JSONArray block ) throws ConfigReadException
 	{
 		final ArrayList<Processor> result = new ArrayList<> ();
 		JsonVisitor.forEachElement ( block, new ArrayVisitor<JSONObject,ConfigReadException> ()
@@ -315,7 +339,7 @@ public class JsonConfigReader implements ConfigReader
 							.withClassNameInData ()
 							.searchingPath ( Set.class.getPackage ().getName () )
 							.searchingPaths ( pkgs )
-							.providingContext ( sc )
+							.providingContext ( clc )
 							.usingData ( thenStep )
 							.build ()
 					);

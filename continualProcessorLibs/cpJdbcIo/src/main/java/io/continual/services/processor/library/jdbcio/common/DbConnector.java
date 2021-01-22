@@ -5,7 +5,6 @@ import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.processor.library.jdbcio.DbConnection;
-import io.continual.util.data.StringUtils;
 
 public class DbConnector
 {
@@ -13,16 +12,16 @@ public class DbConnector
 	{
 		// the config can have either a url or a host + dbName, which we'll use to construct the URL
 		
-		String url = getValue ( config, "url", false );
+		String url = getValue ( config, new String[] { "dbUrl", "url" }, false );
 		if ( url == null )
 		{
-			final String host = getValue ( config, "host", true );
-			final String dbname = getValue ( config, "name", true );
+			final String host = getValue ( config, new String[] { "dbHost", "host" }, true );
+			final String dbname = getValue ( config, new String[] { "dbName", "name" }, true );
 			url = "jdbc:mysql://" + host + "/" + dbname + "?serverTimezone=UTC&rewriteBatchedStatements=true&useSSL=false&autoReconnect=true";
 		}
 
-		final String user = getValue ( config, "user", false );
-		final String pwd = getValue ( config, "password", false );
+		final String user = getValue ( config, new String[] { "dbUser", "user" }, false );
+		final String pwd = getValue ( config, new String[] { "dbPassword", "password" }, false );
 
 		return new DbConnection ( url, user, pwd );
 	}
@@ -51,17 +50,20 @@ public class DbConnector
 	private final DbConnection fDb;
 	private final String fTable;
 
-	private static String getValue ( JSONObject config, String key, boolean reqd ) throws BuildFailure
+	private static String getValue ( JSONObject config, String[] keys, boolean reqd ) throws BuildFailure
 	{
-		String val = config.optString ( key, null );
-		if ( val == null )
+		for ( String key : keys )
 		{
-			val = config.optString ( "db" + StringUtils.toFirstUpper ( key ), null );
+			String val = config.optString ( key, null );
+			if ( val != null )
+			{
+				return val;
+			}
 		}
-		if ( val == null && reqd )
+		if ( reqd )
 		{
-			throw new BuildFailure ( "Missing required setting for [" + key + "]." );
+			throw new BuildFailure ( "Missing required setting for [" + keys[0] + "]." );
 		}
-		return val;
+		return null;
 	}
 }

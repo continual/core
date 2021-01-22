@@ -16,10 +16,9 @@
 
 package io.continual.util.console.shell;
 
-import io.continual.util.console.shell.ConsoleLooper;
-import junit.framework.TestCase;
-
 import org.junit.Test;
+
+import junit.framework.TestCase;
 
 public class ConsoleLooperTest extends TestCase
 {

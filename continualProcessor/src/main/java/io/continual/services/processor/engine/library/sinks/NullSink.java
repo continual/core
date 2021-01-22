@@ -19,7 +19,7 @@ package io.continual.services.processor.engine.library.sinks;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.Sink;
 
@@ -30,7 +30,7 @@ public class NullSink implements Sink
 		this ( null, null );
 	}
 
-	public NullSink ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public NullSink ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 	}
 

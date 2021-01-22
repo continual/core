@@ -20,13 +20,13 @@ import java.util.concurrent.TimeUnit;
 
 import org.json.JSONObject;
 
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.StreamProcessingContext.NoSuitableObjectException;
 
 public class StartAging extends BaseAgingProcessor
 {
-	public StartAging ( ServiceContainer sc, JSONObject config )
+	public StartAging ( ConfigLoadContext sc, JSONObject config )
 	{
 		super ( sc, config );
 

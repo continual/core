@@ -22,7 +22,6 @@ import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -32,7 +31,7 @@ import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.resources.ResourceLoader;
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageAndRouting;
 import io.continual.services.processor.engine.model.StreamProcessingContext;
@@ -68,7 +67,7 @@ public class CsvSource extends BasicSource
 		}
 	}
 
-	public CsvSource ( final ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public CsvSource ( final ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 		super ( config );
 		try
@@ -125,7 +124,7 @@ public class CsvSource extends BasicSource
 	}
 
 	@Override
-	protected MessageAndRouting internalGetNextMessage ( StreamProcessingContext spc, long timeUnit, TimeUnit units ) throws IOException
+	protected MessageAndRouting internalGetNextMessage ( StreamProcessingContext spc ) throws IOException
 	{
 		// normal processing...
 		init ( spc );

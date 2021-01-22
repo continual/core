@@ -18,13 +18,13 @@ package io.continual.services.processor.aging.processors;
 
 import org.json.JSONObject;
 
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.StreamProcessingContext.NoSuitableObjectException;
 
 public class CancelAging extends BaseAgingProcessor
 {
-	public CancelAging ( ServiceContainer sc, JSONObject config )
+	public CancelAging ( ConfigLoadContext sc, JSONObject config )
 	{
 		super ( sc, config );
 	}

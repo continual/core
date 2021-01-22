@@ -7,13 +7,13 @@ import java.io.IOException;
 
 import org.json.JSONObject;
 
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.service.SimpleProcessingService;
 import io.continual.util.data.json.CommentedJsonTokener;
 
 public class SimpleKeyStore extends SimpleProcessingService
 {
-	public SimpleKeyStore ( ServiceContainer sc, JSONObject config )
+	public SimpleKeyStore ( ConfigLoadContext sc, JSONObject config )
 	{
 		this ( new File ( config.getString ( "file" ) ) );
 	}

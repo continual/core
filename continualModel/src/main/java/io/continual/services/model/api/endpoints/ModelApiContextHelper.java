@@ -149,7 +149,7 @@ public class ModelApiContextHelper extends ApiContextHelper
 				context.response().getStreamForTextResponse ( MimeTypes.kAppJson ).println ( response );
 			}
 		}
-		catch ( ModelServiceIoException e )
+		catch ( ModelServiceIoException | IamSvcException e )
 		{
 			log.warn ( e.getMessage () );
 			sendJson ( context, HttpStatusCodes.k503_serviceUnavailable, new JSONObject ().put ( "status", HttpStatusCodes.k503_serviceUnavailable ).put ( "message", "There was a problem handling your request." ) );
@@ -168,16 +168,16 @@ public class ModelApiContextHelper extends ApiContextHelper
 
 	public void handleModelAdminRequest ( final CHttpRequestContext context, final String acctId, final String path, final ModelApiHandler handler ) throws ModelServiceRequestException
 	{
-		final IamServiceManager<?,?> as = getAccountsSvc ( context );
-		final UserContext user = getUser ( as, context );
-		if ( user == null )
-		{
-			sendNotAuth ( context );
-			return;
-		}
-
 		try
 		{
+			final IamServiceManager<?,?> as = getAccountsSvc ( context );
+			final UserContext user = getUser ( as, context );
+			if ( user == null )
+			{
+				sendNotAuth ( context );
+				return;
+			}
+
 			final Group sysAdmins = as.getAccessDb ().loadGroup ( ModelStdUserGroups.kSysAdminGroup );
 			if ( !sysAdmins.isMember ( user.getActualUserId () ) )
 			{

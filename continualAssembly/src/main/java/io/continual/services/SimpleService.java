@@ -18,8 +18,6 @@ package io.continual.services;
 
 import org.json.JSONObject;
 
-import io.continual.services.Service;
-
 /**
  * A simple service doesn't start/stop.
  */

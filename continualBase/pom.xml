@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>io.continual</groupId>
 		<artifactId>continual</artifactId>
-		<version>0.2.3</version>
+		<version>0.2.4</version>
 	</parent>
 
 	<artifactId>continualBase</artifactId>
@@ -90,10 +90,17 @@
 		<resources>
 			<resource>
 				<directory>src/main/resources</directory>
-				<filtering>true</filtering>
 				<includes>
 					<include>**/*.properties</include>
 				</includes>
+				<filtering>true</filtering>
+			</resource>
+			<resource>
+				<directory>src/main/resources</directory>
+				<excludes>
+					<exclude>**/*.properties</exclude>
+				</excludes>
+				<filtering>false</filtering>
 			</resource>
 		</resources>
 
@@ -123,14 +130,6 @@
 			<!-- note attach source and javadocs plugins are part of release profile below -->
 
 		</plugins>
-
-		<extensions>
-			<extension>
-				<groupId>org.springframework.build</groupId>
-				<artifactId>aws-maven</artifactId>
-				<version>5.0.0.RELEASE</version>
-			</extension>
-		</extensions>
 
 	</build>
 
@@ -198,10 +197,24 @@
 		</profile>
 	</profiles>
 
+	<!-- <repositories>
+		<repository>  
+			<id>cioS3Snapshots</id>
+			<name>S3 Snapshot Repository</name>  
+			<url>s3://io.continual.maven.snapshots/</url>
+			<releases>  
+				<enabled>false</enabled>  
+			</releases>  
+			<snapshots>  
+				<enabled>true</enabled>  
+			</snapshots>  
+		</repository>  
+	</repositories>   -->
+
 	<distributionManagement>
 		<snapshotRepository>
-			<id>cioossrh</id>
-			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+			<id>cioRepoWrite</id>
+			<url>${cioRepoWriteUrl}</url>
 		</snapshotRepository>
 		<repository>
 			<id>cioossrh</id>

@@ -35,6 +35,7 @@ import io.continual.util.data.exprEval.EnvDataSource;
 import io.continual.util.data.exprEval.ExprDataSourceStack;
 import io.continual.util.data.exprEval.ExpressionEvaluator;
 import io.continual.util.data.exprEval.JsonDataSource;
+import io.continual.util.data.exprEval.SpecialFnsDataSource;
 import io.continual.util.nv.NvReadable;
 
 public class ServiceContainer
@@ -229,15 +230,21 @@ public class ServiceContainer
 		}
 	}
 
+	public ExpressionEvaluator getExprEval ()
+	{
+		return getExprEval ( null );
+	}
+	
 	public ExpressionEvaluator getExprEval ( JSONObject data )
 	{
 		final ExprDataSourceStack stack = new ExprDataSourceStack (
 			new JsonDataSource ( data ),
-			new EnvDataSource ()
+			new EnvDataSource (),
+			new SpecialFnsDataSource ()
 		);
 		return new ExpressionEvaluator ( stack );
 	}
-	
+
 	private final LinkedList<Service> fServices;
 	private final MultiMap<String,Service> fServiceByName;
 

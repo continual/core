@@ -33,15 +33,15 @@ import io.continual.util.time.Clock;
 public abstract class BasicSource implements Source
 {
 	@Override
-	public boolean isEof ()
+	public synchronized boolean isEof ()
 	{
 		return fRequeued.size () == 0 && fEof;
 	}
 
 	@Override
-	public void close () throws IOException
+	public synchronized void close () throws IOException
 	{
-		fEof = true;
+		noteEndOfStream ();
 	}
 
 	@Override
@@ -50,43 +50,61 @@ public abstract class BasicSource implements Source
 		fRequeued.add ( msgAndRoute );
 	}
 
+	/**
+	 * This basic implementation polls the internalGetNextMessage call periodically until it returns a message, or 
+	 * the operation time limit is reached. It also pulls from the requeue list with priority.
+	 */
 	@Override
-	public synchronized final MessageAndRouting getNextMessage ( StreamProcessingContext spc, long timeUnit, TimeUnit units ) throws IOException, InterruptedException
+	public final MessageAndRouting getNextMessage ( StreamProcessingContext spc, long timeUnit, TimeUnit units ) throws IOException, InterruptedException
 	{
-		if ( fRequeued.size () > 0 )
-		{
-			return fRequeued.remove ( 0 );
-		}
-
-		final long endBy = Clock.now () + TimeUnit.MILLISECONDS.convert ( timeUnit, units );
 		final long[] backoff = getBackoffTimes ();
 		int backoffIndex = 0;
+
+		final long endByMs = Clock.now () + TimeUnit.MILLISECONDS.convert ( timeUnit, units );
 		do
 		{
-			final MessageAndRouting mr = internalGetNextMessage ( spc, timeUnit, units );
-			if ( mr != null ) return mr;
+			synchronized ( this )
+			{
+				if ( fRequeued.size () > 0 ) return fRequeued.remove ( 0 );
+	
+				final MessageAndRouting mr = internalGetNextMessage ( spc );
+				if ( mr != null ) return mr;
+			}
 
-			final long backoffTimeMs = backoff[backoffIndex];
-			log.debug ( "... backing off {} ms", backoffTimeMs );
-			Thread.sleep ( backoffTimeMs );	// FIXME could wind up substantially over time
-			backoffIndex = Math.min ( backoffIndex+1, backoff.length-1 );
+			final long remainingMs = Math.max ( 0, endByMs - Clock.now () );
+			if ( remainingMs > 0 )
+			{
+				final long backoffTimeMs = Math.min ( remainingMs, backoff [ backoffIndex++ ] );
+				if ( backoffIndex == backoff.length ) backoffIndex = 0;	// wrap
+	
+				log.debug ( "... backing off {} ms", backoffTimeMs );
+				Thread.sleep ( backoffTimeMs );	// FIXME could wind up substantially over time
+			}
 		}
-		while ( Clock.now () < endBy );
+		while ( Clock.now () < endByMs );
 
 		return null;
 	}
 
 	@Override
-	public void markComplete ( StreamProcessingContext spc, MessageAndRouting mr )
+	public synchronized void markComplete ( StreamProcessingContext spc, MessageAndRouting mr )
 	{
 		// no-op for most sources
 	}
 
-	protected abstract MessageAndRouting internalGetNextMessage ( StreamProcessingContext spc, long timeUnit, TimeUnit units ) throws IOException, InterruptedException;
+	/**
+	 * Get the next pending message, if any.
+	 * @param spc
+	 * @return the next message, or null
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	protected abstract MessageAndRouting internalGetNextMessage ( StreamProcessingContext spc ) throws IOException, InterruptedException;
 
+	private static final long[] skStdBackoffTimes = new long[] { 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987 };
 	protected long[] getBackoffTimes ()
 	{
-		return new long[] { 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987 };
+		return skStdBackoffTimes;
 	}
 	
 	protected BasicSource ( String defaultPipelineName )
@@ -110,7 +128,7 @@ public abstract class BasicSource implements Source
 		return new MessageAndRouting ( msg, fDefPipeline );
 	}
 
-	protected void noteEndOfStream ()
+	protected synchronized void noteEndOfStream ()
 	{
 		fEof = true;
 	}

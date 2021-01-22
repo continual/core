@@ -18,7 +18,6 @@ package io.continual.util.data;
 
 import java.util.concurrent.TimeUnit;
 
-import io.continual.util.data.HumanReadableHelper;
 import io.continual.util.time.Clock;
 import io.continual.util.time.Clock.TestClock;
 import junit.framework.TestCase;

@@ -23,7 +23,7 @@ import java.util.List;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.Sink;
 
@@ -32,7 +32,7 @@ import io.continual.services.processor.engine.model.Sink;
  */
 public class JsonObjectStreamSink implements Sink
 {
-	public JsonObjectStreamSink ( final ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public JsonObjectStreamSink ( final ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 		fPending = new ArrayList<JSONObject> ();
 	}

@@ -23,7 +23,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageAndRouting;
 import io.continual.util.time.Clock;
@@ -38,7 +38,7 @@ public class MessageGenerator extends QueuingSource
 		this ( null, config );
 	}
 
-	public MessageGenerator ( final ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public MessageGenerator ( final ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 		super ( config );
 
