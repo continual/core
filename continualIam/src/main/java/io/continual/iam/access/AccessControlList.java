@@ -100,6 +100,7 @@ public class AccessControlList
 	 * @param userOrGroupId the user or group to clear entries for
 	 * @param ops the operations to clear entries for
 	 * @return this ACL
+	 * @throws AclUpdateException 
 	 */
 	public AccessControlList clear ( String userOrGroupId, String[] ops )
 	{

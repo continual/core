@@ -348,6 +348,7 @@ public class JdbcSink extends DbConnector implements Sink
 			}
 			catch ( SQLException x )
 			{
+				log.warn ( x.getMessage (), x );
 				if ( fCurrentConnection != null )
 				{
 					fCurrentConnection.close ();

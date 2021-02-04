@@ -6,7 +6,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.2.4</version>
+		<version>0.2.6</version>
 		<artifactId>continualBase</artifactId>
 		<relativePath>../continualBase</relativePath>
 	</parent>

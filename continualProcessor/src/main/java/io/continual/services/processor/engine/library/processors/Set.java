@@ -56,16 +56,16 @@ public class Set implements Processor
 		}
 
 		final Message msg = context.getMessage ();
-		JsonVisitor.forEachElement ( fUpdates, new ObjectVisitor<Object,JSONException> () {
-
+		JsonVisitor.forEachElement ( fUpdates, new ObjectVisitor<Object,JSONException> ()
+		{
 			@Override
 			public boolean visit ( String key, Object t ) throws JSONException
 			{
+				final String keyToUse = fEval ? Setter.evaluateToString ( context, key, msg ) : key;
 				final Object data = fEval ? Setter.evaluate ( context, t, msg ) : t;
-				JsonEval.setValue ( msg.accessRawJson(), key, data, fAppendArray );
+				JsonEval.setValue ( msg.accessRawJson(), keyToUse, data, fAppendArray );
 				return true;
 			}
-			
 		} );
 	}
 

@@ -30,6 +30,7 @@ public class HumanReadableHelperTest extends TestCase
 		new String[] { "-123.45", "-123.45"  },
 		new String[] { "-1234.56", "-1,234.56"  },
 		new String[] { "123.04", "123.04"  },
+		new String[] { "6.999", "7.00"  },
 	};
 
 	public void testDollarsAndCents ()

@@ -35,7 +35,7 @@ public class MetricsService extends SimpleService
 	{
 		fReg = new MetricRegistry (); 
 		fReporters = new LinkedList<ScheduledReporter> ();
-
+		
 		// build any reporters requested by the configuration
 		JsonVisitor.forEachElement ( config.optJSONArray ( "reporters" ), new ArrayVisitor<JSONObject,BuildFailure> ()
 		{

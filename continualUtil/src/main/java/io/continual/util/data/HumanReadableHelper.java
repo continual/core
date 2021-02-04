@@ -165,8 +165,15 @@ public class HumanReadableHelper
 	{
 		final boolean negate = d < 0.0;
 		if ( negate ) d = d*-1.0;
-		final long dollars = Math.round ( Math.floor ( d ) );
-		final long cents = Math.round ( ( d - dollars ) * 100 );
+
+		long dollars = Math.round ( Math.floor ( d ) );
+		long cents = Math.round ( ( d - dollars ) * 100 );
+		while ( cents > 99 )
+		{
+			dollars += 1;
+			cents -= 100;
+		}
+
 		return (negate?"-":"") + numberValue ( dollars ) + "." + buildCents ( cents );
 	}
 

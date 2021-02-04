@@ -29,9 +29,10 @@ public class Setter
 		JsonVisitor.forEachElement ( value, new ObjectVisitor<Object,JSONException> ()
 		{
 			@Override
-			public boolean visit ( String key, Object val ) throws JSONException
+			public boolean visit ( String origKey, Object val ) throws JSONException
 			{
-				replacement.put ( key, evaluate ( mpc, val, msg ) );
+				final String keyToUse = evaluateToString ( mpc, origKey, msg );
+				replacement.put ( keyToUse, evaluate ( mpc, val, msg ) );
 				return true;
 			}
 		} );
@@ -72,4 +73,9 @@ public class Setter
 		return t;
 	}
 
+	public static String evaluateToString ( MessageProcessingContext mpc, Object t, Message msg )
+	{
+		Object o = evaluate ( mpc, t, msg );
+		return o == null ? "" : o.toString ();
+	}
 }
