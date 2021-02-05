@@ -45,12 +45,12 @@ public class JdbcSource extends DbConnector implements Source
 
 	public JdbcSource ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
-		this ( dbConnectionFromConfig ( config ), config );
+		this ( dbConnectionFromConfig ( sc, config ), sc, config );
 	}
 
-	public JdbcSource ( DbConnection dbsrc, JSONObject config ) throws BuildFailure
+	public JdbcSource ( DbConnection dbsrc, ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
-		super ( dbsrc, config );
+		super ( dbsrc, sc, config );
 
 		fQuery = config.getString ( "query" );
 		fPipeline = config.getString ( "pipeline" );

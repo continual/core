@@ -20,6 +20,6 @@ public class BucketingServiceTest extends TestCase
 		final List<Long> between = Period.getTimestampsBetween ( p, ts2020Jan15, ts2020Apr15 );
 		assertEquals ( 2, between.size () );
 		assertEquals ( new Long ( 1581786000000L ), between.get ( 0 ) );
-		assertEquals ( new Long ( 1584288000000L ), between.get ( 1 ) );
+		assertEquals ( new Long ( 1584291600000L ), between.get ( 1 ) );
 	}
 }

@@ -17,12 +17,12 @@
 package io.continual.services.processor.engine.library.sources;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 
-import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.processor.config.readers.ConfigLoadContext;
@@ -40,17 +40,9 @@ public class JsonObjectFileSource extends BasicSource
 	{
 		super ( config );
 
+		fFilename = config.getString ( "file" );
 		fEof = false;
-
-		try
-		{
-			final String filename = config.getString ( "file" );
-			fSrc = new BufferedReader ( new FileReader ( filename ) );
-		}
-		catch ( JSONException | FileNotFoundException e )
-		{
-			throw new BuildFailure ( e );
-		}
+		fSrc = null;
 	}
 
 	@Override
@@ -64,6 +56,13 @@ public class JsonObjectFileSource extends BasicSource
 	{
 		if ( fEof ) return null;
 
+		if ( fSrc == null )
+		{
+			final String filename = spc.evalExpression ( fFilename );
+			log.info ( "loading {}", filename );
+			fSrc = new BufferedReader ( new FileReader ( filename ) );
+		}
+		
 		final String line = fSrc.readLine ();
 		if ( line != null )
 		{
@@ -77,6 +76,9 @@ public class JsonObjectFileSource extends BasicSource
 		return null;
 	}
 
-	private final BufferedReader fSrc;
+	private final String fFilename;
+	private BufferedReader fSrc;
 	private boolean fEof;
+
+	private static final Logger log = LoggerFactory.getLogger ( JsonObjectFileSource.class );
 }

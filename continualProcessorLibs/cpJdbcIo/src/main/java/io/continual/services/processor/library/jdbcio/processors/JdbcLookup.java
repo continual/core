@@ -31,12 +31,12 @@ public class JdbcLookup extends DbConnector implements Processor
 
 	public JdbcLookup ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
-		this ( dbConnectionFromConfig ( config ), config );
+		this ( dbConnectionFromConfig ( sc, config ), sc, config );
 	}
 
-	public JdbcLookup ( DbConnection dbsrc, JSONObject config ) throws BuildFailure
+	public JdbcLookup ( DbConnection dbsrc, ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
-		super ( dbsrc, config );
+		super ( dbsrc, sc, config );
 
 		fLookupField = config.getString ( "lookupField" );
 		fLookupValue = config.getString ( "lookupValue" );

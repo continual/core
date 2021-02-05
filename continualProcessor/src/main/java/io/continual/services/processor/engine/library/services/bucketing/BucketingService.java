@@ -8,6 +8,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.TimeZone;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -64,6 +65,7 @@ public class BucketingService extends SimpleProcessingService
 				{
 					// special handling
 					final Calendar cal = Calendar.getInstance ();
+					cal.setTimeZone ( TimeZone.getTimeZone ( "UTC" ) );
 					cal.setTimeInMillis ( startMs );
 					cal.add ( Calendar.MONTH, 1 );
 					while ( cal.getTimeInMillis () < endMs )

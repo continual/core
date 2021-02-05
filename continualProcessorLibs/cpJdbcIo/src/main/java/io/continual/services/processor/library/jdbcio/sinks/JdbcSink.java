@@ -58,12 +58,12 @@ public class JdbcSink extends DbConnector implements Sink
 
 	public JdbcSink ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
-		this ( dbConnectionFromConfig ( config ), config );
+		this ( dbConnectionFromConfig ( sc, config ), sc, config );
 	}
 
-	public JdbcSink ( DbConnection dbsrc, JSONObject config ) throws BuildFailure
+	public JdbcSink ( DbConnection dbsrc, ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
-		super ( dbsrc, config );
+		super ( dbsrc, sc, config );
 		
 		try
 		{

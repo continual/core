@@ -65,7 +65,12 @@ public class JsonConfigReader implements ConfigReader
 			final ServiceContainer sc = new ServiceContainer (); 
 			for ( String resName : resNames )
 			{
-				readInto ( sc, JsonUtil.readJsonObject ( ResourceLoader.load ( resName ) ), p );
+				final InputStream res = ResourceLoader.load ( resName );
+				if ( res == null )
+				{
+					throw new ConfigReadException ( "Couldn't locate [" + resName + "]." );
+				}
+				readInto ( sc, JsonUtil.readJsonObject ( res ), p );
 			}
 			return p;
 		}

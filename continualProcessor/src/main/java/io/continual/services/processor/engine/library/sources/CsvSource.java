@@ -28,6 +28,8 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.resources.ResourceLoader;
@@ -168,7 +170,12 @@ public class CsvSource extends BasicSource
 			if ( fStream == null )
 			{
 				final String name = spc.evalExpression ( fResource );
+				if ( name == null || name.length () == 0 )
+				{
+					throw new IOException ( "No resource name provided." );
+				}
 				fStream = ResourceLoader.load ( name );
+				log.info ( "loaded {}", name );
 			}
 			if ( fStream == null )
 			{
@@ -216,4 +223,6 @@ public class CsvSource extends BasicSource
 		}
 		return makeDefRoutingMessage ( new Message ( data ) );
 	}
+
+	private static final Logger log = LoggerFactory.getLogger ( CsvSource.class );
 }
