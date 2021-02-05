@@ -217,8 +217,12 @@
 			<url>${cioRepoWriteUrl}</url>
 		</snapshotRepository>
 		<repository>
-			<id>cioossrh</id>
-			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+			<id>cioRepoWrite</id>
+			<url>${cioRepoWriteUrl}</url>
+			<!-- 
+				<id>cioossrh</id>
+				<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+			-->
 		</repository>
 	</distributionManagement>
 
