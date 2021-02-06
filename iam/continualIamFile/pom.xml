@@ -1,0 +1,35 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>io.continual</groupId>
+		<version>0.2.8</version>
+		<artifactId>continualIamSystems</artifactId>
+		<relativePath>..</relativePath>
+	</parent>
+
+	<artifactId>continualIamFile</artifactId>
+	<packaging>jar</packaging>
+
+	<name>continual.io IAM over a local file</name>
+	<description>Continual IAM over a local file.</description>
+	<url>https://continual.io</url>
+
+	<dependencies>
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualIam</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+	</dependencies>
+
+</project>

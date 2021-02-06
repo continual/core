@@ -1,0 +1,53 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>io.continual</groupId>
+		<version>0.2.8-SNAPSHOT</version>
+		<artifactId>continualBase</artifactId>
+		<relativePath>../continualBase</relativePath>
+	</parent>
+
+	<artifactId>continualRcvr</artifactId>
+	<packaging>jar</packaging>
+
+	<name>continual.io receiver</name>
+	<description>
+	The Continual.io event receiver API, which ingests event streams from arbitrary client sources,
+	honors ordering in the event stream via event stream name (aka partition key), and writes to 
+	a back-end implementation like Kafka. 
+	</description>
+	<url>https://continual.io</url>
+
+	<dependencies>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualProcessor</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualRestHttp</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualMessagingKafka</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualIam</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+	</dependencies>
+
+</project>
+

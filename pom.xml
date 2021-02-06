@@ -8,48 +8,16 @@
 
 	<!-- When changing version, also change parent version number in sub-pom files -->
 	<!-- You can run versionUpdate.sh in this directory to do this. -->
-	<version>0.2.7</version>
+	<version>0.2.8</version>
 
 	<packaging>pom</packaging>
 
 	<modules>
-		<module>continualBase</module>
-		<module>continualUtil</module>
-		<module>continualAssembly</module>
-
-		<module>continualMessaging</module>
-
-		<module>continualMetrics</module>
-
-		<module>continualIam</module>
-		<module>continualIamFile</module>
-		<module>continualIamS3</module>
-<!--	<module>continualIamLdap</module> -->
-
-		<module>continualHttp</module>
-		<module>continualRestHttp</module>
-		<module>continualEmail</module>
-		<module>continualProcessor</module>
-
-		<module>continualModel</module>
-		<module>continualModelCassandra</module>
-		<module>continualModelAwsS3</module>
-<!--		<module>continualModelZk</module> -->
-
-		<module>continualMessagingKafka</module>
-		<module>continualRcvr</module>
-
-		<module>continualClient</module>
-		<module>continualMonitor</module>
-
-		<module>continualProcessorLibs/cpAging</module>
-		<module>continualProcessorLibs/cpAnalytics</module>
-		<module>continualProcessorLibs/cpJdbcIo</module>
-		<module>continualProcessorLibs/cpMsDocs</module>
-
-		<!-- API servers -->
-		<module>continualIamApiService</module>
-
+		<module>coreSystems</module>
+		<module>iam</module>
+		<module>service</module>
+		<module>eventFlows</module>
+		<module>model</module>
 	</modules>
 
 	<organization>
@@ -92,12 +60,67 @@
 
 	<dependencyManagement>
 		<dependencies>
+
+			<dependency>
+				<groupId>junit</groupId>
+				<artifactId>junit</artifactId>
+				<version>4.11</version>
+				<scope>test</scope>
+			</dependency>
+
+			<dependency>
+				<groupId>org.json</groupId>
+				<artifactId>json</artifactId>
+				<version>20180130</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.slf4j</groupId>
+				<artifactId>slf4j-api</artifactId>
+				<version>1.7.25</version>
+			</dependency>
+
+			<dependency>
+			    <groupId>org.slf4j</groupId>
+			    <artifactId>slf4j-log4j12</artifactId>
+			    <version>1.7.25</version>
+			    <scope>test</scope>
+			</dependency>
+
 		</dependencies>
 	</dependencyManagement>
 
 	<build>
+
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<includes>
+					<include>**/*.properties</include>
+				</includes>
+				<filtering>true</filtering>
+			</resource>
+			<resource>
+				<directory>src/main/resources</directory>
+				<excludes>
+					<exclude>**/*.properties</exclude>
+				</excludes>
+				<filtering>false</filtering>
+			</resource>
+		</resources>
+
 		<pluginManagement>
+
 			<plugins>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<version>3.3</version>
+					<configuration>
+						<source>1.8</source>
+						<target>1.8</target>
+					</configuration>
+				</plugin>
 
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
@@ -144,16 +167,23 @@
 					<artifactId>maven-jar-plugin</artifactId>
 					<version>2.4</version>
 				</plugin>
+
+				<plugin>
+					<groupId>org.sonatype.plugins</groupId>
+					<artifactId>nexus-staging-maven-plugin</artifactId>
+					<version>1.6.7</version>
+					<extensions>true</extensions>
+					<configuration>
+						<serverId>cioossrh</serverId>
+						<nexusUrl>https://oss.sonatype.org/</nexusUrl>
+						<autoReleaseAfterClose>true</autoReleaseAfterClose>
+					</configuration>
+				</plugin>
+
+				<!-- note attach source and javadocs plugins are part of release profile below -->
+
 			</plugins>
 		</pluginManagement>
-
-		<extensions>
-			<extension>
-				<groupId>org.springframework.build</groupId>
-				<artifactId>aws-maven</artifactId>
-				<version>5.0.0.RELEASE</version>
-			</extension>
-		</extensions>
 
 	</build>
 
@@ -200,10 +230,14 @@
 							</execution>
 						</executions>
 					</plugin>
+
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-javadoc-plugin</artifactId>
-						<version>2.9.1</version>
+						<configuration>
+							<source>${java.version}</source>
+						</configuration>
+						<version>3.2.0</version>
 						<executions>
 							<execution>
 								<id>attach-javadocs</id>
@@ -213,20 +247,28 @@
 							</execution>
 						</executions>
 					</plugin>
+
 				</plugins>
 			</build>
 		</profile>
+
 	</profiles>
 
 	<distributionManagement>
 		<snapshotRepository>
-			<id>cioossrh</id>
-			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+			<id>cioRepoWrite</id>
+			<url>${cioRepoWriteUrl}</url>
 		</snapshotRepository>
+		<repository>
+			<id>cioRepoWrite</id>
+			<url>${cioRepoWriteUrl}</url>
+		</repository>
+		<!--
 		<repository>
 			<id>cioossrh</id>
 			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
 		</repository>
+		-->
 	</distributionManagement>
 
 </project>
