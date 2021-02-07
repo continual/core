@@ -8,17 +8,12 @@
 
 	<!-- When changing version, also change parent version number in sub-pom files -->
 	<!-- You can run versionUpdate.sh in this directory to do this. -->
-	<version>0.2.8</version>
-
+	<version>0.2.9-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
-	<modules>
-		<module>coreSystems</module>
-		<module>iam</module>
-		<module>service</module>
-		<module>eventFlows</module>
-		<module>model</module>
-	</modules>
+	<name>ContinualIO</name>
+	<description>ContinualIO&apos;s monitoring architecture.</description>
+	<url>https://continual.io</url>
 
 	<organization>
 		<name>continual.io</name>
@@ -58,6 +53,14 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 	</properties>
 
+	<modules>
+		<module>coreSystems</module>
+		<module>iam</module>
+		<module>service</module>
+		<module>eventFlows</module>
+		<module>model</module>
+	</modules>
+
 	<dependencyManagement>
 		<dependencies>
 
@@ -77,13 +80,13 @@
 			<dependency>
 				<groupId>org.slf4j</groupId>
 				<artifactId>slf4j-api</artifactId>
-				<version>1.7.25</version>
+				<version>1.7.30</version>
 			</dependency>
 
 			<dependency>
 			    <groupId>org.slf4j</groupId>
 			    <artifactId>slf4j-log4j12</artifactId>
-			    <version>1.7.25</version>
+			    <version>1.7.30</version>
 			    <scope>test</scope>
 			</dependency>
 
@@ -109,81 +112,46 @@
 			</resource>
 		</resources>
 
-		<pluginManagement>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.3</version>
+				<configuration>
+					<source>1.8</source>
+					<target>1.8</target>
+				</configuration>
+			</plugin>
 
-			<plugins>
-				<plugin>
-					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-compiler-plugin</artifactId>
-					<version>3.3</version>
-					<configuration>
-						<source>1.8</source>
-						<target>1.8</target>
-					</configuration>
-				</plugin>
+			<plugin>
+				<groupId>org.sonatype.plugins</groupId>
+				<artifactId>nexus-staging-maven-plugin</artifactId>
+				<version>1.6.7</version>
+				<extensions>true</extensions>
+				<configuration>
+					<serverId>cioossrh</serverId>
+					<nexusUrl>https://oss.sonatype.org/</nexusUrl>
+					<autoReleaseAfterClose>true</autoReleaseAfterClose>
+				</configuration>
+			</plugin>
 
-				<plugin>
-					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-javadoc-plugin</artifactId>
-					<version>2.9.1</version>
-					<configuration>
-						<outputDirectory>${project.build.directory}/apidocs</outputDirectory>
-						<quiet>true</quiet>
-						<additionalparam>${javadoc.opts}</additionalparam>
-					</configuration>
-					<executions>
-						<execution>
-							<id>attach-javadocs</id>
-							<goals>
-								<goal>jar</goal>
-							</goals>
-						</execution>
-					</executions>
-				</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>2.9.1</version>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 
-				<plugin>
-					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-assembly-plugin</artifactId>
-					<version>2.4.1</version>
-					<configuration>
-						<descriptors>
-							<descriptor>src/assembly/dep.xml</descriptor>
-						</descriptors>
-					</configuration>
+			<!-- note attach source plugin is part of release profile below -->
 
-					<executions>
-						<execution>
-							<id>make-assembly</id> <!-- this is used for inheritance merges -->
-							<phase>package</phase> <!-- bind to the packaging phase -->
-							<goals>
-								<goal>single</goal>
-							</goals>
-						</execution>
-					</executions>
-				</plugin>
-
-				<plugin>
-					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-jar-plugin</artifactId>
-					<version>2.4</version>
-				</plugin>
-
-				<plugin>
-					<groupId>org.sonatype.plugins</groupId>
-					<artifactId>nexus-staging-maven-plugin</artifactId>
-					<version>1.6.7</version>
-					<extensions>true</extensions>
-					<configuration>
-						<serverId>cioossrh</serverId>
-						<nexusUrl>https://oss.sonatype.org/</nexusUrl>
-						<autoReleaseAfterClose>true</autoReleaseAfterClose>
-					</configuration>
-				</plugin>
-
-				<!-- note attach source and javadocs plugins are part of release profile below -->
-
-			</plugins>
-		</pluginManagement>
+		</plugins>
 
 	</build>
 
@@ -230,24 +198,6 @@
 							</execution>
 						</executions>
 					</plugin>
-
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-javadoc-plugin</artifactId>
-						<configuration>
-							<source>${java.version}</source>
-						</configuration>
-						<version>3.2.0</version>
-						<executions>
-							<execution>
-								<id>attach-javadocs</id>
-								<goals>
-									<goal>jar</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
-
 				</plugins>
 			</build>
 		</profile>
@@ -259,6 +209,10 @@
 			<id>cioRepoWrite</id>
 			<url>${cioRepoWriteUrl}</url>
 		</snapshotRepository>
+		<!-- <snapshotRepository>
+			<id>cioossrh</id>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+		</snapshotRepository> -->
 		<repository>
 			<id>cioRepoWrite</id>
 			<url>${cioRepoWriteUrl}</url>
