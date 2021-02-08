@@ -49,6 +49,7 @@ import io.continual.http.util.http.standards.HttpStatusCodes;
 import io.continual.http.util.http.standards.MimeTypes;
 import io.continual.metrics.MetricsCatalog;
 import io.continual.metrics.metricTypes.Timer;
+import io.continual.util.naming.Name;
 import io.continual.util.naming.Path;
 import io.continual.util.nv.NvReadable;
 import io.continual.util.nv.impl.nvInstallTypeWrapper;
@@ -529,16 +530,17 @@ public class CHttpServlet extends HttpServlet
 			}
 			log.info ( "--" );
 		}
-		
+
 		final CHttpConnection session = getSession ( req );
 		final CHttpRequestContext ctx = createHandlingContext ( req, resp, session, fObjects, fRouter );
+		final CHttpRequest reqObj = ctx.request ();
+		Path pathAsMetricName = getMetricNamer().getMetricNameFor ( reqObj );
+
 		try
 		{
-			final CHttpRequest reqObj = ctx.request ();
-
 			final CHttpRouteInvocation handler = fRouter.route ( reqObj, session );
 
-			final Timer.Context timer = fMetrics == null ? null : fMetrics.timer ( getMetricNamer().getMetricNameFor ( reqObj ) ).time ();
+			final Timer.Context timer = fMetrics == null ? null : fMetrics.timer ( pathAsMetricName.makeChildItem ( Name.fromString ( "executionTime" ) ) ).time ();
 			try
 			{
 				handler.run ( ctx );
@@ -558,6 +560,14 @@ public class CHttpServlet extends HttpServlet
 					sendStdJsonError ( ctx, HttpStatusCodes.k404_notFound, "Not found." );
 				}
 			} );
+
+			// record the mismatched route but not the actual route and status code so that we're not polluting
+			// the metrics catalog with garbage input paths
+			pathAsMetricName = null;
+			fMetrics
+				.meter ( Path.fromString ( "noMatchForMethodAndPath" ) )
+				.mark ()
+			;
 		}
 		catch ( InvocationTargetException x )
 		{
@@ -578,7 +588,19 @@ public class CHttpServlet extends HttpServlet
 
 		final long endMs = Clock.now ();
 		final long durationMs = endMs - startMs;
-		log.info ( reqId + " " + ctx.response ().getStatusCode() + " " + durationMs + "ms" );
+		final int returnedStatusCode = ctx.response ().getStatusCode ();
+		log.info ( "{} {} {} ms", reqId, returnedStatusCode, durationMs );
+
+		if ( fMetrics != null && pathAsMetricName != null )
+		{
+			fMetrics
+				.meter ( pathAsMetricName
+					.makeChildItem ( Name.fromString ( "statusCode" ) )
+					.makeChildItem ( Name.fromString ( "" + returnedStatusCode ) )
+				)
+				.mark ()
+			;
+		}
 	}
 
 	/**

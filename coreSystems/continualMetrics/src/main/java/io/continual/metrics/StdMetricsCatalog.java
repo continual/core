@@ -37,11 +37,17 @@ class StdMetricsCatalog implements MetricsCatalog
 	 * @return a catalog with scoped naming
 	 */
 	@Override
-	public MetricsCatalog getSubCatalog ( Name name )
+	public StdMetricsCatalog getSubCatalog ( Name name )
 	{
-		return new StdMetricsCatalog ( fReg, fBasePath.makeChildItem ( name ) );
+		return new StdMetricsCatalog ( fReg, fBasePath.makeChildItem ( convertName ( name ) ) );
 	}
 	
+	@Override
+	public StdMetricsCatalog getSubCatalog ( String name )
+	{
+		return getSubCatalog ( Name.fromString ( name ) );
+	}
+
 	@Override
 	public void remove ( String name )
 	{
@@ -198,8 +204,20 @@ class StdMetricsCatalog implements MetricsCatalog
 	private final MetricRegistry fReg;
 	private final Path fBasePath;
 
-	private String convertPath ( Path name )
+	private String convertPath ( Path path )
 	{
-		return name.toString ().replace ( '/', '.' ).substring ( 1 );
+		// convert "/foo/bar/baz" to "foo.bar.baz"
+		return path.toString ().replace ( '/', '.' ).substring ( 1 );
+	}
+
+	private Name convertName ( Name name )
+	{
+		// we don't want dots in name segments because dropwizard uses them to segment the path
+		return Name.fromString ( name.toString ().replace ( '.', '_' ) );
+	}
+
+	public Path getBasePath ()
+	{
+		return fBasePath;
 	}
 }

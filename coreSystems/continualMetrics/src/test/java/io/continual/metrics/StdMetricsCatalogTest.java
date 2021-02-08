@@ -5,6 +5,7 @@ import org.junit.Test;
 
 import com.codahale.metrics.MetricRegistry;
 
+import io.continual.metrics.metricTypes.Counter;
 import junit.framework.TestCase;
 
 public class StdMetricsCatalogTest extends TestCase
@@ -28,5 +29,25 @@ public class StdMetricsCatalogTest extends TestCase
 		assertEquals ( 2, top.keySet ().size () );
 		assertEquals ( 1, bottom.keySet ().size () );
 		assertTrue ( bottom.keySet().contains ( "baz" ) );
+	}
+
+	@Test
+	public void testNameFixes ()
+	{
+		final MetricRegistry reg = new MetricRegistry ();
+		final StdMetricsCatalog cat = new StdMetricsCatalog ( reg );
+
+		final StdMetricsCatalog foo = cat.getSubCatalog ( "foo" );
+		assertEquals ( "/foo", foo.getBasePath().toString () );
+
+		final StdMetricsCatalog bar = foo.getSubCatalog ( "bar.baz" );
+		assertEquals ( "/foo/bar_baz", bar.getBasePath().toString () );
+
+		final Counter c = bar.counter ( "c" );
+		c.increment ();
+
+		final JSONObject o = cat.toJson ();
+
+		assertNotNull ( o.getJSONObject ( "foo" ).getJSONObject ( "bar_baz" ).getJSONObject ( "c" ) );
 	}
 }
