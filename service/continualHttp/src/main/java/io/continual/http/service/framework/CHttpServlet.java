@@ -564,10 +564,13 @@ public class CHttpServlet extends HttpServlet
 			// record the mismatched route but not the actual route and status code so that we're not polluting
 			// the metrics catalog with garbage input paths
 			pathAsMetricName = null;
-			fMetrics
-				.meter ( Path.fromString ( "noMatchForMethodAndPath" ) )
-				.mark ()
-			;
+			if ( fMetrics != null )
+			{
+				fMetrics
+					.meter ( Path.fromString ( "/noMatchForMethodAndPath" ) )
+					.mark ()
+				;
+			}
 		}
 		catch ( InvocationTargetException x )
 		{
