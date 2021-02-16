@@ -47,6 +47,8 @@ import io.continual.metrics.MetricsService;
 import io.continual.services.Service;
 import io.continual.services.ServiceContainer;
 import io.continual.util.data.StreamTools;
+import io.continual.util.data.json.JsonVisitor;
+import io.continual.util.data.json.JsonVisitor.ObjectVisitor;
 
 public class HttpService implements Service
 {
@@ -129,13 +131,14 @@ public class HttpService implements Service
 			JSONObject httpConfig = settings.optJSONObject ( "http" );
 			final JSONObject httpsConfig = settings.optJSONObject ( "https" );
 	
+			// if we have neither http nor https, stand up http on the default port
 			if ( httpConfig == null && httpsConfig == null )
 			{
 				httpConfig = new JSONObject ()
 					.put ( "port", settings.optInt ( kSetting_Port, defaultPort ) )
 				;
 			}
-	
+
 			// HTTP setup...
 			if ( httpConfig != null )
 			{
@@ -144,6 +147,8 @@ public class HttpService implements Service
 				{
 					final Connector connector = new Connector ( Http11NioProtocol.class.getName () );
 					connector.setPort ( port );
+					transferConnectorAttributes ( connector, httpConfig.optJSONObject ( "tomcat" ) );
+					
 					fTomcat.getService ().addConnector ( connector );
 		
 					log.info ( "Service [" + fSettings.optString ( "name", "<anonymous>" ) + "] listens for HTTP on " + port + "." );
@@ -217,7 +222,9 @@ public class HttpService implements Service
 					connector.setAttribute ( "sslProtocol", "TLS" );
 					connector.setAttribute ( "SSLEnabled", true );
 					connector.setPort ( port );
-			
+
+					transferConnectorAttributes ( connector, httpConfig.optJSONObject ( "tomcat" ) );
+
 					fTomcat.getService ().addConnector ( connector );
 		
 					log.info ( "Service [" + fSettings.optString ( "name", "<anonymous>" ) + "] listens for HTTPS on " + port + "." );
@@ -319,6 +326,21 @@ public class HttpService implements Service
 	private final File fWorkDir;
 
 	private static final Logger log = LoggerFactory.getLogger ( HttpService.class );
+
+	private void transferConnectorAttributes ( Connector connector, JSONObject config )
+	{
+		if ( config == null ) return;
+
+		JsonVisitor.forEachElement ( config, new ObjectVisitor<Object,JSONException> ()
+		{
+			@Override
+			public boolean visit ( String key, Object val ) throws JSONException
+			{
+				connector.setAttribute ( key, val );
+				return true;
+			}
+		} );
+	}
 
 	private static String scanKeystoreForPrivateKey ( String keystoreFilename, String keystorePassword )
 	{

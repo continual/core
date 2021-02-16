@@ -21,6 +21,7 @@ import io.continual.util.console.ConsoleProgram;
 
 import io.continual.services.processor.config.readers.ConfigReadException;
 import io.continual.services.processor.config.readers.JsonConfigReader;
+import io.continual.services.processor.engine.model.Program;
 
 public class ProgramRunner extends ConsoleProgram
 {
@@ -34,9 +35,16 @@ public class ProgramRunner extends ConsoleProgram
 
 		try
 		{
-			new Engine ( new JsonConfigReader ().read ( args[0] ) )
-				.startAndWait ()
-			;
+			final JsonConfigReader reader = new JsonConfigReader ();
+			final Program program = reader.read ( args[0].split ( "," ) );
+			
+			final Engine e = new Engine ( program );
+			for ( int i=1; i<args.length; i++ )
+			{
+				// so we can say ${1} or ${2} to use command line items
+				e.setUserData ( ""+i, args[i] );
+			}
+			e.startAndWait ();
 		}
 		catch ( ConfigReadException e )
 		{
