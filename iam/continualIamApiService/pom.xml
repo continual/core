@@ -7,8 +7,8 @@
 	<parent>
 		<groupId>io.continual</groupId>
 		<version>0.2.13</version>
-		<artifactId>continualBase</artifactId>
-		<relativePath>../continualBase</relativePath>
+		<artifactId>continualIamSystems</artifactId>
+		<relativePath>..</relativePath>
 	</parent>
 
 	<artifactId>continualIamApiService</artifactId>
