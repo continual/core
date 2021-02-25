@@ -24,10 +24,9 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import io.continual.builder.Builder.BuildFailure;
+import io.continual.services.processor.engine.library.util.SimpleStreamProcessingContext;
 import io.continual.services.processor.engine.model.MessageAndRouting;
-import io.continual.services.processor.engine.model.Program;
 import io.continual.services.processor.engine.model.StreamProcessingContext;
-import io.continual.services.processor.engine.runtime.Engine;
 import junit.framework.TestCase;
 
 // something's up with this test
@@ -46,8 +45,10 @@ public class CsvSourceTest extends TestCase
 		{
 			assertFalse ( src.isEof () );
 
-			final Engine e = new Engine ( new Program () );
-			final StreamProcessingContext spc = e.new StdStreamProcessingContext ( src );
+			final StreamProcessingContext spc = SimpleStreamProcessingContext.builder ()
+				.withSource ( src )
+				.build ()
+			;
 			
 			MessageAndRouting msg;
 			do

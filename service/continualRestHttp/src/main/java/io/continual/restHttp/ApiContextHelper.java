@@ -262,16 +262,34 @@ public class ApiContextHelper<I extends Identity>
 					I authUser = null;
 					try
 					{
+						JwtCredential cred = null;
+
+						// we normally pick up the JWT token from the Auth/bearer header.
 						final String authHeader = context.request ().getFirstHeader ( "Authorization" );
 						if ( authHeader != null && authHeader.startsWith ( "Bearer " ) )
 						{
 							final String[] parts = authHeader.split ( " " );
 							if ( parts.length == 2 )
 							{
-								final JwtCredential cred = JwtCredential.fromHeader ( authHeader );
-								authUser = am.getIdentityDb ().authenticate ( cred );
-								if ( authUser != null ) IamAuthLog.authenticationEvent ( authUser.getId (), "JWT", context.request ().getBestRemoteAddress () );
+								cred = JwtCredential.fromHeader ( authHeader );
 							}
+						}
+						
+						// ... but we also support the token as a parameter to support some REST API
+						// use cases, like background data loads
+						if ( cred == null )
+						{
+							final String queryParam = context.request ().getParameter ( "jwt", null );
+							if ( queryParam != null )
+							{
+								cred = new JwtCredential ( queryParam );
+							}
+						}
+
+						if ( cred != null )
+						{
+							authUser = am.getIdentityDb ().authenticate ( cred );
+							if ( authUser != null ) IamAuthLog.authenticationEvent ( authUser.getId (), "JWT", context.request ().getBestRemoteAddress () );
 						}
 					}
 					catch ( InvalidJwtToken e )

@@ -26,9 +26,9 @@ import org.slf4j.LoggerFactory;
 
 import io.continual.services.Service;
 import io.continual.services.SimpleService;
-import io.continual.services.processor.engine.model.Message;
+import io.continual.services.processor.engine.library.util.SimpleMessageProcessingContext;
+import io.continual.services.processor.engine.library.util.SimpleStreamProcessingContext;
 import io.continual.services.processor.engine.model.MessageAndRouting;
-import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.Pipeline;
 import io.continual.services.processor.engine.model.Program;
 import io.continual.services.processor.engine.model.Sink;
@@ -37,8 +37,6 @@ import io.continual.services.processor.engine.model.StreamProcessingContext;
 import io.continual.services.processor.service.ProcessingService;
 import io.continual.util.data.exprEval.ExprDataSource;
 import io.continual.util.data.exprEval.ExprDataSourceStack;
-import io.continual.util.data.exprEval.ExpressionEvaluator;
-import io.continual.util.data.json.JsonEval;
 
 /**
  * An engine for message stream processing.
@@ -222,7 +220,12 @@ public class Engine extends SimpleService implements Service
 	{
 		public ExecThread ( String name, Source s )
 		{
-			this ( name, s, new StdStreamProcessingContext ( s ) );
+			this ( name, s, SimpleStreamProcessingContext.builder ()
+				.withSource ( s )
+				.evaluatingAgainst ( fExprEvalStack )
+				.loggingTo ( log )
+				.build ()
+			);
 		}
 
 		public ExecThread ( String name, Source s, StreamProcessingContext spc )
@@ -264,6 +267,13 @@ public class Engine extends SimpleService implements Service
 					entry.getValue ().startBackgroundProcessing ();
 				}
 
+				final SimpleMessageProcessingContext.Builder mpcBuilder = SimpleMessageProcessingContext.builder ()
+					.evaluatingAgainst ( fExprEvalStack )
+					.serialNumbersFrom ( fSnGen )
+					.sourcesAndSinksFrom ( fProgram )
+					.usingContext ( fStreamContext )
+				;
+				
 				// while we have messages, push them through the pipeline
 				log.info ( "Source " + fName + ": START" );
 				while ( !fSource.isEof () && !fStreamContext.failed () )
@@ -278,8 +288,7 @@ public class Engine extends SimpleService implements Service
 						}
 						else
 						{
-							final StdProcessingContext pc = new StdProcessingContext ( fStreamContext, msgAndRoute.getMessage () );
-							pl.process ( pc );
+							pl.process ( mpcBuilder.build ( msgAndRoute.getMessage () ) );
 						}
 						fSource.markComplete ( fStreamContext, msgAndRoute );
 					}
@@ -313,227 +322,6 @@ public class Engine extends SimpleService implements Service
 		private final String fName;
 		private final Source fSource;
 		private final StreamProcessingContext fStreamContext;
-	}
-
-	public class StdStreamProcessingContext implements StreamProcessingContext 
-	{
-		public StdStreamProcessingContext ( Source src )
-		{
-			fSource = src;
-			fFailed = false;
-			fObjects = new HashMap<> ();
-		}
-
-		@Override
-		public void warn ( String warningText )
-		{
-			log.warn ( "stream: {}", warningText );
-		}
-
-		@Override
-		public void fail ( String warningText )
-		{
-			warn ( warningText );
-			fFailed = true;
-		}
-
-		@Override
-		public boolean failed () { return fFailed; }
-		
-		@Override
-		public StreamProcessingContext addNamedObject ( String name, Object o )
-		{
-			fObjects.put ( name, o );
-			return this;
-		}
-
-		@Override
-		public Object getNamedObject ( String name )
-		{
-			return fObjects.get ( name );
-		}
-
-		@Override
-		@SuppressWarnings("unchecked")
-		public <T> T getNamedObject ( String name, Class<T> clazz ) throws ClassCastException
-		{
-			final Object o = getNamedObject ( name );
-			if ( o == null ) return null;
-
-			if ( !clazz.isInstance ( o ) )
-			{
-				throw new ClassCastException ( "Object " + name + " is not a " + clazz.getName () );
-			}
-
-			return (T) o;
-		}
-
-		@Override
-		public <T> T getReqdNamedObject ( String name, Class<T> clazz ) throws NoSuitableObjectException
-		{
-			try
-			{
-				final T obj = getNamedObject ( name, clazz );
-				if ( obj == null )
-				{
-					throw new NoSuitableObjectException ( "No object named " + name + "." );
-				}
-				return obj;
-			}
-			catch ( ClassCastException x )
-			{
-				throw new NoSuitableObjectException ( x );
-			}
-		}
-
-		@Override
-		public StreamProcessingContext removeNamedObject ( String name )
-		{
-			fObjects.remove ( name );
-			return this;
-		}
-
-		@Override
-		public boolean setFlag ( String flagName )
-		{
-			final boolean result = checkFlag ( flagName );
-			addNamedObject ( flagName, Boolean.TRUE );
-			return result;
-		}
-
-		@Override
-		public boolean checkFlag ( String flagName )
-		{
-			final Boolean val = getNamedObject ( flagName, Boolean.class );
-			if ( val == null ) return false;
-			return val;
-		}
-
-		@Override
-		public boolean clearFlag ( String flagName )
-		{
-			final boolean result = checkFlag ( flagName );
-			removeNamedObject ( flagName );
-			return result;
-		}
-		
-		@Override
-		public void requeue ( MessageAndRouting mr )
-		{
-			fSource.requeue ( mr );
-		}
-
-		@Override
-		public String evalExpression ( String expression )
-		{
-			return ExpressionEvaluator.evaluateText ( expression, fExprEvalStack );
-		}
-
-		private final Source fSource;
-		private final HashMap<String,Object> fObjects;
-		private boolean fFailed;
-	}
-
-	private class StdProcessingContext implements MessageProcessingContext 
-	{
-		public StdProcessingContext ( StreamProcessingContext spc, Message msg )
-		{
-			fSpc = spc;
-			fMsg = msg;
-			fId = fSnGen.getNext ();
-		}
-
-		@Override
-		public StreamProcessingContext getStreamProcessingContext ()
-		{
-			return fSpc;
-		}
-
-		@Override
-		public Message getMessage ()
-		{
-			return fMsg;
-		}
-
-		@Override
-		public String getId ()
-		{
-			return fId;
-		}
-
-		@Override
-		public Source getSource ( String sinkName )
-		{
-			return fProgram.getSources().get ( sinkName );
-		}
-
-		@Override
-		public Sink getSink ( String sinkName )
-		{
-			return fProgram.getSinks ().get ( sinkName );
-		}
-
-		public boolean shouldContinue ()
-		{
-			return !fHaltRequested && !fSpc.failed ();
-		}
-
-		@Override
-		public void stopProcessing ()
-		{
-			fHaltRequested = true;
-		}
-
-		@Override
-		public void stopProcessing ( String warningText )
-		{
-			fHaltRequested = true;
-			warn ( warningText );
-		}
-
-		@Override
-		public void warn ( String warningText )
-		{
-			log.warn ( "msg #{}: {}", fId, warningText );
-		}
-
-		@SuppressWarnings("unchecked")
-		@Override
-		public <T> T evalExpression ( String expression, Class<T> targetClass )
-		{
-			final ExprDataSource eds = new ExprDataSource ()
-			{
-				@Override
-				public Object eval ( String label )
-				{
-					return JsonEval.eval ( fMsg.accessRawJson (), label );
-				}
-			};
-			final String asString = ExpressionEvaluator.evaluateText ( expression, eds, fExprEvalStack );
-			if ( targetClass.equals ( String.class ) )
-			{
-				return (T) asString;
-			}
-			if ( targetClass.equals ( Long.class ) )
-			{
-				return (T) new Long ( Long.parseLong ( asString ) );
-			}
-			if ( targetClass.equals ( Integer.class ) )
-			{
-				return (T) new Integer ( Integer.parseInt ( asString ) );
-			}
-			if ( targetClass.equals ( Double.class ) )
-			{
-				return (T) new Double ( Double.parseDouble ( asString ) );
-			}
-
-			throw new IllegalArgumentException ( "Can't eval to " + targetClass.getName () );
-		}
-
-		private final StreamProcessingContext fSpc;
-		private final String fId;
-		private final Message fMsg;
-		private boolean fHaltRequested = false;
 	}
 
 	private static final Logger log = LoggerFactory.getLogger ( Engine.class );
