@@ -19,6 +19,10 @@ package io.continual.services.processor.engine.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.continual.metrics.MetricsCatalog;
+import io.continual.metrics.MetricsCatalog.PathPopper;
+import io.continual.metrics.metricTypes.Timer;
+
 /**
  * A pipeline of rules.
  */
@@ -43,36 +47,65 @@ public class Pipeline
 
 	public void process ( MessageProcessingContext context )
 	{
+		final MetricsCatalog mc = context.getMetrics ();
+
+		int ruleIndex = 0;
 		for ( Rule r : fRules )
 		{
-			final List<Processor> procs;
-
-			final Filter f = r.getFilter ();
-			if ( f == null || f.passes ( context ) )
+			try ( PathPopper pp = mc.push ( "rule-" + ruleIndex++ ) )
 			{
-				procs = r.getThenProcs ();
-			}
-			else
-			{
-				procs = r.getElseProcs ();
-			}
-
-			for ( Processor p : procs )
-			{
-				p.process ( context );
-				if ( !context.shouldContinue () )
+				try ( Timer.Context ruleDurCtx = mc.timer ( "total" ).time () )
 				{
-					// break from the processor loop
-					break;
+					final List<Processor> procs;
+					final String procChainLabel;
+		
+					final Filter f = r.getFilter ();
+					if ( f == null || f.passes ( context ) )
+					{
+						procs = r.getThenProcs ();
+						procChainLabel = "filterPass";
+					}
+					else
+					{
+						procs = r.getElseProcs ();
+						procChainLabel = "filterFail";
+					}
+
+					try ( PathPopper pp2 = mc.push ( procChainLabel ) )
+					{
+						int procIndex = 0;
+						for ( Processor p : procs )
+						{
+							final String procName = makeMetricsName ( p, procIndex++ );
+							try ( PathPopper pp3 = mc.push ( procName ) )
+							{
+								try ( Timer.Context procDurCtx = mc.timer ( "totalTime" ).time () )
+								{
+									p.process ( context );
+									if ( !context.shouldContinue () )
+									{
+										// break from the processor loop
+										break;
+									}
+								}
+							}
+						}
+					}
+		
+					// break from the rule loop
+					if ( !context.shouldContinue () )
+					{
+						break;
+					}
 				}
 			}
-
-			// break from the rule loop
-			if ( !context.shouldContinue () )
-			{
-				break;
-			}
 		}
+	}
+
+	private static String makeMetricsName ( Processor p, int i )
+	{
+		final String clazz = p.getClass ().getSimpleName ();
+		return "proc-" + i + " (" + clazz + ")";
 	}
 
 	private final ArrayList<Rule> fRules;

@@ -16,6 +16,8 @@
 
 package io.continual.services.processor.engine.model;
 
+import io.continual.metrics.MetricsCatalog;
+
 /**
  * A message processing context is provided to processors for access to the current message, its
  * containing stream, and control state.
@@ -99,4 +101,10 @@ public interface MessageProcessingContext
 	 * @return a value, which may be an empty string
 	 */
 	<T> T evalExpression ( String expression, Class<T> targetType );
+
+	/**
+	 * Get a metrics catalog appropriate for the scope of this message's processing
+	 * @return
+	 */
+	MetricsCatalog getMetrics ();
 }

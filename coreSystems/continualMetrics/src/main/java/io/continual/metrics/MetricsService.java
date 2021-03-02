@@ -19,6 +19,7 @@ import com.codahale.metrics.Timer;
 
 import io.continual.builder.Builder;
 import io.continual.builder.Builder.BuildFailure;
+import io.continual.metrics.impl.StdMetricsCatalog;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.util.data.json.JsonVisitor;

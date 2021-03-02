@@ -276,7 +276,7 @@ public class BucketingService extends SimpleProcessingService
 			{
 				for ( long tsExpected : Period.getTimestampsBetween ( fSize, fLastTs, ts ) )
 				{
-					final Message msg = new Message ( new JSONObject().put ( "timestamp", tsExpected ).put ( "value", 0 ) );
+					final Message msg = Message.adoptJsonAsMessage ( new JSONObject().put ( "timestamp", tsExpected ).put ( "value", 0 ) );
 					fRptTo.submit ( msg.toJson () );
 				}
 			}

@@ -348,7 +348,7 @@ public class ExcelSource extends BasicSource
 			data.put ( fLineNumberToField, fLineNumber );
 		}
 
-		return makeDefRoutingMessage ( new Message ( data ) );
+		return makeDefRoutingMessage ( Message.adoptJsonAsMessage ( data ) );
 	}
 
 	private static final Logger log = LoggerFactory.getLogger ( ExcelSource.class );

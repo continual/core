@@ -4,6 +4,8 @@ import org.json.JSONObject;
 import org.junit.Test;
 
 import io.continual.builder.Builder.BuildFailure;
+import io.continual.metrics.MetricsCatalog;
+import io.continual.metrics.impl.noop.NoopMetricsCatalog;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.Sink;
@@ -67,7 +69,8 @@ public class TimeFilterTest extends TestCase
 
 	private static MessageProcessingContext makeMessage ( JSONObject msgData )
 	{
-		final Message msg = new Message ( msgData );
+		final Message msg = Message.copyJsonToMessage ( msgData );
+		final MetricsCatalog metrics = new NoopMetricsCatalog ();
 		
 		return new MessageProcessingContext ()
 		{
@@ -127,6 +130,9 @@ public class TimeFilterTest extends TestCase
 
 				throw new IllegalArgumentException ( "Can't eval to " + targetType.getName () );
 			}
+
+			@Override
+			public MetricsCatalog getMetrics () { return metrics; }
 		};
 	}
 }

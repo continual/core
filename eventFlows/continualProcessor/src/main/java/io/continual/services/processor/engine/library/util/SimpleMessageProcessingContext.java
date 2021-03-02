@@ -1,5 +1,6 @@
 package io.continual.services.processor.engine.library.util;
 
+import io.continual.metrics.MetricsCatalog;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.Program;
@@ -23,7 +24,7 @@ public class SimpleMessageProcessingContext implements MessageProcessingContext
 		 */
 		public SimpleMessageProcessingContext build ( Message msg )
 		{
-			return new SimpleMessageProcessingContext ( fStreamProcContext, fSng.getNext (), msg, fEvalStack, fSrcSinkProg );
+			return new SimpleMessageProcessingContext ( this, msg );
 		}
 
 		public Builder usingContext ( StreamProcessingContext s ) { fStreamProcContext = s; return this; }
@@ -129,13 +130,19 @@ public class SimpleMessageProcessingContext implements MessageProcessingContext
 		throw new IllegalArgumentException ( "Can't eval to " + targetClass.getName () );
 	}
 
-	private SimpleMessageProcessingContext ( StreamProcessingContext spc, String serialNumber, Message msg, ExprDataSource evalStack, Program srcsAndSinks )
+	@Override
+	public MetricsCatalog getMetrics ()
 	{
-		fSpc = spc;
+		return fSpc.getMetrics ().getSubCatalog ( "messageProcessing" );
+	}
+
+	private SimpleMessageProcessingContext ( Builder b, Message msg )
+	{
+		fSpc = b.fStreamProcContext;
 		fMsg = msg;
-		fId = serialNumber;
-		fEvalStack = evalStack;
-		fProgram = srcsAndSinks;
+		fId = b.fSng.getNext ();
+		fEvalStack = b.fEvalStack;
+		fProgram = b.fSrcSinkProg;
 	}
 
 	private final StreamProcessingContext fSpc;

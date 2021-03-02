@@ -62,7 +62,7 @@ public class MessageGenerator extends QueuingSource
 		if ( Clock.now () >= fNextMs )
 		{
 			fNextMs += fPauseMs;
-			result.add ( makeDefRoutingMessage ( new Message ( fMessage.put ( "serialNumber", ++fSerialNumber ) ) ) );
+			result.add ( makeDefRoutingMessage ( Message.copyJsonToMessage ( fMessage.put ( "serialNumber", ++fSerialNumber ) ) ) );
 		}
 		return result;
 	}

@@ -75,7 +75,7 @@ public class JsonObjectStreamSource extends BasicSource
 	{
 		if ( fPending.size () > 0 )
 		{
-			return makeDefRoutingMessage ( new Message ( fPending.remove ( 0 ) ) );
+			return makeDefRoutingMessage ( Message.adoptJsonAsMessage ( fPending.remove ( 0 ) ) );
 		}
 		return null;
 	}

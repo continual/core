@@ -15,6 +15,7 @@ import io.continual.metrics.ReporterBuilder;
 
 public class GraphiteReporterBuilder implements ReporterBuilder
 {
+	@SuppressWarnings("deprecation")
 	public GraphiteReporterBuilder ( MetricsService svc, JSONObject graphiteConfig )
 	{
 		final Graphite graphite = new Graphite (

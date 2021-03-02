@@ -20,6 +20,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
+import io.continual.metrics.metricTypes.Timer;
 import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.Processor;
@@ -65,7 +66,10 @@ public class SendToSink implements Processor
 
 		if ( fSink != null )
 		{
-			fSink.process ( context );
+			try ( Timer.Context tc = context.getStreamProcessingContext ().getMetrics ().timer ( "sinkSend" ).time() )
+			{
+				fSink.process ( context );
+			}
 		}
 	}
 

@@ -25,6 +25,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
+import io.continual.metrics.MetricsCatalog;
+import io.continual.metrics.metricTypes.Timer;
 import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageAndRouting;
@@ -62,11 +64,25 @@ public class JsonObjectFileSource extends BasicSource
 			log.info ( "loading {}", filename );
 			fSrc = new BufferedReader ( new FileReader ( filename ) );
 		}
+
+		final MetricsCatalog metrics = spc.getMetrics ().getSubCatalog ( "JsonObjectFileSource" );
 		
-		final String line = fSrc.readLine ();
+		final String line;
+		try ( Timer.Context rltc = metrics.timer ( "readLine" ).time () )
+		{
+			line = fSrc.readLine ();
+		}
+
 		if ( line != null )
 		{
-			return makeDefRoutingMessage ( new Message ( new JSONObject ( new CommentedJsonTokener ( line ) ) ) );
+			final JSONObject data;
+			try ( Timer.Context ptc = metrics.timer ( "jsonParse" ).time () )
+			{
+				data = new JSONObject ( new CommentedJsonTokener ( line ) );
+			}
+
+			final Message msg = Message.adoptJsonAsMessage ( data );
+			return makeDefRoutingMessage ( msg );
 		}
 		else
 		{

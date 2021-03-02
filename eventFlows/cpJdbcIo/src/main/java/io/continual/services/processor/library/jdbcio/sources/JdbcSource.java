@@ -71,7 +71,7 @@ public class JdbcSource extends DbConnector implements Source
 			if ( fRows != null && fRows.size () > 0 )
 			{
 				final JSONObject data = fRows.remove ( 0 );
-				return new MessageAndRouting ( new Message ( data ), fPipeline );
+				return new MessageAndRouting ( Message.adoptJsonAsMessage ( data ), fPipeline );
 			}
 		}
 		catch ( SQLException x )

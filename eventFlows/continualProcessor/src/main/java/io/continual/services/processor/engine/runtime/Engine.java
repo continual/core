@@ -19,11 +19,18 @@ package io.continual.services.processor.engine.runtime;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.continual.metrics.MetricsCatalog;
+import io.continual.metrics.MetricsCatalog.PathPopper;
+import io.continual.metrics.impl.StdMetricsCatalog;
+import io.continual.metrics.metricTypes.Meter;
+import io.continual.metrics.metricTypes.Timer;
 import io.continual.services.Service;
 import io.continual.services.SimpleService;
 import io.continual.services.processor.engine.library.util.SimpleMessageProcessingContext;
@@ -53,10 +60,13 @@ public class Engine extends SimpleService implements Service
 		fThreads = new HashMap<> ();
 		fSnGen = new SerialNumberGenerator ();
 		fUserData = new HashMap<> ();
+		fEngineMetrics = new StdMetricsCatalog.Builder ().build ();
 
+		final TreeSet<String> names = new TreeSet<String> (); 
 		for ( Map.Entry<String,Source> src : fProgram.getSources ().entrySet() )
 		{
-			fThreads.put ( src.getKey (), new ExecThread ( src.getKey (), src.getValue () ) );
+			final String threadName = getName ( names, src.getKey () );
+			fThreads.put ( threadName, new ExecThread ( threadName, src.getKey (), src.getValue () ) );
 		}
 
 		fExprEvalStack = new ExprDataSourceStack (
@@ -81,6 +91,8 @@ public class Engine extends SimpleService implements Service
 				}
 			}
 		);
+
+		fMetricsDumper = new MetricsDumpThread ();
 	}
 
 	/**
@@ -179,6 +191,8 @@ public class Engine extends SimpleService implements Service
 	@Override
 	protected void onStartRequested () throws FailedToStart
 	{
+		fMetricsDumper.start ();
+		
 		for ( Sink sink : fProgram.getSinks ().values () )
 		{
 			sink.init ( );
@@ -209,37 +223,68 @@ public class Engine extends SimpleService implements Service
 
 	private final Program fProgram;
 	private final HashMap<String,ExecThread> fThreads;
+	private final MetricsDumpThread fMetricsDumper;
 	private final SerialNumberGenerator fSnGen;
 	private final HashMap<String,String> fUserData;
 	private final ExprDataSourceStack fExprEvalStack;
+	private final MetricsCatalog fEngineMetrics;
 
+	private class MetricsDumpThread extends Thread
+	{
+		public MetricsDumpThread ()
+		{
+			super ( "processor metrics dumper" );
+			setDaemon ( true );
+		}
+	
+		@Override
+		public void run ()
+		{
+			try
+			{
+				while ( true )
+				{
+					Thread.sleep ( 5000 );
+	
+					final String text = fEngineMetrics.toJson ().toString ();
+					metricsLog.info ( text );
+				}
+			}
+			catch ( InterruptedException e )
+			{
+				log.warn ( "Metrics dumper interrupted: ", e );
+			}
+			catch ( Throwable e )
+			{
+				log.warn ( "Metrics dumper terminated: ", e );
+			}
+		}
+	}
+	
 	/**
 	 * An execution thread to service message sources.
 	 */
 	private class ExecThread extends Thread
 	{
-		public ExecThread ( String name, Source s )
+		public ExecThread ( String threadName, String srcName, Source s )
 		{
-			this ( name, s, SimpleStreamProcessingContext.builder ()
+			super ( "ExecThread " + threadName );
+
+			fSrcName = srcName;
+			fSource = s;
+			fThreadMetrics = fEngineMetrics.getSubCatalog ( threadName );
+			fStreamContext = SimpleStreamProcessingContext.builder ()
 				.withSource ( s )
 				.evaluatingAgainst ( fExprEvalStack )
 				.loggingTo ( log )
+				.reportMetricsTo ( fThreadMetrics )
 				.build ()
-			);
-		}
-
-		public ExecThread ( String name, Source s, StreamProcessingContext spc )
-		{
-			super ( "ExecThread " + name );
-
-			fName = name;
-			fSource = s;
-			fStreamContext = spc;
+			;
 		}
 
 		public String getSourceName ()
 		{
-			return fName;
+			return fSrcName;
 		}
 
 		public Source getSource ()
@@ -258,11 +303,11 @@ public class Engine extends SimpleService implements Service
 			try
 			{
 				// add service objects and get them started
-				for ( Map.Entry<String, ProcessingService> entry : fProgram.getServicesFor ( fName ).entrySet () )
+				for ( Map.Entry<String, ProcessingService> entry : fProgram.getServicesFor ( fSrcName ).entrySet () )
 				{
 					fStreamContext.addNamedObject ( entry.getKey (), entry.getValue () );
 				}
-				for ( Map.Entry<String, ProcessingService> entry : fProgram.getServicesFor ( fName ).entrySet () )
+				for ( Map.Entry<String, ProcessingService> entry : fProgram.getServicesFor ( fSrcName ).entrySet () )
 				{
 					entry.getValue ().startBackgroundProcessing ();
 				}
@@ -273,29 +318,50 @@ public class Engine extends SimpleService implements Service
 					.sourcesAndSinksFrom ( fProgram )
 					.usingContext ( fStreamContext )
 				;
-				
-				// while we have messages, push them through the pipeline
-				log.info ( "Source " + fName + ": START" );
+
+				final MetricsCatalog engineMetrics = fThreadMetrics.getSubCatalog ( "engine" );
+				final Meter cycles = engineMetrics.meter ( "cycles" );
+				final Meter msgsIn = engineMetrics.meter ( "msgsIn" );
+				final Timer msgLoadTime = engineMetrics.timer ( "msgLoad" );
+				final Timer procTime = engineMetrics.timer ( "procTime" );
+
+				// while we have messages, push them through the pipeline...
+				log.info ( "Source " + fSrcName + ": START" );
 				while ( !fSource.isEof () && !fStreamContext.failed () )
 				{
-					final MessageAndRouting msgAndRoute = fSource.getNextMessage ( fStreamContext, 500, TimeUnit.MILLISECONDS );
+					cycles.mark ();
+
+					final MessageAndRouting msgAndRoute;
+					try (
+						PathPopper pp = fThreadMetrics.push ( fSrcName );
+						Timer.Context mlt = msgLoadTime.time ()
+					)
+					{
+						msgAndRoute = fSource.getNextMessage ( fStreamContext, 500, TimeUnit.MILLISECONDS );
+					}
+
 					if ( msgAndRoute != null )
 					{
+						msgsIn.mark ();
+
 						final Pipeline pl = fProgram.getPipeline ( msgAndRoute.getPipelineName () );
 						if ( pl == null )
 						{
-							log.info ( "No pipeline {} for source \"{}\", ignored.", msgAndRoute.getPipelineName (), fName );
+							log.info ( "No pipeline {} for source \"{}\", ignored.", msgAndRoute.getPipelineName (), fSrcName );
 						}
 						else
 						{
-							pl.process ( mpcBuilder.build ( msgAndRoute.getMessage () ) );
+							try ( Timer.Context ctx = procTime.time () )
+							{
+								pl.process ( mpcBuilder.build ( msgAndRoute.getMessage () ) );
+							}
 						}
 						fSource.markComplete ( fStreamContext, msgAndRoute );
 					}
 				}
 				if ( fSource.isEof () )
 				{
-					log.info ( "Source " + fName + ": EOF" );
+					log.info ( "Source " + fSrcName + ": EOF" );
 				}
 				else
 				{
@@ -304,25 +370,46 @@ public class Engine extends SimpleService implements Service
 			}
 			catch ( IOException e )
 			{
-				log.warn ( "Error on source {}: {}", fName, e.getMessage () );
+				log.warn ( "Error on source {}: {}", fSrcName, e.getMessage () );
 			}
 			catch ( InterruptedException e )
 			{
-				log.info ( "Source {} interrupted.", fName );
+				log.info ( "Source {} interrupted.", fSrcName );
 			}
 			finally
 			{
-				for ( Map.Entry<String, ProcessingService> entry : fProgram.getServicesFor ( fName ).entrySet () )
+				for ( Map.Entry<String, ProcessingService> entry : fProgram.getServicesFor ( fSrcName ).entrySet () )
 				{
 					entry.getValue ().stopBackgroundProcessing ();
 				}
 			}
 		}
-		
-		private final String fName;
+
+		private final String fSrcName;
 		private final Source fSource;
+		private final MetricsCatalog fThreadMetrics;
 		private final StreamProcessingContext fStreamContext;
 	}
 
+	private static String getName ( Set<String> used, String requested )
+	{
+		if ( !used.contains ( requested ) )
+		{
+			used.add ( requested );
+			return requested;
+		}
+
+		// collision...
+		int i = 2;
+		String candidate = requested + "-" + i;
+		while ( used.contains ( candidate ) )
+		{
+			candidate = requested + "-" + (++i);
+		}
+		used.add ( candidate );
+		return candidate;
+	}
+	
 	private static final Logger log = LoggerFactory.getLogger ( Engine.class );
+	private static final Logger metricsLog = LoggerFactory.getLogger ( "continualProcessorEngineMetrics" );
 }

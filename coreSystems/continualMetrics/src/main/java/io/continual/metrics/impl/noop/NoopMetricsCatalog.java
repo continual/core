@@ -63,4 +63,22 @@ public class NoopMetricsCatalog implements MetricsCatalog
 	{
 		return new JSONObject ();
 	}
+
+	@Override
+	public PathPopper push ( String name )
+	{
+		return new PathPopper ()
+		{
+			@Override
+			public void close ()
+			{
+				pop ();
+			}
+		};
+	}
+
+	@Override
+	public void pop ()
+	{
+	}
 }

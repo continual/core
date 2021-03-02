@@ -24,21 +24,31 @@ import io.continual.util.data.json.JsonUtil;
 
 public class Message implements JsonSerialized
 {
+	public static Message copyJsonToMessage ( JSONObject data )
+	{
+		return new Message ( data, true );
+	}
+	
+	public static Message adoptJsonAsMessage ( JSONObject data )
+	{
+		return new Message ( data, false );
+	}
+
 	public Message ()
 	{
 		// an empty message
-		this ( new JSONObject () );
+		this ( new JSONObject (), false );
 	}
 
-	public Message ( JSONObject msgData )
+	private Message ( JSONObject msgData, boolean clone )
 	{
-		fData = JsonUtil.clone ( msgData );
+		fData = clone ? JsonUtil.clone ( msgData ) : msgData;
 	}
 
 	@Override
 	public Message clone ()
 	{
-		return new Message ( accessRawJson () );
+		return new Message ( accessRawJson (), true );
 	}
 
 	@Override

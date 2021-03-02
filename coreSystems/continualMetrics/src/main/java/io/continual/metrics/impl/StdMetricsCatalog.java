@@ -1,6 +1,7 @@
-package io.continual.metrics;
+package io.continual.metrics.impl;
 
 import java.time.Duration;
+import java.util.LinkedList;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -10,6 +11,8 @@ import org.json.JSONObject;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.MetricRegistry.MetricSupplier;
 
+import io.continual.metrics.MetricsCatalog;
+import io.continual.metrics.MetricsService;
 import io.continual.metrics.metricTypes.Counter;
 import io.continual.metrics.metricTypes.Gauge;
 import io.continual.metrics.metricTypes.Histogram;
@@ -18,8 +21,31 @@ import io.continual.metrics.metricTypes.Timer;
 import io.continual.util.naming.Name;
 import io.continual.util.naming.Path;
 
-class StdMetricsCatalog implements MetricsCatalog
+public class StdMetricsCatalog implements MetricsCatalog
 {
+	public static class Builder
+	{
+		public Builder atBasePath ( Path p )
+		{
+			basePath = p;
+			return this;
+		}
+
+		public Builder usingRegistry ( MetricRegistry reg )
+		{
+			fReg = reg;
+			return this;
+		}
+		
+		public StdMetricsCatalog build ()
+		{
+			return new StdMetricsCatalog ( fReg, basePath );
+		}
+
+		private MetricRegistry fReg = new MetricRegistry ();
+		private Path basePath = Path.getRootPath ();
+	}
+
 	public StdMetricsCatalog ( MetricRegistry actualRegistry )
 	{
 		this ( actualRegistry, Path.getRootPath () );
@@ -28,7 +54,8 @@ class StdMetricsCatalog implements MetricsCatalog
 	public StdMetricsCatalog ( MetricRegistry actualRegistry, Path basePath )
 	{
 		fReg = actualRegistry;
-		fBasePath = basePath;
+		fPathStack = new LinkedList<> ();
+		fPathStack.add ( basePath );
 	}
 
 	/**
@@ -39,7 +66,7 @@ class StdMetricsCatalog implements MetricsCatalog
 	@Override
 	public StdMetricsCatalog getSubCatalog ( Name name )
 	{
-		return new StdMetricsCatalog ( fReg, fBasePath.makeChildItem ( convertName ( name ) ) );
+		return new StdMetricsCatalog ( fReg, getCurrentBase().makeChildItem ( convertName ( name ) ) );
 	}
 	
 	@Override
@@ -49,9 +76,36 @@ class StdMetricsCatalog implements MetricsCatalog
 	}
 
 	@Override
+	public PathPopper push ( String name )
+	{
+		final Name n = Name.fromString ( name );
+		final Path p = getCurrentBase().makeChildItem ( n );
+		fPathStack.add ( p );
+
+		return new PathPopper ()
+		{
+			@Override
+			public void close ()
+			{
+				pop ();
+			}
+		};
+	}
+
+	@Override
+	public void pop ()
+	{
+		if ( fPathStack.size () < 2 )
+		{
+			throw new IllegalStateException ( "You cannot pop from this metrics catalog." );
+		}
+		fPathStack.removeLast ();
+	}
+	
+	@Override
 	public void remove ( String name )
 	{
-		final Path fullPath = fBasePath.makeChildPath ( Path.getRootPath ().makeChildItem ( Name.fromString ( name ) ) );
+		final Path fullPath = getCurrentBase().makeChildPath ( Path.getRootPath ().makeChildItem ( Name.fromString ( name ) ) );
 		final String dotted = convertPath ( fullPath );
 		fReg.remove ( dotted );
 	}
@@ -59,7 +113,7 @@ class StdMetricsCatalog implements MetricsCatalog
 	@Override
 	public Counter counter ( Path name )
 	{
-		final Path fullPath = fBasePath.makeChildPath ( name );
+		final Path fullPath = getCurrentBase().makeChildPath ( name );
 		final com.codahale.metrics.Counter codaCounter = fReg.counter ( convertPath ( fullPath ) );
 
 		return new Counter ()
@@ -75,7 +129,7 @@ class StdMetricsCatalog implements MetricsCatalog
 	@Override
 	public Meter meter ( Path name )
 	{
-		final Path fullPath = fBasePath.makeChildPath ( name );
+		final Path fullPath = getCurrentBase().makeChildPath ( name );
 		final com.codahale.metrics.Meter codaMeter = fReg.meter ( convertPath ( fullPath ) );
 
 		return new Meter ()
@@ -104,7 +158,7 @@ class StdMetricsCatalog implements MetricsCatalog
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public <T> Gauge<T> gauge ( Path name, GaugeFactory<T> factory )
 	{
-		final Path fullPath = fBasePath.makeChildPath ( name );
+		final Path fullPath = getCurrentBase().makeChildPath ( name );
 		final com.codahale.metrics.Gauge<T> codeGauge = fReg.gauge ( convertPath ( fullPath ), new MetricSupplier<com.codahale.metrics.Gauge> ()
 		{
 			@Override
@@ -134,7 +188,7 @@ class StdMetricsCatalog implements MetricsCatalog
 	@Override
 	public Histogram histogram ( Path name )
 	{
-		final Path fullPath = fBasePath.makeChildPath ( name );
+		final Path fullPath = getCurrentBase().makeChildPath ( name );
 		final com.codahale.metrics.Histogram codaHistogram = fReg.histogram ( convertPath ( fullPath ) );
 		
 		return new Histogram ()
@@ -150,7 +204,7 @@ class StdMetricsCatalog implements MetricsCatalog
 	@Override
 	public Timer timer ( Path name )
 	{
-		final Path fullPath = fBasePath.makeChildPath ( name );
+		final Path fullPath = getCurrentBase().makeChildPath ( name );
 		final com.codahale.metrics.Timer codaTimer = fReg.timer ( convertPath ( fullPath ) );
 
 		return new Timer ()
@@ -190,7 +244,7 @@ class StdMetricsCatalog implements MetricsCatalog
 	public JSONObject toJson ()
 	{
 		JSONObject metrics = MetricsService.toJson ( fReg );
-		for ( Name name : fBasePath.getSegments () )
+		for ( Name name : getCurrentBase().getSegments () )
 		{
 			metrics = metrics.optJSONObject ( name.toString () );
 			if ( metrics == null )
@@ -202,7 +256,7 @@ class StdMetricsCatalog implements MetricsCatalog
 	}
 
 	private final MetricRegistry fReg;
-	private final Path fBasePath;
+	private final LinkedList<Path> fPathStack;
 
 	private String convertPath ( Path path )
 	{
@@ -218,6 +272,11 @@ class StdMetricsCatalog implements MetricsCatalog
 
 	public Path getBasePath ()
 	{
-		return fBasePath;
+		return getCurrentBase();
+	}
+
+	private Path getCurrentBase ()
+	{
+		return fPathStack.getLast ();
 	}
 }

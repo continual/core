@@ -5,6 +5,7 @@ import org.junit.Test;
 
 import com.codahale.metrics.MetricRegistry;
 
+import io.continual.metrics.impl.StdMetricsCatalog;
 import io.continual.metrics.metricTypes.Counter;
 import junit.framework.TestCase;
 

@@ -24,7 +24,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.LinkedList;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -32,6 +31,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
+import io.continual.metrics.MetricsCatalog;
+import io.continual.metrics.MetricsCatalog.PathPopper;
+import io.continual.metrics.metricTypes.Timer;
 import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.Sink;
@@ -174,7 +176,8 @@ public class JdbcSink extends DbConnector implements Sink
 	@Override
 	public synchronized void process ( MessageProcessingContext context )
 	{
-		try
+		final MetricsCatalog mc = context.getStreamProcessingContext ().getMetrics ();
+		try ( PathPopper pp = mc.push ( "JdbcSink" ))
 		{
 			if ( fCurrentConnection == null )
 			{
@@ -186,123 +189,26 @@ public class JdbcSink extends DbConnector implements Sink
 				fPending = fCurrentConnection.prepareStatement ( fInsertStmt );
 			}
 
-			final LinkedList<String> rec = new LinkedList<>();
-			
-			int param = 1;
-			for ( ColInfo ci : fCols )
+			try ( Timer.Context tc = mc.timer ( "insertPrep" ).time () )
 			{
-				final String val = context.evalExpression ( ci.getExpr () );
-				final Class<?> targetClass = ci.getTargetClass ();
-
-				rec.add ( ci.getKey() + ": " + val + ( targetClass == String.class ? "" : " (" + targetClass.getName () + ")" ) );
-
-				try
+				int param = 1;
+				for ( ColInfo ci : fCols )
 				{
-					if ( targetClass.equals ( Integer.class ) )
-					{
-						final int valToUse;
-						if ( val == null || val.length () == 0 )
-						{
-							valToUse = 0;
-						}
-						else
-						{
-							valToUse = Integer.parseInt ( val );
-						}
-						fPending.setInt ( param, valToUse );
-					}
-					else if ( targetClass.equals ( Long.class ) )
-					{
-						fPending.setLong ( param, Long.parseLong ( val ) );
-					}
-					else if ( targetClass.equals ( Double.class ) )
-					{
-						double valToUse = 0.0;
-						if ( val.trim ().length () == 0 )
-						{
-							// huh? (it seems to happen...)
-							valToUse = 0.0;
-						}
-						else
-						{
-							double d = Double.parseDouble ( val );
-							final double r = ci.getRounding();
-							if ( r != 1.0 )
-							{
-								d = ( Math.round ( d * r ) ) / r;
-							}
-							if ( !Double.isFinite ( d ) )
-							{
-								valToUse = -1.0;
-							}
-							else
-							{
-								valToUse = d;
-							}
-						}
-						fPending.setDouble ( param, valToUse );
-						rec.add ( "(" + param + ": " + valToUse + ")" );
-					}
-					else if ( targetClass.equals ( Boolean.class ) )
-					{
-						fPending.setString ( param, TypeConvertor.convertToBooleanBroad ( val ) ? "Y":"N" );
-					}
-					else if ( targetClass.equals ( Date.class ) )
-					{
-						java.sql.Date d = null;
-						final String fmt = ci.getFormat ();
-						if ( fmt.equals ( "#" ) )
-						{
-							try
-							{
-								final long dateval = Long.parseLong ( val );
-								d = new java.sql.Date ( dateval ); 
-							}
-							catch ( NumberFormatException e )
-							{
-								// ignore
-							}
-						}
-						else
-						{
-							try
-							{
-								final SimpleDateFormat sdf = new SimpleDateFormat ( fmt );
-								final Date dd = sdf.parse ( val );
-								d = new java.sql.Date ( dd.getTime () );
-							}
-							catch ( ParseException x )
-							{
-								// ignore
-							}
-						}
-
-						fPending.setDate ( param, d );
-					}
-					else if ( targetClass.equals ( Timestamp.class ) )
-					{
-						fPending.setTimestamp ( param, new Timestamp ( Long.parseLong ( val ) ) );
-					}
-					else if ( val != null )
-					{
-						fPending.setString ( param, val );
-					}
+					final String val = context.evalExpression ( ci.getExpr () );
+					buildColumnValue ( ci, val, param++ );
 				}
-				catch ( NumberFormatException e )
-				{
-					fPending.setString ( param, val );
-				}
-				param++;
 			}
-
-			log.debug ( "batch record " + fPendingCount + ": " + rec.toString () );
 
 			fPending.addBatch ();
 			fPendingCount++;
 
+			log.debug ( "JdbcSink: {}/{} pending buffered", fPendingCount, fBufferSize );
 			if ( fPendingCount % fBufferSize == 0 )
 			{
-				sendToDb ();
+				try ( Timer.Context tc = mc.timer ( "sendToDb" ).time () )
+				{
+					sendToDb ();
+				}
 			}
 		}
 		catch ( SQLException e )
@@ -363,6 +269,106 @@ public class JdbcSink extends DbConnector implements Sink
 		fPendingCount = 0;
 	}
 	
+	private void buildColumnValue ( ColInfo ci, String val, int param ) throws SQLException
+	{
+		try
+		{
+			final Class<?> targetClass = ci.getTargetClass ();
+			if ( targetClass.equals ( Integer.class ) )
+			{
+				final int valToUse;
+				if ( val == null || val.length () == 0 )
+				{
+					valToUse = 0;
+				}
+				else
+				{
+					valToUse = Integer.parseInt ( val );
+				}
+				fPending.setInt ( param, valToUse );
+			}
+			else if ( targetClass.equals ( Long.class ) )
+			{
+				fPending.setLong ( param, Long.parseLong ( val ) );
+			}
+			else if ( targetClass.equals ( Double.class ) )
+			{
+				double valToUse = 0.0;
+				if ( val.trim ().length () == 0 )
+				{
+					// huh? (it seems to happen...)
+					valToUse = 0.0;
+				}
+				else
+				{
+					double d = Double.parseDouble ( val );
+					final double r = ci.getRounding();
+					if ( r != 1.0 )
+					{
+						d = ( Math.round ( d * r ) ) / r;
+					}
+					if ( !Double.isFinite ( d ) )
+					{
+						valToUse = -1.0;
+					}
+					else
+					{
+						valToUse = d;
+					}
+				}
+				fPending.setDouble ( param, valToUse );
+			}
+			else if ( targetClass.equals ( Boolean.class ) )
+			{
+				fPending.setString ( param, TypeConvertor.convertToBooleanBroad ( val ) ? "Y":"N" );
+			}
+			else if ( targetClass.equals ( Date.class ) )
+			{
+				java.sql.Date d = null;
+				final String fmt = ci.getFormat ();
+				if ( fmt.equals ( "#" ) )
+				{
+					try
+					{
+						final long dateval = Long.parseLong ( val );
+						d = new java.sql.Date ( dateval ); 
+					}
+					catch ( NumberFormatException e )
+					{
+						// ignore
+					}
+				}
+				else
+				{
+					try
+					{
+						final SimpleDateFormat sdf = new SimpleDateFormat ( fmt );
+						final Date dd = sdf.parse ( val );
+						d = new java.sql.Date ( dd.getTime () );
+					}
+					catch ( ParseException x )
+					{
+						// ignore
+					}
+				}
+	
+				fPending.setDate ( param, d );
+			}
+			else if ( targetClass.equals ( Timestamp.class ) )
+			{
+				fPending.setTimestamp ( param, new Timestamp ( Long.parseLong ( val ) ) );
+			}
+			else if ( val != null )
+			{
+				fPending.setString ( param, val );
+			}
+		}
+		catch ( NumberFormatException e )
+		{
+			fPending.setString ( param, val );
+		}
+	}
+
 	private static class ColInfo
 	{
 		public ColInfo ( String key, String expr, Class<?> clazz, String fmt, double rounding )

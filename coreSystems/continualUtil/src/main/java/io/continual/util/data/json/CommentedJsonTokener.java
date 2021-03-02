@@ -21,12 +21,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
-import java.util.ArrayList;
 
 import org.json.JSONException;
 import org.json.JSONTokener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * An extension of org.json's JSONTokener that strips block and line comments.
@@ -71,7 +68,7 @@ public class CommentedJsonTokener extends JSONTokener
 		{
 			fBase = new BufferedReader ( baseReader );
 			fState = ReadState.NORMAL;
-			fPendingOut = new ArrayList<Character> ();
+			fPendingOut = new StringBuilder ();
 		}
 
 	    /**
@@ -92,34 +89,28 @@ public class CommentedJsonTokener extends JSONTokener
 		public int read ( char[] cbuf, int off, int len ) throws IOException
 		{
 			// if all data has been delivered and the base stream says we're EOF, we're done
-			if ( fPendingOut.size () == 0 && fState == ReadState.EOF ) return -1;
+			if ( fPendingOut.length () == 0 && fState == ReadState.EOF ) return -1;
 
 			// if the caller asked for 0 bytes, return that.
 			if ( len < 1 ) return 0;
 
 			// is there pending output?
-			int trx = Math.min ( fPendingOut.size (), len );
-			if ( trx > 0 )
+			int transferLength = Math.min ( fPendingOut.length (), len );
+			if ( transferLength > 0 )
 			{
-				for ( int i=0; i<trx; i++ )
-				{
-					cbuf [ off++ ] = fPendingOut.remove ( 0 );
-				}
-				return trx;
+				copyOut ( transferLength, cbuf, off );
+				return transferLength;
 			}
 
 			// there was no pending output. process the next line of base input
 			process ();
 			
 			// now output as much as possible
-			trx = Math.min ( fPendingOut.size (), len );
-			if ( trx > 0 )
+			transferLength = Math.min ( fPendingOut.length (), len );
+			if ( transferLength > 0 )
 			{
-				for ( int i=0; i<trx; i++ )
-				{
-					cbuf [ off++ ] = fPendingOut.remove ( 0 );
-				}
-				return trx;
+				copyOut ( transferLength, cbuf, off );
+				return transferLength;
 			}
 
 			return 0;
@@ -151,8 +142,7 @@ public class CommentedJsonTokener extends JSONTokener
 
 			// add a line ending
 			final String line = rawLine + "\n";
-			log.debug ( " IN:" + rawLine );
-			
+
 			// process the pending chars into the array
 			for ( char currChar : line.toCharArray () )
 			{
@@ -165,14 +155,14 @@ public class CommentedJsonTokener extends JSONTokener
 							case '"':
 							{
 								fState = ReadState.DOUBLE_QUOTED_STRING;
-								fPendingOut.add ( currChar );
+								fPendingOut.append ( currChar );
 							}
 							break;
 
 							case '\'':
 							{
 								fState = ReadState.SINGLE_QUOTED_STRING;
-								fPendingOut.add ( currChar );
+								fPendingOut.append ( currChar );
 							}
 							break;
 
@@ -185,7 +175,7 @@ public class CommentedJsonTokener extends JSONTokener
 
 							default:
 							{
-								fPendingOut.add ( currChar );
+								fPendingOut.append ( currChar );
 							}
 						}
 					}
@@ -201,14 +191,14 @@ public class CommentedJsonTokener extends JSONTokener
 						{
 							fState = ReadState.NORMAL;
 						}
-						fPendingOut.add ( currChar );
+						fPendingOut.append ( currChar );
 					}
 					break;
 
 					case SINGLE_QUOTED_STRING_ESC:
 					{
 						fState = ReadState.SINGLE_QUOTED_STRING;
-						fPendingOut.add ( currChar );
+						fPendingOut.append ( currChar );
 					}
 					break;
 
@@ -222,14 +212,14 @@ public class CommentedJsonTokener extends JSONTokener
 						{
 							fState = ReadState.NORMAL;
 						}
-						fPendingOut.add ( currChar );
+						fPendingOut.append ( currChar );
 					}
 					break;
 
 					case DOUBLE_QUOTED_STRING_ESC:
 					{
 						fState = ReadState.DOUBLE_QUOTED_STRING;
-						fPendingOut.add ( currChar );
+						fPendingOut.append ( currChar );
 					}
 					break;
 
@@ -246,8 +236,8 @@ public class CommentedJsonTokener extends JSONTokener
 						else
 						{
 							fState = ReadState.NORMAL;
-							fPendingOut.add ( '/' );
-							fPendingOut.add ( currChar );
+							fPendingOut.append ( '/' );
+							fPendingOut.append ( currChar );
 						}
 					}
 					break;
@@ -257,7 +247,7 @@ public class CommentedJsonTokener extends JSONTokener
 						if ( currChar == '\n' )
 						{
 							fState = ReadState.NORMAL;
-							fPendingOut.add ( currChar );
+							fPendingOut.append ( currChar );
 						}
 						// else: stay in LINE_COMMENT, eat chars
 					}
@@ -272,7 +262,7 @@ public class CommentedJsonTokener extends JSONTokener
 						else if ( currChar == '\n' )
 						{
 							// emit it so the caller's line count stays correct
-							fPendingOut.add ( currChar );
+							fPendingOut.append ( currChar );
 						}
 						// else: stay in BLOCK_COMMENT, eat chars
 					}
@@ -283,12 +273,12 @@ public class CommentedJsonTokener extends JSONTokener
 						if ( currChar == '/' )
 						{
 							fState = ReadState.NORMAL;
-							fPendingOut.add ( ' ' );
+							fPendingOut.append ( ' ' );
 						}
 						else if ( currChar == '\n' )
 						{
 							// emit it so the caller's line count stays correct
-							fPendingOut.add ( currChar );
+							fPendingOut.append ( currChar );
 							fState = ReadState.BLOCK_COMMENT;
 						}
 						else
@@ -305,22 +295,18 @@ public class CommentedJsonTokener extends JSONTokener
 					}
 				}
 			}
-
-			if ( log.isDebugEnabled () )
-			{
-				final StringBuilder sb = new StringBuilder ();
-				for ( Character c : fPendingOut )
-				{
-					sb.append ( c );
-				}
-				log.debug ( "OUT:" + sb.toString () );
-			}
 		}
 
-	    private final BufferedReader fBase;
-		private ReadState fState;
-		private ArrayList<Character> fPendingOut;
-	}
+		private void copyOut ( int transferLength, char[] cbuf, int off )
+		{
+			if ( transferLength <= 0 ) return;
 
-	private static final Logger log = LoggerFactory.getLogger ( CommentedJsonTokener.class );
+			fPendingOut.getChars ( 0, transferLength, cbuf, off );
+			fPendingOut.delete ( 0, transferLength );
+		}
+
+		private final BufferedReader fBase;
+		private ReadState fState;
+		private StringBuilder fPendingOut;
+	}
 }

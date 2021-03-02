@@ -36,6 +36,25 @@ public interface MetricsCatalog extends JsonSerialized
 	}
 
 	/**
+	 * Pops a path on close
+	 */
+	interface PathPopper extends AutoCloseable
+	{
+		public void close ();	// no exception
+	};
+
+	/**
+	 * Calls to this catalog to the given sub-catalog until a corresponding pop() is made (or PathPopper is closed)
+	 * @param name
+	 */
+	PathPopper push ( String name );
+
+	/**
+	 * Pop the most recent push
+	 */
+	void pop ();
+	
+	/**
 	 * Remove a metric by name
 	 * @param name
 	 */

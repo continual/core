@@ -16,6 +16,8 @@
 
 package io.continual.services.processor.engine.model;
 
+import io.continual.metrics.MetricsCatalog;
+
 /**
  * A stream processing context is provided to all processing components in a program
  * and is consistent across messages (but not across streams). It's a good place to
@@ -126,4 +128,11 @@ public interface StreamProcessingContext
 	 * @param mr
 	 */
 	void requeue ( MessageAndRouting mr );
+
+	/**
+	 * Get the metrics catalog into which this processing context reports. Processors may 
+	 * create/use metrics objects at the top-level, which is scoped properly during the call. 
+	 * @return a metrics catalog
+	 */
+	MetricsCatalog getMetrics ();
 }
