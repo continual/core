@@ -376,6 +376,11 @@ public class Engine extends SimpleService implements Service
 			{
 				log.info ( "Source {} interrupted.", fSrcName );
 			}
+			catch ( Throwable t )
+			{
+				log.warn ( "Unexpected error stopping processing engine thread {}: {}", super.getName (), t.getMessage (), t );
+				throw t;
+			}
 			finally
 			{
 				for ( Map.Entry<String, ProcessingService> entry : fProgram.getServicesFor ( fSrcName ).entrySet () )
