@@ -8,7 +8,7 @@
 
 	<!-- When changing version, also change parent version number in sub-pom files -->
 	<!-- You can run versionUpdate.sh in this directory to do this. -->
-	<version>0.2.16</version>
+	<version>0.2.17</version>
 	<packaging>pom</packaging>
 
 	<name>ContinualIO</name>
@@ -57,6 +57,7 @@
 		<module>coreSystems</module>
 		<module>iam</module>
 		<module>service</module>
+		<module>messaging</module>
 		<module>eventFlows</module>
 		<module>model</module>
 	</modules>

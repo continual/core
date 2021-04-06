@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.2.16</version>
+		<version>0.2.17</version>
 		<artifactId>continual</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -19,6 +19,7 @@
 		<module>continualProcessor</module>
 		<module>cpAging</module>
 		<module>cpAnalytics</module>
+		<module>cpInflux</module>
 		<module>cpJdbcIo</module>
 		<module>cpMsDocs</module>
 	</modules>
