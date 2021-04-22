@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.2.18</version>
+		<version>0.2.19-SNAPSHOT</version>
 		<artifactId>continual</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -19,6 +19,7 @@
 		<module>continualIam</module>
 		<module>continualIamFile</module>
 		<module>continualIamS3</module>
+		<module>continualIamZk</module>
 		<module>continualIamApiService</module>
 	</modules>
 
