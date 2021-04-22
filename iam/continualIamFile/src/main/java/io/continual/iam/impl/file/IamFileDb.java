@@ -143,9 +143,16 @@ public class IamFileDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 		}
 	}
 
-	public void close () throws IOException
+	public void close ()
 	{
-		fDb.close ();
+		try
+		{
+			fDb.close ();
+		}
+		catch ( IOException e )
+		{
+			log.warn ( "Couldn't close file db: {}", e.getMessage () );
+		}
 	}
 
 	@Override
@@ -414,7 +421,7 @@ public class IamFileDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	@Override
 	protected CommonJsonGroup instantiateGroup ( String id, JSONObject data )
 	{
-		return new CommonJsonGroup ( this, id, data );
+		return new CommonJsonGroup ( id, data, this );
 	}
 
 	protected JSONObject createApiKeyObject ( String userId, String apiKey, String apiSecret )

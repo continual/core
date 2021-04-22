@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.iam.credentials.JwtCredential;
 import io.continual.iam.exceptions.IamSvcException;
+import io.continual.iam.identity.JwtValidator;
 import io.continual.util.data.Sha256HmacSigner;
 import io.continual.util.data.TypeConvertor;
 import io.continual.util.data.json.CommentedJsonTokener;
@@ -37,11 +38,11 @@ import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.data.json.JsonVisitor.ArrayVisitor;
 import io.continual.util.data.json.JsonVisitor.ObjectVisitor;
 
-public class JwtValidator
+public class SimpleJwtValidator implements JwtValidator
 {
 	public static class Builder
 	{
-		public JwtValidator build () throws BuildFailure { return new JwtValidator ( this ); }
+		public SimpleJwtValidator build () throws BuildFailure { return new SimpleJwtValidator ( this ); }
 
 		public Builder named ( String name ) { fName = name; return this; }
 		public Builder forIssuer ( String iss ) { fIssuers.add ( iss ); return this; }
@@ -54,6 +55,7 @@ public class JwtValidator
 		private String fPublicKeyUrl = null;
 	}
 
+	@Override
 	public boolean validate ( JwtCredential jwt ) throws IamSvcException
 	{
 		// does the issuer match the one this validator reads for?
@@ -90,7 +92,7 @@ public class JwtValidator
 	private final TreeSet<String> fIssuers = new TreeSet<> ();
 	private final LinkedList<SigValidator> fSigValidators = new LinkedList<> ();
 
-	protected JwtValidator ( Builder b ) throws BuildFailure
+	protected SimpleJwtValidator ( Builder b ) throws BuildFailure
 	{
 		fName = b.fName;
 		fIssuers.addAll ( b.fIssuers );
@@ -257,5 +259,5 @@ public class JwtValidator
 		}
 	}
 
-	private static final Logger log = LoggerFactory.getLogger ( JwtValidator.class );
+	private static final Logger log = LoggerFactory.getLogger ( SimpleJwtValidator.class );
 }

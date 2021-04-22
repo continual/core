@@ -99,7 +99,7 @@ public class SimpleMessageProcessingContext implements MessageProcessingContext
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public <T> T evalExpression ( String expression, Class<T> targetClass )
+	public <T> T evalExpression ( String expression, Class<T> targetClass, ExprDataSource... addl )
 	{
 		final ExprDataSource eds = new ExprDataSource ()
 		{
@@ -109,7 +109,10 @@ public class SimpleMessageProcessingContext implements MessageProcessingContext
 				return JsonEval.eval ( fMsg.accessRawJson (), label );
 			}
 		};
-		final String asString = ExpressionEvaluator.evaluateText ( expression, eds, fEvalStack );
+
+		final ExprDataSourceStack addlStack = new ExprDataSourceStack ( addl ); 
+
+		final String asString = ExpressionEvaluator.evaluateText ( expression, addlStack, eds, fEvalStack );
 		if ( targetClass.equals ( String.class ) )
 		{
 			return (T) asString;

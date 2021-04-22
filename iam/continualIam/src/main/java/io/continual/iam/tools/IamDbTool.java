@@ -1,6 +1,5 @@
 package io.continual.iam.tools;
 
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collections;
 import java.util.HashMap;
@@ -62,14 +61,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					HashMap<String,Object> workspace, CmdLinePrefs p, PrintStream outTo )
 						throws UsageException, NvReadable.MissingReqdSettingException
 				{
-					try
-					{
-						if ( fDb != null ) fDb.close ();
-					}
-					catch ( IOException e1 )
-					{
-						outTo.println ( "Problem closing last IAM DB connection: " + e1.getMessage () );
-					}
+					if ( fDb != null ) fDb.close ();
 
 					try
 					{
@@ -103,7 +95,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 					catch ( IamIdentityExists e )
 					{
@@ -140,7 +132,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 				}
 			} );
@@ -173,7 +165,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 				}
 			} );
@@ -206,7 +198,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 					catch ( IamGroupExists e )
 					{
@@ -235,7 +227,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 					catch ( IamIdentityDoesNotExist | IamGroupDoesNotExist e )
 					{
@@ -264,7 +256,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 					catch ( IamIdentityDoesNotExist | IamGroupDoesNotExist e )
 					{
@@ -295,7 +287,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 					catch ( IamIdentityDoesNotExist e )
 					{
@@ -326,7 +318,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 				}
 			} );
@@ -353,7 +345,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 				}
 			} );
@@ -386,7 +378,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 				}
 			} );
@@ -419,7 +411,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 				}
 			} );
@@ -452,7 +444,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 				}
 			} );
@@ -485,7 +477,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 				}
 			} );
@@ -519,7 +511,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 				}
 			} );
@@ -543,19 +535,29 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 						if ( i != null )
 						{
 							outTo.println ( "Enabled: " + i.isEnabled () );
+							outTo.println ();
 
+							outTo.println ( "API Keys" );
+							for ( String apiKey : i.loadApiKeysForUser () )
+							{
+								outTo.println ( "\t" + apiKey );
+							}
+							outTo.println ();
+							
 							outTo.println ( "Data" );
 							final Map<String,String> data = i.getAllUserData ();
 							for ( Entry<String,String> e : data.entrySet () )
 							{
 								outTo.println ( "\t" + e.getKey() + ": " + e.getValue () );
 							}
+							outTo.println ();
 
 							outTo.println ( "Groups" );
 							for ( String group : i.getGroupIds () )
 							{
 								outTo.println ( "\t" + group );
 							}
+							outTo.println ();
 						}
 						else
 						{
@@ -564,7 +566,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 				}
 			} );
@@ -607,7 +609,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 				}
 			} );
@@ -645,7 +647,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 				}
 			} );
@@ -698,7 +700,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 				}
 			} );
@@ -751,7 +753,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 				}
 			} );
@@ -775,7 +777,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 				}
 			} );
@@ -811,7 +813,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 								outTo.println ( "WARN: " + userId + " has null user record" );
 								continue;
 							}
-							final String groupId = user.getUserData ( "acctGroup" );
+							final String groupId = user.getUserData ( "acctId" );
 
 							final StringBuilder sb = new StringBuilder ();
 							sb
@@ -826,7 +828,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 				}
 			} );
@@ -862,7 +864,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 				}
 			} );
@@ -889,7 +891,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					}
 					catch ( IamSvcException e )
 					{
-						outTo.println ( "Problem connecting to S3: " + e.getMessage () );
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 					catch ( IamGroupDoesNotExist e )
 					{

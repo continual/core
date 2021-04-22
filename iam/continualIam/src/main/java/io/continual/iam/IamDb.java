@@ -18,13 +18,28 @@ package io.continual.iam;
 import java.io.Closeable;
 
 import io.continual.iam.access.AccessManager;
+import io.continual.iam.access.AclUpdateListener;
+import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.Group;
 import io.continual.iam.identity.Identity;
 import io.continual.iam.identity.IdentityManager;
 import io.continual.iam.tags.TagManager;
+import io.continual.metrics.MetricsSupplier;
 
-public interface IamDb<I extends Identity,G extends Group> extends
-	IdentityManager<I>, AccessManager<G>, TagManager, Closeable
+/**
+ * An IAM DB implements all facets of identity and access management.
+ *
+ * @param <I>
+ * @param <G>
+ */
+public interface IamDb<I extends Identity,G extends Group>
+	extends IdentityManager<I>, AccessManager<G>, TagManager, AclUpdateListener, MetricsSupplier, Closeable
 {
+	default void start () throws IamSvcException
+	{
+	}
 
+	default void close ()
+	{
+	}
 }

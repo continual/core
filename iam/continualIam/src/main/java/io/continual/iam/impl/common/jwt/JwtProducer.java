@@ -11,9 +11,9 @@ import io.continual.util.data.Sha256HmacSigner;
 import io.continual.util.data.TypeConvertor;
 import io.continual.util.time.Clock;
 
-public class JwtProducer extends JwtValidator
+public class JwtProducer extends SimpleJwtValidator
 {
-	public static class Builder extends io.continual.iam.impl.common.jwt.JwtValidator.Builder
+	public static class Builder extends io.continual.iam.impl.common.jwt.SimpleJwtValidator.Builder
 	{
 		@Override
 		public JwtProducer build () throws BuildFailure { return new JwtProducer ( this ); }

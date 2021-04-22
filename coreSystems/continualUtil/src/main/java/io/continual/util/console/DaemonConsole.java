@@ -45,7 +45,7 @@ public class DaemonConsole extends ConfiguredConsole
 	{
 		return fName;
 	}
-	
+
 	protected DaemonConsole registerCopyrightHolder ( String holder, int startYear )
 	{
 		fCopy.addHolder ( holder, startYear );

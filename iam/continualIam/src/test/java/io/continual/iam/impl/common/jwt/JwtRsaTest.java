@@ -8,7 +8,7 @@ import org.junit.Test;
 
 import io.continual.iam.credentials.JwtCredential;
 import io.continual.iam.credentials.JwtCredential.InvalidJwtToken;
-import io.continual.iam.impl.common.jwt.JwtValidator.RsaValidator;
+import io.continual.iam.impl.common.jwt.SimpleJwtValidator.RsaValidator;
 import junit.framework.TestCase;
 
 public class JwtRsaTest extends TestCase

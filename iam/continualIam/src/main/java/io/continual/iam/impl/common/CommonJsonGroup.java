@@ -33,11 +33,24 @@ public class CommonJsonGroup extends CommonJsonObject implements Group
 		;
 	}
 
-	public CommonJsonGroup ( CommonJsonDb<?,?> db, String id, JSONObject group )
+	/**
+	 * Construct a group
+	 * @param db
+	 * @param id
+	 * @param groupData
+	 * @deprecated Use the other form, which is more similar to the identity constructor
+	 */
+	@Deprecated
+	public CommonJsonGroup ( CommonJsonDb<?,?> db, String id, JSONObject groupData )
+	{
+		this ( id, groupData, db );
+	}
+
+	public CommonJsonGroup ( String id, JSONObject groupData, CommonJsonDb<?,?> db )
 	{
 		fDb = db;
 		fId = id;
-		fObj = group;
+		fObj = groupData;
 		fMembers = new TreeSet<String> ();
 
 		parse ();

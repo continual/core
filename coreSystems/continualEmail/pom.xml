@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.2.17</version>
+		<version>0.2.18</version>
 		<artifactId>continualCoreSystems</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -32,11 +32,9 @@
 		    <version>1.6.2</version>
 		</dependency>
 
-		<!-- OK HTTP client -->
 		<dependency>
 			<groupId>com.squareup.okhttp3</groupId>
 			<artifactId>okhttp</artifactId>
-			<version>3.14.1</version>
 		</dependency>
 
 		<dependency>

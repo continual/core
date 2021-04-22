@@ -17,6 +17,7 @@
 package io.continual.services.processor.engine.model;
 
 import io.continual.metrics.MetricsCatalog;
+import io.continual.util.data.exprEval.ExprDataSource;
 
 /**
  * A message processing context is provided to processors for access to the current message, its
@@ -95,12 +96,23 @@ public interface MessageProcessingContext
 	}
 
 	/**
-	 * Evaluate a ${} expression in the message context, which includes
-	 * the message as primary source, then the stream processing context.
+	 * Evaluate a ${} expression in the message context, which includes the addl srcs,
+	 * the message, then the stream processing context, in that order.
 	 * @param expression
 	 * @return a value, which may be an empty string
 	 */
-	<T> T evalExpression ( String expression, Class<T> targetType );
+	default String evalExpression ( String expression, ExprDataSource... addlSrcs )
+	{
+		return evalExpression ( expression, String.class, addlSrcs );
+	}
+
+	/**
+	 * Evaluate a ${} expression in the message context, which includes the addl srcs,
+	 * the message, then the stream processing context, in that order.
+	 * @param expression
+	 * @return a value, which may be an empty string
+	 */
+	<T> T evalExpression ( String expression, Class<T> targetType, ExprDataSource... addlSrcs );
 
 	/**
 	 * Get a metrics catalog appropriate for the scope of this message's processing

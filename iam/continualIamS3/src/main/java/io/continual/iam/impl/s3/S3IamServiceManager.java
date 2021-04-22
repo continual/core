@@ -32,7 +32,7 @@ import io.continual.iam.impl.common.CommonJsonDb.AclFactory;
 import io.continual.iam.impl.common.CommonJsonGroup;
 import io.continual.iam.impl.common.CommonJsonIdentity;
 import io.continual.iam.impl.common.jwt.JwtProducer;
-import io.continual.iam.impl.common.jwt.JwtValidator;
+import io.continual.iam.impl.common.jwt.SimpleJwtValidator;
 import io.continual.iam.tags.TagManager;
 import io.continual.services.Service;
 import io.continual.services.ServiceContainer;
@@ -104,7 +104,7 @@ public class S3IamServiceManager extends SimpleService implements IamServiceMana
 				{
 					final String keys = authEntry.optString ( "keys" );
 					
-					final JwtValidator v = new JwtValidator.Builder ()
+					final SimpleJwtValidator v = new SimpleJwtValidator.Builder ()
 						.named ( authEntry.optString ( "name", "(anonymous)" ) )
 						.forIssuer ( authEntry.getString ( "issuer" ) )
 						.forAudience ( authEntry.getString ( "audience" ) )

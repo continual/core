@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory;
 
 import io.continual.iam.IamDb;
 import io.continual.iam.access.AccessControlList;
-import io.continual.iam.access.AccessManager;
 import io.continual.iam.access.AclUpdateListener;
 import io.continual.iam.access.ProtectedResource;
 import io.continual.iam.access.Resource;
@@ -43,17 +42,21 @@ import io.continual.iam.exceptions.IamIdentityExists;
 import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.ApiKey;
 import io.continual.iam.identity.Identity;
-import io.continual.iam.identity.IdentityManager;
+import io.continual.iam.identity.JwtValidator;
 import io.continual.iam.impl.common.jwt.JwtProducer;
-import io.continual.iam.impl.common.jwt.JwtValidator;
-import io.continual.iam.tags.TagManager;
+import io.continual.metrics.MetricsCatalog;
 import io.continual.util.data.OneWayHasher;
 import io.continual.util.data.Sha1HmacSigner;
 import io.continual.util.data.UniqueStringGenerator;
 import io.continual.util.time.Clock;
 
-public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends CommonJsonGroup>
-	implements IdentityManager<I>, AccessManager<G>, TagManager, AclUpdateListener, IamDb<I,G>
+/**
+ *	CommonJsonDb manages identity related objects that are serialized in JSON 
+ * 
+ * @param <I>
+ * @param <G>
+ */
+public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends CommonJsonGroup> implements IamDb<I,G>
 {
 	public static final String kTagId = "tagId";
 	public static final String kUserId = "userId";
@@ -69,6 +72,11 @@ public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends Common
 	public static final String kPasswordHash = "hash";
 
 	public static final String kTagType_PasswordReset = "passwordReset";
+
+	@Override
+	public void populateMetrics ( MetricsCatalog metrics )
+	{
+	}
 
 	@Override
 	public boolean userExists ( String userId ) throws IamSvcException
@@ -205,7 +213,9 @@ public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends Common
 	@Override
 	public I authenticate ( ApiKeyCredential akc ) throws IamSvcException
 	{
-		final ApiKey key = loadApiKeyRecord ( akc.getApiKey () );
+		final String apiKey = akc.getApiKey ();
+		
+		final ApiKey key = loadApiKeyRecord ( apiKey );
 		if ( key != null )
 		{
 			// use private key to sign content
@@ -215,8 +225,10 @@ public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends Common
 			// compare
 			if ( expectedSignature.equals ( akc.getSignature () ) )
 			{
-				authLog ( key.getUserId () + " authenticated via API key " + akc.getApiKey () );
-				return loadUser ( key.getUserId () );
+				authLog ( key.getUserId () + " authenticated via API key " + apiKey );
+				final I result = loadUser ( key.getUserId () );
+				result.setApiKeyUsedForAuth ( apiKey );
+				return result;
 			}
 		}
 
@@ -508,10 +520,9 @@ public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends Common
 		return new TreeSet<String> ( loadAliasesForUser ( userId ) );
 	}
 
-	public CommonJsonDb<I,G> addJwtValidator ( JwtValidator v )
+	public void addJwtValidator ( JwtValidator v )
 	{
 		fJwtValidators.add ( v );
-		return this;
 	}
 	
 	///////////////////////////////////////////////////////////////////////////
@@ -548,7 +559,7 @@ public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends Common
 
 		fJwtTokenFactory = jwtProd;
 
-		fJwtValidators = new LinkedList<JwtValidator> ();
+		fJwtValidators = new LinkedList<> ();
 		if ( fJwtTokenFactory != null )
 		{
 			fJwtValidators.add ( fJwtTokenFactory );	// our factory is a validator for its own tokens

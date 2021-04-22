@@ -59,9 +59,26 @@ public class CommonJsonIdentity extends CommonJsonObject implements Identity
 	@Override
 	public String toString ()
 	{
-		return getId ();
+		return fApiKey == null ? 
+			getId() :
+			getId() + " (" + fApiKey + ")"
+		;
 	}
-	
+
+	public void setApiKeyUsedForAuth ( String apiKey )
+	{
+		fApiKey = apiKey;
+	}
+
+	/**
+	 * Get the API key supplied to the constructor, if any.
+	 * @return an API key or null
+	 */
+	public String getApiKey ()
+	{
+		return fApiKey;
+	}
+
 	public JSONObject asJson ()
 	{
 		return fUserRecord;
@@ -229,6 +246,7 @@ public class CommonJsonIdentity extends CommonJsonObject implements Identity
 	private final String fUserId;
 	private final CommonJsonDb<? extends CommonJsonIdentity,?> fDb;
 	private JSONObject fUserRecord;
+	private String fApiKey = null;
 	
 	private static final Logger log = LoggerFactory.getLogger ( CommonJsonIdentity.class );
 

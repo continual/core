@@ -201,6 +201,13 @@ public class ApiContextHelper<I extends Identity>
 		}
 	}
 
+	/**
+	 * Authenticate the calling user using the default accounts service (named "accounts") and return a UserContext.
+	 * @param <I>
+	 * @param context
+	 * @return a UserContext or null if the user is not authenticated
+	 * @throws IamSvcException
+	 */
 	public static <I extends Identity> UserContext<I> getUser ( final CHttpRequestContext context ) throws IamSvcException
 	{
 		return getUser ( getAccountsSvc ( context ), context );
@@ -334,6 +341,14 @@ public class ApiContextHelper<I extends Identity>
 		private final LinkedList<Authenticator<I>> fAuthenticators;
 	}
 
+	/**
+	 * Authenticate the calling user and return a UserContext.
+	 * @param <I>
+	 * @param am
+	 * @param context
+	 * @return a UserContext or null if the user is not authenticated
+	 * @throws IamSvcException
+	 */
 	public static <I extends Identity> UserContext<I> getUser ( IamServiceManager<I,?> am, final CHttpRequestContext context ) throws IamSvcException
 	{
 		UserContext<I> result = null;

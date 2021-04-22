@@ -100,7 +100,7 @@ public class TimeFilterTest extends TestCase
 
 			@SuppressWarnings("unchecked")
 			@Override
-			public <T> T evalExpression ( String expression, Class<T> targetType )
+			public <T> T evalExpression ( String expression, Class<T> targetType, ExprDataSource... addlSrcs  )
 			{
 				final ExprDataSource eds = new ExprDataSource ()
 				{

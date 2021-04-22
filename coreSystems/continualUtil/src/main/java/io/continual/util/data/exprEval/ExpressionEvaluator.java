@@ -33,6 +33,12 @@ public class ExpressionEvaluator
 		return evaluateText ( expr, fSources );
 	}
 
+	public int evaluateTextToInt ( Object value, int defaultValue )
+	{
+		return evaluateTextToInt ( value, defaultValue, fSources );
+	}
+
+	
 	/**
 	 * Evaluate the given expression against the given data sources and return 
 	 * an object. If no source can resolve the symbol, null is returned.
@@ -95,5 +101,34 @@ public class ExpressionEvaluator
 		return sb.toString ();
 	}
 
+	/**
+	 * Interpret the given value as an integer. If the value is a string, evaluateSymbol is called and the result
+	 * manipulated into an integer. If the value is an integer, the result is used directly. If processing fails, for
+	 * any reason, the default value is returned.
+	 * @param value
+	 * @param defaultValue
+	 * @param srcs
+	 * @return an integer 
+	 */
+	public static int evaluateTextToInt ( Object value, int defaultValue, ExprDataSource... srcs )
+	{
+		if ( value == null ) return defaultValue;
+
+		if ( value instanceof Integer ) return (Integer) value;
+
+		final Object evalVal = evaluateText ( value.toString (), srcs );
+		if ( evalVal == null ) return defaultValue;
+
+		try
+		{
+			return Integer.parseInt ( evalVal.toString () );
+		}
+		catch ( NumberFormatException x )
+		{
+			return defaultValue;
+		}
+	}
+
+	
 	private final ExprDataSource[] fSources;
 }

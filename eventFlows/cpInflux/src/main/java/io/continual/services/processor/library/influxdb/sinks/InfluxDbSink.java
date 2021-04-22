@@ -36,6 +36,7 @@ import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.Sink;
 import io.continual.services.processor.library.influxdb.common.IdbConnection;
 import io.continual.services.processor.library.influxdb.common.IdbConnector;
+import io.continual.util.data.HumanReadableHelper;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.data.json.JsonVisitor.ObjectVisitor;
 
@@ -113,6 +114,11 @@ public class InfluxDbSink extends IdbConnector implements Sink
 			final Point pt = buildPoint ( context );
 			fWriteApi.writePoint ( pt );
 			fRecordCount++;
+
+			if ( 0 == fRecordCount % 1000 )
+			{
+				log.info ( "{}K msgs written", HumanReadableHelper.numberValue ( fRecordCount / 1000 ) );
+			}
 		}
 		catch ( Exception e )
 		{

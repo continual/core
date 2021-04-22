@@ -15,7 +15,6 @@
  */
 package io.continual.iam.impl.jsondoc;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -39,7 +38,6 @@ import io.continual.iam.impl.common.CommonJsonIdentity;
 import io.continual.util.data.json.JsonUtil;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.data.json.JsonVisitor.ObjectVisitor;
-
 import io.continual.util.time.Clock;
 
 /**
@@ -58,7 +56,7 @@ public class JsonDocDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	}
 
 	@Override
-	public void close () throws IOException
+	public void close ()
 	{
 	}
 
@@ -241,7 +239,7 @@ public class JsonDocDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	@Override
 	protected CommonJsonGroup instantiateGroup ( String id, JSONObject data )
 	{
-		return new CommonJsonGroup ( this, id, data );
+		return new CommonJsonGroup ( id, data, this );
 	}
 
 	protected JSONObject createApiKeyObject ( String userId, String apiKey, String apiSecret )

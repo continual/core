@@ -152,6 +152,12 @@ public interface IdentityManager<I extends Identity> extends IdentityDb<I>
 	ApiKey loadApiKeyRecord ( String apiKey ) throws IamSvcException;
 
 	/**
+	 * Add a JWT validator to the identity manager.
+	 * @param v a validator
+	 */
+	void addJwtValidator ( JwtValidator v );
+
+	/**
 	 * Get all user IDs in this db. Clearly not suitable for systems beyond a few thousand
 	 * users. For larger scale, this call may throw an IamSvcException signaling that
 	 * the underlying database won't return a user list. 

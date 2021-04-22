@@ -22,7 +22,7 @@ public class ExprDataSourceStack implements ExprDataSource
 	{
 		fSources = sources;
 	}
-	
+
 	@Override
 	public Object eval ( String label )
 	{
