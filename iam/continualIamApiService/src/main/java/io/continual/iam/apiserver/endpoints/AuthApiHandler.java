@@ -12,12 +12,13 @@ import io.continual.iam.credentials.UsernamePasswordCredential;
 import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.Identity;
 import io.continual.iam.identity.UserContext;
+import io.continual.restHttp.ApiContextHelper;
 import io.continual.restHttp.HttpServlet;
 
 /**
  * Auth API
  */
-public class AuthApiHandler extends BaseEndpoint
+public class AuthApiHandler extends ApiContextHelper<Identity>
 {
 	public void login ( CHttpRequestContext context ) throws IamSvcException, IOException
 	{
@@ -58,7 +59,7 @@ public class AuthApiHandler extends BaseEndpoint
 	{
 		setupCorsHeaders ( context );
 
-		final UserContext user = getUser ( context );
+		final UserContext<Identity> user = getUser ( context );
 		if ( user != null )
 		{
 			final IamServiceManager<?,?> am = HttpServlet.getServices ( context ).get ( "accounts", IamServiceManager.class );
@@ -79,7 +80,7 @@ public class AuthApiHandler extends BaseEndpoint
 	{
 		setupCorsHeaders ( context );
 
-		final UserContext user = getUser ( context );
+		final UserContext<Identity> user = getUser ( context );
 		if ( user == null )
 		{
 			sendNotAuth ( context );

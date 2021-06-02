@@ -6,7 +6,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.2.19</version>
+		<version>0.2.20</version>
 		<artifactId>continualIamSystems</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -34,7 +34,6 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-log4j12</artifactId>
-			<scope>compile</scope>
 		</dependency>
 
 		<!-- continual systems -->

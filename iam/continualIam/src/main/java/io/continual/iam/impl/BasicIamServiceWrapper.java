@@ -23,8 +23,8 @@ import io.continual.services.SimpleService;
 /**
  * Creates a service object to wrap an IAM manager implementation
  *
- * @param <I>
- * @param <G>
+ * @param <I> an identity class
+ * @param <G> a group class
  */
 public class BasicIamServiceWrapper<I extends Identity, G extends Group> extends SimpleService implements IamServiceManager<I,G>, Service, MetricsSupplier
 {

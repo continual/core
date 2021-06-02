@@ -53,8 +53,8 @@ import io.continual.util.time.Clock;
 /**
  *	CommonJsonDb manages identity related objects that are serialized in JSON 
  * 
- * @param <I>
- * @param <G>
+ * @param <I> an identity class
+ * @param <G> a group class
  */
 public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends CommonJsonGroup> implements IamDb<I,G>
 {

@@ -16,6 +16,8 @@
 
 package io.continual.util.data.exprEval;
 
+import io.continual.util.data.TypeConvertor;
+
 public class ExpressionEvaluator
 {
 	public ExpressionEvaluator ( ExprDataSource... srcs )
@@ -37,8 +39,12 @@ public class ExpressionEvaluator
 	{
 		return evaluateTextToInt ( value, defaultValue, fSources );
 	}
-
 	
+	public boolean evaluateTextToBoolean ( Object value, boolean defaultValue )
+	{
+		return evaluateTextToBoolean ( value, defaultValue, fSources );
+	}
+
 	/**
 	 * Evaluate the given expression against the given data sources and return 
 	 * an object. If no source can resolve the symbol, null is returned.
@@ -119,14 +125,28 @@ public class ExpressionEvaluator
 		final Object evalVal = evaluateText ( value.toString (), srcs );
 		if ( evalVal == null ) return defaultValue;
 
-		try
-		{
-			return Integer.parseInt ( evalVal.toString () );
-		}
-		catch ( NumberFormatException x )
-		{
-			return defaultValue;
-		}
+		return TypeConvertor.convertToInt ( evalVal.toString (), defaultValue ); 
+	}
+
+	/**
+	 * Interpret the given value as a boolean. If the value is a string, evaluateSymbol is called and the result
+	 * manipulated into a boolean. If the value is a boolean, the result is used directly. If processing fails, for
+	 * any reason, the default value is returned.
+	 * @param value
+	 * @param defaultValue
+	 * @param srcs
+	 * @return a boolean 
+	 */
+	public static boolean evaluateTextToBoolean ( Object value, boolean defaultValue, ExprDataSource... srcs )
+	{
+		if ( value == null ) return defaultValue;
+
+		if ( value instanceof Boolean ) return (Boolean) value;
+
+		final Object evalVal = evaluateText ( value.toString (), srcs );
+		if ( evalVal == null ) return defaultValue;
+
+		return TypeConvertor.convertToBooleanBroad ( evalVal.toString () ); 
 	}
 
 	

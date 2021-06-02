@@ -91,7 +91,7 @@ public class ReceiverApi<I extends Identity> extends ApiContextHelper<I>
 		handleWithApiAuth ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public String handle ( CHttpRequestContext context, HttpServlet servlet, final UserContext<I> user )
+			public void handle ( CHttpRequestContext context, HttpServlet servlet, final UserContext<I> user )
 			{
 				final Counter count = new Counter ();
 
@@ -103,7 +103,7 @@ public class ReceiverApi<I extends Identity> extends ApiContextHelper<I>
 					{
 						ApiContextHelper.sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, 
 							"Unsupported content type: " + context.request ().getContentType () + " or there was a problem reading the payload." );
-						return null;
+						return;
 					}
 
 					// determine the account ID and topic for this post
@@ -114,7 +114,7 @@ public class ReceiverApi<I extends Identity> extends ApiContextHelper<I>
 					if ( !acctIdAndTopic[0].equals ( user.getEffectiveUserId () ) )
 					{
 						ApiContextHelper.sendStatusCodeAndMessage ( context, HttpStatusCodes.k401_unauthorized, "You cannot post to this stream." );
-						return null;
+						return;
 					}
 
 					final String internalMsgStreamName = acctIdAndTopic[0] + "/" + acctIdAndTopic[1] + "/" + eventStreamName;
@@ -155,7 +155,6 @@ public class ReceiverApi<I extends Identity> extends ApiContextHelper<I>
 				{
 					ApiContextHelper.sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, e.getMessage() );
 				}
-				return null;
 			}
 		} );
 	}

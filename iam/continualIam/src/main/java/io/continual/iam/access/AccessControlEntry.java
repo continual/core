@@ -21,11 +21,9 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.continual.util.data.json.JsonVisitor;
-import io.continual.util.data.json.JsonVisitor.ArrayVisitor;
 
 /**
  * An access control entry, which has an identity, a permit/deny access
@@ -52,6 +50,32 @@ public class AccessControlEntry
 		PERMIT,
 		DENY
 	}
+
+	public static class Builder
+	{
+		public Builder forSubject ( String userOrGroupId ) { fUserOrGroupId = userOrGroupId; return this; }
+		public Builder forAllUsers () { return forSubject ( kAnyUser ); }
+		public Builder forOwner () { return forSubject ( kOwner ); }
+
+		public Builder permit () { return withAccess ( Access.PERMIT ); }
+		public Builder deny () { return withAccess ( Access.DENY ); }
+		public Builder withAccess ( Access a ) { fAccess = a; return this; }
+
+		public Builder operation ( String op ) { fOps.add ( op ); return this; }
+		public Builder operations ( Collection<String> ops ) { fOps.addAll ( ops ); return this; }
+
+		public AccessControlEntry build () { return new AccessControlEntry ( this ); }
+
+		private String fUserOrGroupId;
+		private Access fAccess = Access.PERMIT;
+		private LinkedList<String> fOps = new LinkedList<> ();
+	}
+
+	/**
+	 * Create a builder for an ACL entry
+	 * @return a new builder
+	 */
+	public static Builder builder() { return new Builder (); }
 
 	public AccessControlEntry ( String userOrGroupId, Access p, String operation )
 	{
@@ -82,11 +106,26 @@ public class AccessControlEntry
 	{
 		return new AccessControlEntry ( fWho, fPermission, fOperations );
 	}
-	
+
+	/**
+	 * Get an access permission for a given user ID or group set on a given operation. If the entry
+	 * doesn't match the user/groups, then null is returned.
+	 * 
+	 * @param userId a user ID 
+	 * @param groups a group set, presumably associated with the user
+	 * @param isOwner true if the user Id is the ACL owner (which is not visible to entries)
+	 * @param op the operation, which is checked as a case-insensitive string
+	 * @return an access permission or null if no match
+	 */
 	public Access check ( String userId, Set<String> groups, boolean isOwner, String op )
 	{
-		if ( fWho.equals ( kAnyUser ) || fWho.equals ( userId ) || groups.contains ( fWho ) ||
-			( isOwner && (fWho.equals(kOwner) ) ) )
+		// does this entry apply to the given user?
+		if (
+			fWho.equals ( kAnyUser ) ||							// the entry applies to any user
+			fWho.equals ( userId ) ||							// the entry applies to the given user explicitly
+			( groups != null && groups.contains ( fWho ) ) ||	// the entry applies to a group in the group set
+			( isOwner && (fWho.equals(kOwner) ) )				// the user is the ACL owner and this entry is for the owner
+		)
 		{
 			for ( String a : fOperations )
 			{
@@ -102,23 +141,43 @@ public class AccessControlEntry
 		return null;
 	}
 
+	/**
+	 * Get the subject of this ACL entry
+	 * @return the subject
+	 */
 	public String getSubject () { return fWho; }
+
+	/**
+	 * Get the permission for this ACL entry
+	 * @return PERMIT or DENY
+	 */
 	public Access getPermission () { return fPermission; }
 
+	/**
+	 * Get the operation set in this ACL entry
+	 * @return a set of operations
+	 */
 	public Set<String> getOperationSet ()
 	{
 		return new TreeSet<String> ( fOperations );
 	}
 
+	/**
+	 * Get the operation set in this ACL entry
+	 * @return an array of operations
+	 */
 	public String[] getOperations ()
 	{
-		int i=0;
-		final String[] result = new String [ fOperations.size () ];
-		for ( String op : getOperationSet () )
-		{
-			result[i++] = op;
-		}
-		return result;
+		return fOperations.toArray ( new String[ fOperations.size () ] );
+	}
+
+	/**
+	 * Get the number of operations in this ACL entry
+	 * @return the count of operations
+	 */
+	public int getOperationCount ()
+	{
+		return fOperations.size ();
 	}
 
 	/**
@@ -130,11 +189,6 @@ public class AccessControlEntry
 	{
 		return fOperations.remove ( op );
 	}
-
-	public int getOperationCount ()
-	{
-		return fOperations.size ();
-	}
 	
 	@Override
 	public String toString ()
@@ -142,6 +196,10 @@ public class AccessControlEntry
 		return serialize ().toString ();
 	}
 
+	/**
+	 * Serialize this ACL entry to a JSON object
+	 * @return a json object
+	 */
 	public JSONObject serialize ()
 	{
 		final JSONArray ops = new JSONArray ();
@@ -157,27 +215,27 @@ public class AccessControlEntry
 		;
 	}
 
+	/**
+	 * Deserialize a JSON object created by serialize()
+	 * @param o a JSON object
+	 * @return an ACL entry
+	 */
 	public static AccessControlEntry deserialize ( JSONObject o )
 	{
-		final LinkedList<String> ops = new LinkedList<> ();
-		JsonVisitor.forEachElement ( o.getJSONArray ( "operations" ), new ArrayVisitor<String,JSONException>()
-		{
-			@Override
-			public boolean visit ( String op ) throws JSONException
-			{
-				ops.add ( op );
-				return true;
-			}
-		} );
-		
-		return new AccessControlEntry (
-			o.getString ( "who" ),
-			Access.valueOf ( o.getString ( "access" ) ),
-			ops.toArray ( new String[ops.size()] )
-		);
+		return builder()
+			.forSubject ( o.getString ( "who" ) )
+			.withAccess ( Access.valueOf ( o.getString ( "access" ) ) )
+			.operations ( JsonVisitor.arrayToList ( o.getJSONArray ( "operations" ) ) )
+			.build ()
+		;
 	}
 
 	private final String fWho;
 	private final TreeSet<String> fOperations;
 	private final Access fPermission;
+
+	private AccessControlEntry ( Builder b )
+	{
+		this ( b.fUserOrGroupId, b.fAccess, b.fOps );
+	}
 }

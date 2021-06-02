@@ -35,9 +35,9 @@ public class CommonJsonGroup extends CommonJsonObject implements Group
 
 	/**
 	 * Construct a group
-	 * @param db
-	 * @param id
-	 * @param groupData
+	 * @param db an identity database
+	 * @param id the group's ID
+	 * @param groupData additional group data
 	 * @deprecated Use the other form, which is more similar to the identity constructor
 	 */
 	@Deprecated

@@ -18,6 +18,9 @@ package io.continual.iam.access;
 import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.Identity;
 
+/**
+ * An ACL checker for convenience
+ */
 public class AclChecker
 {
 	public AclChecker ()
@@ -60,6 +63,11 @@ public class AclChecker
 		return this;
 	}
 
+	/**
+	 * Label the resource for use in an access exception message.
+	 * @param resource a resource label
+	 * @return this checker
+	 */
 	public AclChecker onResource ( String resource )
 	{
 		fResource = resource;
@@ -72,15 +80,21 @@ public class AclChecker
 		return this;
 	}
 
-	public void check ()  throws AccessException, IamSvcException
+	/**
+	 * Check the user's access. If not allowed, AccessException is thrown. 
+	 * @throws AccessException thrown if user is not permitted
+	 * @throws IamSvcException thrown on a processing error in the IAM subsystem
+	 */
+	public void check () throws AccessException, IamSvcException
 	{
-		if ( fUser == null ) throw new AccessException ( "No user provided." );
+		final String userId = fUser == null ? "anonymous" : fUser.getId ();
+
 		if ( fAcl == null ) throw new AccessException ( "No ACL provided." );
 		if ( fOp == null ) throw new AccessException ( "No operation provided." );
 
-		if ( !fAcl.canUser ( fUser, fOp.toString () ) )
+		if ( !fAcl.canUser ( fUser, fOp ) )
 		{
-			throw new AccessException ( fUser.getId () + " may not " + fOp.toString ().toLowerCase () + " " + fResource );
+			throw new AccessException ( userId + " may not " + fOp.toLowerCase () + " " + fResource );
 		}
 	}
 

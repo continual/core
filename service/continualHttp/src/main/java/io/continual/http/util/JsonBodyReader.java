@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import io.continual.http.service.framework.context.CHttpRequest;
 import io.continual.http.service.framework.context.CHttpRequestContext;
+import io.continual.util.time.Clock;
 
 /**
  * Read a JSON content body from a request.
@@ -235,7 +236,7 @@ public class JsonBodyReader
 		{
 			byte[] b = new byte [ 4096 ];
 			int len ;
-			long lastReadMs = System.currentTimeMillis ();
+			long lastReadMs = Clock.now ();
 			boolean complete = false;
 	
 			do
@@ -243,7 +244,7 @@ public class JsonBodyReader
 				len = is.read ( b );
 				if ( len > 0 )
 				{
-					lastReadMs = System.currentTimeMillis ();
+					lastReadMs = Clock.now ();
 					totalBytesRead += len;
 					if ( totalBytesRead > kMaxBytes )
 					{
@@ -254,7 +255,7 @@ public class JsonBodyReader
 				}
 				else if ( len == 0 )
 				{
-					if ( lastReadMs + timeoutMs < System.currentTimeMillis () )
+					if ( lastReadMs + timeoutMs < Clock.now () )
 					{
 						log.info ( "Read timed out. Total " + totalBytesRead + " bytes, content-length was " + clen );
 						throw new IOException ( "Timed out waiting for input." );

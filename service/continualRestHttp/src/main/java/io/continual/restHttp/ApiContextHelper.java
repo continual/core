@@ -1,5 +1,5 @@
 /*
- *	Copyright 2019, Continual.io
+ *	Copyright 2021, Continual.io
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ import io.continual.http.util.http.standards.HttpStatusCodes;
 import io.continual.http.util.http.standards.MimeTypes;
 import io.continual.iam.IamAuthLog;
 import io.continual.iam.IamServiceManager;
+import io.continual.iam.access.AccessDb;
 import io.continual.iam.access.Resource;
 import io.continual.iam.credentials.ApiKeyCredential;
 import io.continual.iam.credentials.JwtCredential;
@@ -46,23 +47,26 @@ import io.continual.util.data.json.CommentedJsonTokener;
 import io.continual.util.data.json.JsonUtil;
 import io.continual.util.nv.NvReadable;
 
+/**
+ * Intended as a base or utility class for entry point implementations.
+ * 
+ * @param <I>
+ */
 public class ApiContextHelper<I extends Identity>
 {
 	public ApiContextHelper ()
 	{
+		this ( null );
+	}
+	
+	public ApiContextHelper ( IamServiceManager<I, ?> accts )
+	{
+		fAccts = accts;
 	}
 	
 	public static final String kSetting_ContinualProductTag = "apiKeyProductTag";
 	public static final String kContinualProductTag = "continual";
 	public static final String kContinualSystemsGroup = "continualSystems";
-
-	//
-	// API clients sign their requests with this format:
-	//
-    // kServerNameInSignedContentHeader + "." + dateString [ + apiMagic ]
-	//
-
-	public static final String kServerNameInSignedContentHeader = "continual";
 
 	public static final String kSetting_AuthLineHeader = "http.auth.header";
 	public static final String kSetting_DateLineHeader = "http.date.header";
@@ -80,10 +84,9 @@ public class ApiContextHelper<I extends Identity>
 		 * @param context the request context
 		 * @param servlet the servlet
 		 * @param uc the user context
-		 * @return a JSON string
 		 * @throws IOException 
 		 */
-		String handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<I> uc ) throws IOException;
+		void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<I> uc ) throws IOException;
 	}
 
 	protected static void sendStatusCodeAndMessage ( CHttpRequestContext context, int statusCode, String msg )
@@ -139,11 +142,6 @@ public class ApiContextHelper<I extends Identity>
 		);
 	}
 
-	public static <I extends Identity> void handleWithApiAuth ( CHttpRequestContext context, ApiHandler<I> h )
-	{
-		handleWithApiAuthAndAccess ( context, h );
-	}
-
 	public static class ResourceAccess
 	{
 		public ResourceAccess ( String resourceId, String operation ) { fResId=resourceId; fOp=operation; }
@@ -151,14 +149,26 @@ public class ApiContextHelper<I extends Identity>
 		public final String fResId;
 		public final String fOp;
 	}
-	
-	public static <I extends Identity> void handleWithApiAuthAndAccess ( CHttpRequestContext context, ApiHandler<I> h, ResourceAccess... accessReqd )
+
+	public void handleWithApiAuth ( CHttpRequestContext context, ApiHandler<I> h )
+	{
+		handleWithApiAuth ( context, getInternalAccts(context), h );
+	}
+
+	public void handleWithApiAuthAndAccess ( CHttpRequestContext context, ApiHandler<I> am, ResourceAccess... accessReqd )
+	{
+		handleWithApiAuth ( context, getInternalAccts(context), am );
+	}
+
+	public static <I extends Identity> void handleWithApiAuth ( CHttpRequestContext context, IamServiceManager<I,?> am, ApiHandler<I> h )
+	{
+		handleWithApiAuthAndAccess ( context, am, h );
+	}
+
+	public static <I extends Identity> void handleWithApiAuthAndAccess ( CHttpRequestContext context, IamServiceManager<I,?> am, ApiHandler<I> h, ResourceAccess... accessReqd )
 	{
 		try
 		{
-			final HttpServlet servlet = (HttpServlet) context.getServlet ();
-			final IamServiceManager<I,?> am = getAccountsSvc ( context );
-
 			setupCorsHeaders ( context );
 
 			final UserContext<I> user = getUser ( am, context );
@@ -167,15 +177,13 @@ public class ApiContextHelper<I extends Identity>
 				sendNotAuth ( context );
 				return;
 			}
-			
+	
 			// check for required access
+			final String uid = user.getEffectiveUserId ();
+			final AccessDb<?> adb = am.getAccessDb ();
 			for ( ResourceAccess ra : accessReqd )
 			{
-				if ( !am.getAccessDb().canUser (
-						user.getEffectiveUserId (),
-						new Resource () { @Override public String getId () { return ra.fResId; } },
-						ra.fOp
-					) )
+				if ( !adb.canUser ( uid, makeResource ( ra.fResId ), ra.fOp ) )
 				{
 					sendNotAuth ( context );
 					return;
@@ -183,11 +191,7 @@ public class ApiContextHelper<I extends Identity>
 			}
 
 			// access allowed, call the handler
-			final String response = h.handle ( context, servlet, user );
-			if ( response != null )
-			{
-				context.response().getStreamForTextResponse ( MimeTypes.kAppJson ).println ( response );
-			}
+			h.handle ( context, (HttpServlet) context.getServlet (), user );
 		}
 		catch ( IOException e )
 		{
@@ -212,6 +216,26 @@ public class ApiContextHelper<I extends Identity>
 	{
 		return getUser ( getAccountsSvc ( context ), context );
 	}
+
+	/**
+	 * Can the given user perform the given operation on the given resource?
+	 * @param context
+	 * @param user
+	 * @param resId
+	 * @param operation
+	 * @return true if the user is permitted
+	 */
+	public boolean canUser ( CHttpRequestContext context, UserContext<Identity> user, String resId, String operation ) throws IamSvcException
+	{
+		final boolean result = fAccts.getAccessDb ().canUser ( user.getEffectiveUserId (), makeResource ( resId ), operation );
+		if ( !result )
+		{
+			log.info ( user.toString () + " cannot " + operation + " object " + resId );
+		}
+		return result;
+	}
+
+	public static Resource makeResource ( String named ) { return new Resource () { @Override public String getId () { return named; } }; }
 
 	private interface Authenticator<I extends Identity>
 	{
@@ -245,15 +269,17 @@ public class ApiContextHelper<I extends Identity>
 				public I authenticate ( IamServiceManager<I,?> am, final CHttpRequestContext context ) throws IamSvcException
 				{
 					final NvReadable ds = context.systemSettings ();
+					final String systag = ds.getString ( kSetting_ContinualProductTag, kContinualProductTag );
 
 					I authUser = null;
-					final ApiKeyCredential creds = ApiKeyAuthHelper.readApiKeyCredential ( ds, new LocalHeaderReader ( context ),
-						ds.getString ( kSetting_ContinualProductTag, kContinualProductTag )
-					);
+					final ApiKeyCredential creds = ApiKeyAuthHelper.readApiKeyCredential ( ds, new LocalHeaderReader ( context ), systag );
 					if ( creds != null )
 					{
 						authUser = am.getIdentityDb ().authenticate ( creds );
-						if ( authUser != null ) IamAuthLog.authenticationEvent ( authUser.getId (), "API Key", context.request ().getBestRemoteAddress () );
+						if ( authUser != null )
+						{
+							IamAuthLog.authenticationEvent ( authUser.getId (), "API Key", context.request ().getBestRemoteAddress () );
+						}
 					}
 
 					return authUser;
@@ -296,7 +322,10 @@ public class ApiContextHelper<I extends Identity>
 						if ( cred != null )
 						{
 							authUser = am.getIdentityDb ().authenticate ( cred );
-							if ( authUser != null ) IamAuthLog.authenticationEvent ( authUser.getId (), "JWT", context.request ().getBestRemoteAddress () );
+							if ( authUser != null )
+							{
+								IamAuthLog.authenticationEvent ( authUser.getId (), "JWT", context.request ().getBestRemoteAddress () );
+							}
 						}
 					}
 					catch ( InvalidJwtToken e )
@@ -320,7 +349,10 @@ public class ApiContextHelper<I extends Identity>
 					if ( upc != null )
 					{
 						authUser = am.getIdentityDb().authenticate ( upc );
-						if ( authUser != null ) IamAuthLog.authenticationEvent ( authUser.getId (), "Username/Password", context.request ().getBestRemoteAddress () );
+						if ( authUser != null )
+						{
+							IamAuthLog.authenticationEvent ( authUser.getId (), "Username/Password", context.request ().getBestRemoteAddress () );
+						}
 					}
 					return authUser;
 				}
@@ -356,8 +388,7 @@ public class ApiContextHelper<I extends Identity>
 		try
 		{
 			// get this user authenticated
-			final AuthList<I> al = new AuthList<> ();
-			authUser = al.authenticate ( am, context );
+			authUser = new AuthList<I> ().authenticate ( am, context );
 
 			// if we have an authentic user, build a user context
 			if ( authUser != null )
@@ -400,6 +431,12 @@ public class ApiContextHelper<I extends Identity>
 		}
 	}
 
+	protected IamServiceManager<I,?> getInternalAccts ( CHttpRequestContext context )
+	{
+		if ( fAccts != null ) return fAccts;
+		return getAccountsSvc ( context );
+	}
+	
 	/**
 	 * The standard accounts service is expected to exist as "accounts"
 	 * @param context
@@ -429,6 +466,50 @@ public class ApiContextHelper<I extends Identity>
 	{
 		return new JSONObject ( new CommentedJsonTokener ( context.request().getBodyStream () ) );
 	}
+
+	/**
+	 * Read a JSON object body
+	 * @param ctx
+	 * @return a JSON object 
+	 * @throws JSONException
+	 * @throws IOException
+	 */
+	public static JSONObject readJsonBody ( CHttpRequestContext ctx ) throws JSONException, IOException
+	{
+		return readBody ( ctx );
+	}
+
+	public static class MissingInputException extends Exception
+	{
+		public MissingInputException ( String msg ) { super ( msg ); }
+		private static final long serialVersionUID = 1L;
+	}
+
+	public static String readJsonString ( JSONObject from, String label ) throws MissingInputException
+	{
+		try
+		{
+			return from.getString ( label );
+		}
+		catch ( JSONException x )
+		{
+			throw new MissingInputException ( "Missing required field '" + label + "' in input." );
+		}
+	}
+	
+	public static JSONObject readJsonObject ( JSONObject from, String label ) throws MissingInputException
+	{
+		try
+		{
+			return from.getJSONObject ( label );
+		}
+		catch ( JSONException x )
+		{
+			throw new MissingInputException ( "Missing required field '" + label + "' in input." );
+		}
+	}
+
+	private final IamServiceManager<I, ?> fAccts;
 
 	private static final Logger log = LoggerFactory.getLogger ( ApiContextHelper.class );
 }

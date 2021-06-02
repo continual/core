@@ -1,0 +1,44 @@
+{
+	"services":
+	[
+		// Metrics service
+		{
+			"name": "metrics",
+			"class": "io.continual.metrics.MetricsService",
+		},
+
+		//
+		//	Account service
+		//
+		{
+			"name": "accounts",
+			"class": "io.continual.iam.impl.file.IamFileDbServiceManager",
+			"file": "./etc/userdb"
+		},
+
+		//
+		//	An HTTP server for API network presence
+		//
+		{
+			"name": "HttpService",
+			"class":"io.continual.restHttp.HttpService",
+			"port": "8080"
+		},
+
+		//
+		//	Flow Control API
+		//
+		{
+			"name": "flowcontrol",
+			"class": "io.continual.flowcontrol.impl.k8s.K8sFlowControlService",
+			"namespace": "api-test-namespace",
+
+			"accounts": "accounts",
+			"httpService": "HttpService"
+		}
+	],
+
+	"profiles":
+	{
+	}
+}

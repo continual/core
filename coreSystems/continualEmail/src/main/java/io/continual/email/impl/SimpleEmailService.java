@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import io.continual.email.EmailService;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
+import io.continual.util.data.exprEval.ExpressionEvaluator;
 
 /**
  * A simple service for sending email.
@@ -49,16 +50,23 @@ public class SimpleEmailService extends SimpleService implements EmailService
 {
 	public SimpleEmailService ( ServiceContainer sc, JSONObject config )
 	{
-		fPrefs = config;
 		fSenders = Executors.newFixedThreadPool ( config.optInt ( "threadCount", 1 ) );
 
+		final ExpressionEvaluator ee = sc.getExprEval ( config );
+		
 		fMailProps = new Properties ();
-		fMailProps.put ( "mail.smtp.port", "" + fPrefs.optInt ( kSetting_SmtpServerPort, 587 ) );
+		fMailProps.put ( "mail.smtp.port", "" + ee.evaluateTextToInt ( config.opt ( kSetting_MailFromEmail ), 587 ) );
 		fMailProps.put ( "mail.smtp.socketFactory.fallback", "false" );
 		fMailProps.put ( "mail.smtp.quitwait", "false" );
-		fMailProps.put ( "mail.smtp.host", fPrefs.optString ( kSetting_SmtpServer, "smtp.gmail.com" ) );
-		fMailProps.put ( "mail.smtp.auth", "" + fPrefs.optBoolean ( kSetting_SmtpServerUseAuth, true ) );
-		fMailProps.put ( "mail.smtp.starttls.enable", "" + fPrefs.optBoolean ( kSetting_SmtpServerSsl, true ) );
+		fMailProps.put ( "mail.smtp.host", ee.evaluateText ( config.optString ( kSetting_SmtpServer, "smtp.gmail.com" ) ) );
+		fMailProps.put ( "mail.smtp.auth", "" + ee.evaluateTextToBoolean ( config.opt ( kSetting_SmtpServerUseAuth ), true ) ); 
+		fMailProps.put ( "mail.smtp.starttls.enable", "" + ee.evaluateTextToBoolean ( config.opt ( kSetting_SmtpServerSsl ), true ) );
+
+		fUser = ee.evaluateText ( config.optString ( kSetting_MailLogin, null ) );
+		fPassword = ee.evaluateText ( config.optString ( kSetting_MailPassword, null ) );
+
+		fFromAddr = ee.evaluateText ( config.optString ( kSetting_MailFromEmail, "hello@continual.io" ) );
+		fFromName = ee.evaluateText ( config.optString ( kSetting_MailFromName, "Continual.io" ) );
 	}
 
 	private class MailBuilderImpl implements MailBuilder
@@ -137,8 +145,13 @@ public class SimpleEmailService extends SimpleService implements EmailService
 		}
 	}
 
-	private final JSONObject fPrefs;
 	private final Properties fMailProps;
+
+	private final String fUser;
+	private final String fPassword;
+
+	private final String fFromAddr;
+	private final String fFromName;
 
 	public static final String kSetting_MailLogin = "mailLogin";
 	public static final String kSetting_MailPassword = "mailPassword";
@@ -186,10 +199,7 @@ public class SimpleEmailService extends SimpleService implements EmailService
 				msg.setSubject ( fBuilder.fSubj );
 
 				// addressing
-				final InternetAddress from = new InternetAddress (
-					fPrefs.optString ( kSetting_MailFromEmail, "hello@continual.io" ),
-					fPrefs.optString ( kSetting_MailFromName, "Continual.io" )
-				);
+				final InternetAddress from = new InternetAddress ( fFromAddr, fFromName );
 				msg.setFrom ( from );
 				msg.setReplyTo ( new InternetAddress[] { from } );
 				for ( String toAddr : fBuilder.fTos )
@@ -221,7 +231,7 @@ public class SimpleEmailService extends SimpleService implements EmailService
 				}
 					
 				final Transport transport = session.getTransport ( "smtp" );
-				transport.connect ( fPrefs.getString ( kSetting_MailLogin ), fPrefs.getString ( kSetting_MailPassword ) );
+				transport.connect ( fUser, fPassword );
 				transport.sendMessage ( msg, msg.getAllRecipients () );
 				transport.close ();
 

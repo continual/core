@@ -45,6 +45,8 @@ public class S3IamServiceManager extends SimpleService implements IamServiceMana
 {
 	public S3IamServiceManager ( ServiceContainer sc, JSONObject settings ) throws IamSvcException, BuildFailure
 	{
+		final ExpressionEvaluator evaluator = sc.getExprEval ( settings );
+
 		final String sysAdminGroup = settings.optString ( "sysAdminGroup", "sysadmin" );
 
 		final JSONObject jwt = settings.optJSONObject ( "jwt" );
@@ -52,8 +54,8 @@ public class S3IamServiceManager extends SimpleService implements IamServiceMana
 		JwtProducer p = null;
 		if ( jwt != null )
 		{
-			final String jwtIssuer = jwt.optString ( "issuer", null );
-			final String jwtSecret = jwt.optString ( "sha256Key", null );
+			final String jwtIssuer = evaluator.evaluateText ( jwt.optString ( "issuer", null ) );
+			final String jwtSecret = evaluator.evaluateText ( jwt.optString ( "sha256Key", null ) );
 			if ( jwtIssuer != null && jwtSecret != null )
 			{
 				p = new JwtProducer.Builder ()
@@ -63,8 +65,6 @@ public class S3IamServiceManager extends SimpleService implements IamServiceMana
 				;
 			}
 		}
-
-		final ExpressionEvaluator evaluator = sc.getExprEval ( settings );
 
 		// get the AWS settings
 		final JSONObject aws = settings.getJSONObject ( "aws" );

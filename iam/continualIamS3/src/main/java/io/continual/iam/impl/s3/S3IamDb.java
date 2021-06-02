@@ -600,7 +600,7 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	@Override
 	protected CommonJsonGroup instantiateGroup ( String id, JSONObject data )
 	{
-		return new CommonJsonGroup ( this, id, data );
+		return new CommonJsonGroup ( id, data, this );
 	}
 
 	protected JSONObject createApiKeyObject ( String userId, String apiKey, String apiSecret )

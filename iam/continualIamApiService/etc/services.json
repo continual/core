@@ -3,8 +3,8 @@
 	{
 		"aws":
 		{
-			"accessKey": "XXXXX",
-			"secretKey": "YYYYY"
+			"accessKey": "${CONTINUAL_S3_APIKEY}",
+			"secretKey": "${CONTINUAL_S3_SECRET}"
 		}
 	},
 
@@ -13,23 +13,23 @@
 		// Metrics service
 		{
 			"name": "metrics",
-			"class": "io.continual.metrics.MetricsService",
+			"class": "io.continual.metrics.MetricsService"
 		},
 
 		//
-		//	Rathravane/Continual's Clerk service for account management, backed by AWS S3
+		//	IAM service backed by AWS S3
 		//
 		{
 			"name": "accounts",
 			"class": "io.continual.iam.impl.s3.S3IamServiceManager",
 
-			"bucketId": "com.cfgex.shippingapp",
-			"pathPrefix": "clerk",
+			"bucketId": "${CONTINUAL_S3_BUCKET}",
+			"pathPrefix": "${CONTINUAL_S3_PATHPREFIX}",
 
 			"jwt":
 			{
 				"issuer": "continual.io",
-				"sha256Key": "continual.iam.engine.EC13ED3D-F59E-4ED7-BA29-5A6085B2105C"
+				"sha256Key": "${CONTINUAL_JWT_SIGNINGKEY}"
 			}
 		},
 
@@ -52,7 +52,8 @@
 			"httpService": "HttpService",
 			"accounts": "accounts",
 
-			"accessRequired": "cfgexAdministration"
+			// users calling this service must have READ and optionally UPDATE on the following resource:
+			"accessRequired": "iamAdmin"
 		}
 	],
 

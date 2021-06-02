@@ -29,8 +29,8 @@ import io.continual.metrics.MetricsSupplier;
 /**
  * An IAM DB implements all facets of identity and access management.
  *
- * @param <I>
- * @param <G>
+ * @param <I> an identity class
+ * @param <G> a group class
  */
 public interface IamDb<I extends Identity,G extends Group>
 	extends IdentityManager<I>, AccessManager<G>, TagManager, AclUpdateListener, MetricsSupplier, Closeable

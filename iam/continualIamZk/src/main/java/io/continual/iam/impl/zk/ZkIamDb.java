@@ -129,7 +129,7 @@ public abstract class ZkIamDb<I extends CommonJsonIdentity, G extends CommonJson
 		// build our ZK db
 		b
 			.connectingTo ( evaluator.evaluateText ( zkConfig.getString ( "connectionString" ) ) )
-			.withPathPrefix ( evaluator.evaluateText ( config.optString ( "pathPrefix", "" ) ) )
+			.withPathPrefix ( evaluator.evaluateText ( zkConfig.optString ( "pathPrefix", "" ) ) )
 			.usingAclFactory ( new AclFactory ()
 			{
 				@Override

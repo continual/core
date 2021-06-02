@@ -18,6 +18,7 @@ package io.continual.iam.access;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -30,14 +31,49 @@ import io.continual.util.data.json.CommentedJsonTokener;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.data.json.JsonVisitor.ArrayVisitor;
 
+/**
+ * An access control list, which has an owner and an ordered list of ACL entries. 
+ */
 public class AccessControlList
 {
-	// common operations
+	// common operations. These are here for convenience are are not required to be used
+	// in ACL entries.
 	public static final String CREATE = "create";
 	public static final String READ = "read";
 	public static final String UPDATE = "update";
 	public static final String DELETE = "delete";
 
+	public static class Builder 
+	{
+		public Builder ownedBy ( String userOrGroupId ) { fOwner = userOrGroupId; return this; }
+		public Builder withEntry ( AccessControlEntry ace ) { fAces.add ( ace ); return this; }
+		public Builder withListener ( AclUpdateListener l ) { fListener = l; return this; }
+
+		public AccessControlList build () { return new AccessControlList ( this ); }
+
+		private String fOwner = null;
+		private LinkedList<AccessControlEntry> fAces = new LinkedList<> ();
+		private AclUpdateListener fListener = null;
+	}
+
+	/**
+	 * Create a builder for an ACL
+	 * @return a new builder
+	 */
+	public static Builder builder () { return new Builder (); }
+	
+	/**
+	 * Construct an empty ACL
+	 */
+	public AccessControlList ()
+	{
+		this ( (AclUpdateListener) null );
+	}
+
+	/**
+	 * Construct an ACL with the given update listener
+	 * @param listener a listener, which may be null
+	 */
 	public AccessControlList ( AclUpdateListener listener )
 	{
 		fOwner = null;
@@ -45,11 +81,20 @@ public class AccessControlList
 		fListener = listener;
 	}
 
+	/**
+	 * Get the owner ID for this ACL
+	 * @return the owner, which may be null
+	 */
 	public String getOwner ()
 	{
 		return fOwner;
 	}
 
+	/**
+	 * Set the owner ID for this ACL. The listener is updated if provided.
+	 * @param userOrGroupId The ID to use as owner. This may be null.
+	 * @return this ACL
+	 */
 	public AccessControlList setOwner ( String userOrGroupId )
 	{
 		fOwner = userOrGroupId;
@@ -60,21 +105,25 @@ public class AccessControlList
 		return this;
 	}
 
-	public AccessControlList permit ( String userOrGroupId, String op )
-	{
-		return addAclEntry ( new AccessControlEntry ( userOrGroupId, Access.PERMIT, op ) );
-	}
-
+	/**
+	 * Permit the given ID to perform the given operations by adding a new entry to the end of the ACL entry list.
+	 * Note that a conflicting entry earlier in the list will take precedence.
+	 * @param userOrGroupId the user or group ID
+	 * @param ops one or more operations
+	 * @return this ACL
+	 */
 	public AccessControlList permit ( String userOrGroupId, String... ops )
 	{
 		return addAclEntry ( new AccessControlEntry ( userOrGroupId, Access.PERMIT, ops ) );
 	}
 
-	public AccessControlList deny ( String userOrGroupId, String op )
-	{
-		return addAclEntry ( new AccessControlEntry ( userOrGroupId, Access.DENY, op ) );
-	}
-
+	/**
+	 * Deny the given ID from performing the given operations by adding a new entry to the end of the ACL entry list.
+	 * Note that a conflicting entry earlier in the list will take precedence.
+	 * @param userOrGroupId the user or group ID
+	 * @param ops one or more operations
+	 * @return this ACL
+	 */
 	public AccessControlList deny ( String userOrGroupId, String... ops )
 	{
 		return addAclEntry ( new AccessControlEntry ( userOrGroupId, Access.DENY, ops ) );
@@ -101,7 +150,7 @@ public class AccessControlList
 	 * @param ops the operations to clear entries for
 	 * @return this ACL
 	 */
-	public AccessControlList clear ( String userOrGroupId, String[] ops )
+	public AccessControlList clear ( String userOrGroupId, String... ops )
 	{
 		boolean changed = false;
 
@@ -141,6 +190,10 @@ public class AccessControlList
 		return this;
 	}
 
+	/**
+	 * Clear all entries from this ACL and notify the listener if present
+	 * @return this ACL
+	 */
 	public AccessControlList clear ()
 	{
 		fEntries.clear ();
@@ -151,6 +204,10 @@ public class AccessControlList
 		return this;
 	}
 
+	/**
+	 * Get the list of ACL entries on this ACL
+	 * @return a list of 0 or more entries
+	 */
 	public List<AccessControlEntry> getEntries ()
 	{
 		final LinkedList<AccessControlEntry> result = new LinkedList<> ();
@@ -163,14 +220,35 @@ public class AccessControlList
 		return result;
 	}
 
+	/**
+	 * Can the given user perform the given operation based on this ACL?
+	 * @param user a user
+	 * @param op an operation
+	 * @return true if the user can perform the given operation
+	 * @throws IamSvcException if there's an error during processing
+	 */
 	public boolean canUser ( Identity user, String op ) throws IamSvcException
 	{
-		return canUser ( user.getId (), user.getGroupIds (), op );
+		if ( user == null )
+		{
+			return canUser ( null, new TreeSet<String> (), op );
+		}
+		else
+		{
+			return canUser ( user.getId (), user.getGroupIds (), op );
+		}
 	}
 
+	/**
+	 * Can the given user ID or group set perform the given operation based on this ACL? 
+	 * @param userId a user ID
+	 * @param groups a set of 0 or more groups
+	 * @param op an operation
+	 * @return true if the user or group set can perform the given operation
+	 */
 	public boolean canUser ( String userId, Set<String> groups, String op )
 	{
-		final boolean isOwner = userId.equals ( getOwner() );
+		final boolean isOwner = userId != null && userId.equals ( getOwner() );
 
 		for ( AccessControlEntry e : getEntries() )
 		{
@@ -184,6 +262,11 @@ public class AccessControlList
 		return false;
 	}
 
+	/**
+	 * Add the given ACL entry to this ACL's list of entries.
+	 * @param acle an ACL entry
+	 * @return this ACL
+	 */
 	public AccessControlList addAclEntry ( AccessControlEntry acle )
 	{
 		fEntries.add ( acle );
@@ -200,6 +283,10 @@ public class AccessControlList
 		return serialize ();
 	}
 
+	/**
+	 * Serialize to JSON
+	 * @return a JSON object
+	 */
 	public JSONObject asJson ()
 	{
 		final JSONArray entries = new JSONArray ();
@@ -212,7 +299,11 @@ public class AccessControlList
 			.put ( "entries", entries )
 		;
 	}
-	
+
+	/**
+	 * Serialize to a JSON String
+	 * @return a string
+	 */
 	public String serialize ()
 	{
 		return asJson().toString ();
@@ -223,12 +314,24 @@ public class AccessControlList
 		return new AccessControlList ( listener );
 	}
 
+	/**
+	 * Deserialize a string created by serialize()
+	 * @param s a string serialized ACL
+	 * @param listener an optional listener
+	 * @return an ACL
+	 */
 	public static AccessControlList deserialize ( String s, AclUpdateListener listener )
 	{
 		final JSONObject o = new JSONObject ( new CommentedJsonTokener ( s ) );
 		return deserialize ( o, listener );
 	}
 
+	/**
+	 * Deserialize a JSON object created by serialize() or asJson()
+	 * @param o a JSON object serialized ACL
+	 * @param listener an optional listener
+	 * @return an ACL
+	 */
 	public static AccessControlList deserialize ( JSONObject o, AclUpdateListener listener )
 	{
 		if ( o == null )
@@ -251,9 +354,25 @@ public class AccessControlList
 		return acl;
 	}
 
-	public AclUpdateListener getListener () { return fListener; }
+	/**
+	 * Get the listener on this ACL if present
+	 * @return a listener or null
+	 */
+	public AclUpdateListener getListener ()
+	{
+		return fListener;
+	}
 
 	private String fOwner;
 	private final LinkedList<AccessControlEntry> fEntries;
 	private final AclUpdateListener fListener;
+
+	private AccessControlList ( Builder b )
+	{
+		fOwner = b.fOwner;
+		fListener = b.fListener;
+
+		fEntries = new LinkedList<> ();
+		fEntries.addAll ( b.fAces );
+	}
 }

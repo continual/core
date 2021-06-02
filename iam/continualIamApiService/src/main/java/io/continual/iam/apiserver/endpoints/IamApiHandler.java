@@ -21,10 +21,11 @@ import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.Group;
 import io.continual.iam.identity.Identity;
 import io.continual.iam.identity.UserContext;
+import io.continual.restHttp.ApiContextHelper;
 import io.continual.restHttp.HttpServlet;
 import io.continual.util.data.json.JsonVisitor;
 
-public class IamApiHandler extends BaseEndpoint
+public class IamApiHandler extends ApiContextHelper<Identity>
 {
 	public IamApiHandler ( IamServiceManager<?, ?> accts, String acctResourceId )
 	{
@@ -36,10 +37,10 @@ public class IamApiHandler extends BaseEndpoint
 
 	public void getUsers ( CHttpRequestContext context ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
 		{
 			@Override
-			public String handle ( CHttpRequestContext context, HttpServlet servlet, UserContext uc )  throws IOException
+			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
 			{
 				try
 				{
@@ -51,17 +52,16 @@ public class IamApiHandler extends BaseEndpoint
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the IAM service." );
 				}
-				return null;
 			}
 		}, fAcctReader );
 	}
 
 	public void getUser ( CHttpRequestContext context, String userId ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
 		{
 			@Override
-			public String handle ( CHttpRequestContext context, HttpServlet servlet, UserContext uc )  throws IOException
+			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
 			{
 				try
 				{
@@ -79,17 +79,16 @@ public class IamApiHandler extends BaseEndpoint
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the IAM service." );
 				}
-				return null;
 			}
 		}, fAcctReader );
 	}
 
 	public void createUser ( CHttpRequestContext context ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
 		{
 			@Override
-			public String handle ( CHttpRequestContext context, HttpServlet servlet, UserContext uc )  throws IOException
+			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
 			{
 				try
 				{
@@ -129,17 +128,16 @@ public class IamApiHandler extends BaseEndpoint
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, "Group does not exist." );
 				}
-				return null;
 			}
 		}, fAcctWriter );
 	}
 
 	public void setPassword ( CHttpRequestContext context, String userId ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
 		{
 			@Override
-			public String handle ( CHttpRequestContext context, HttpServlet servlet, UserContext uc )  throws IOException
+			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
 			{
 				try
 				{
@@ -165,17 +163,16 @@ public class IamApiHandler extends BaseEndpoint
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the IAM service." );
 				}
-				return null;
 			}
 		}, fAcctWriter );
 	}
 
 	public void setData ( CHttpRequestContext context, String userId, String dataKey ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
 		{
 			@Override
-			public String handle ( CHttpRequestContext context, HttpServlet servlet, UserContext uc )  throws IOException
+			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
 			{
 				try
 				{
@@ -201,17 +198,16 @@ public class IamApiHandler extends BaseEndpoint
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the IAM service." );
 				}
-				return null;
 			}
 		}, fAcctWriter );
 	}
 
 	public void removeData ( CHttpRequestContext context, String userId, String dataKey ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
 		{
 			@Override
-			public String handle ( CHttpRequestContext context, HttpServlet servlet, UserContext uc )  throws IOException
+			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
 			{
 				try
 				{
@@ -235,17 +231,16 @@ public class IamApiHandler extends BaseEndpoint
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the IAM service." );
 				}
-				return null;
 			}
 		}, fAcctWriter );
 	}
 
 	public void removeDataSet ( CHttpRequestContext context, String userId ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
 		{
 			@Override
-			public String handle ( CHttpRequestContext context, HttpServlet servlet, UserContext uc )  throws IOException
+			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
 			{
 				try
 				{
@@ -275,17 +270,16 @@ public class IamApiHandler extends BaseEndpoint
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the IAM service." );
 				}
-				return null;
 			}
 		}, fAcctWriter );
 	}
 
 	public void setEnabled ( CHttpRequestContext context, String userId ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
 		{
 			@Override
-			public String handle ( CHttpRequestContext context, HttpServlet servlet, UserContext uc )  throws IOException
+			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
 			{
 				try
 				{
@@ -310,17 +304,16 @@ public class IamApiHandler extends BaseEndpoint
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the IAM service." );
 				}
-				return null;
 			}
 		}, fAcctWriter );
 	}
 
 	public void createGroup ( CHttpRequestContext context ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
 		{
 			@Override
-			public String handle ( CHttpRequestContext context, HttpServlet servlet, UserContext uc )  throws IOException
+			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
 			{
 				try
 				{
@@ -337,17 +330,16 @@ public class IamApiHandler extends BaseEndpoint
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k409_conflict, "The group exists." );
 				}
-				return null;
 			}
 		}, fAcctWriter );
 	}
 
 	public void getGroups ( CHttpRequestContext context ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
 		{
 			@Override
-			public String handle ( CHttpRequestContext context, HttpServlet servlet, UserContext uc )  throws IOException
+			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
 			{
 				try
 				{
@@ -359,17 +351,16 @@ public class IamApiHandler extends BaseEndpoint
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the IAM service." );
 				}
-				return null;
 			}
 		}, fAcctReader );
 	}
 
 	public void getGroup ( CHttpRequestContext context, String groupId ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
 		{
 			@Override
-			public String handle ( CHttpRequestContext context, HttpServlet servlet, UserContext uc )  throws IOException
+			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
 			{
 				try
 				{
@@ -387,17 +378,16 @@ public class IamApiHandler extends BaseEndpoint
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the IAM service." );
 				}
-				return null;
 			}
 		}, fAcctReader );
 	}
 
 	public void addUserToGroup ( CHttpRequestContext context, String groupId, String userId ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
 		{
 			@Override
-			public String handle ( CHttpRequestContext context, HttpServlet servlet, UserContext uc )  throws IOException
+			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
 			{
 				try
 				{
@@ -405,7 +395,7 @@ public class IamApiHandler extends BaseEndpoint
 					if ( group == null )
 					{
 						sendStatusCodeAndMessage ( context, HttpStatusCodes.k404_notFound, "Group not found." );
-						return null;
+						return;
 					}
 
 					fAccts.getAccessManager ().addUserToGroup ( groupId, userId );
@@ -423,17 +413,16 @@ public class IamApiHandler extends BaseEndpoint
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the IAM service." );
 				}
-				return null;
 			}
 		}, fAcctWriter );
 	}
 
 	public void deleteUserFromGroup ( CHttpRequestContext context, String groupId, String userId ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
 		{
 			@Override
-			public String handle ( CHttpRequestContext context, HttpServlet servlet, UserContext uc )  throws IOException
+			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
 			{
 				try
 				{
@@ -441,7 +430,7 @@ public class IamApiHandler extends BaseEndpoint
 					if ( group == null )
 					{
 						sendStatusCodeAndMessage ( context, HttpStatusCodes.k404_notFound, "Group not found." );
-						return null;
+						return;
 					}
 
 					fAccts.getAccessManager ().removeUserFromGroup ( groupId, userId );
@@ -459,17 +448,16 @@ public class IamApiHandler extends BaseEndpoint
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the IAM service." );
 				}
-				return null;
 			}
 		}, fAcctWriter );
 	}
 
 	public void deleteUsersFromGroup ( CHttpRequestContext context ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
 		{
 			@Override
-			public String handle ( CHttpRequestContext context, HttpServlet servlet, UserContext uc )  throws IOException
+			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
 			{
 				try
 				{
@@ -485,7 +473,7 @@ public class IamApiHandler extends BaseEndpoint
 						if ( user == null )
 						{
 							sendStatusCodeAndMessage ( context, HttpStatusCodes.k404_notFound, "User not found." );
-							return null;
+							return;
 						}
 
 						for ( int i=0; i<groups.length (); i++ )
@@ -505,7 +493,7 @@ public class IamApiHandler extends BaseEndpoint
 						if ( group == null )
 						{
 							sendStatusCodeAndMessage ( context, HttpStatusCodes.k404_notFound, "Group not found." );
-							return null;
+							return;
 						}
 
 						for ( int i=0; i<users.length (); i++ )
@@ -529,7 +517,6 @@ public class IamApiHandler extends BaseEndpoint
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the IAM service." );
 				}
-				return null;
 			}
 		}, fAcctWriter );
 	}

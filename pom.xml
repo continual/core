@@ -8,7 +8,7 @@
 
 	<!-- When changing version, also change parent version number in sub-pom files -->
 	<!-- You can run versionUpdate.sh in this directory to do this. -->
-	<version>0.2.19</version>
+	<version>0.2.20</version>
 	<packaging>pom</packaging>
 
 	<name>ContinualIO</name>
@@ -60,6 +60,7 @@
 		<module>messaging</module>
 		<module>eventFlows</module>
 		<module>model</module>
+		<module>integration</module>
 	</modules>
 
 	<dependencyManagement>
@@ -84,18 +85,17 @@
 				<version>1.7.30</version>
 			</dependency>
 
+			<dependency>
+			    <groupId>org.slf4j</groupId>
+			    <artifactId>slf4j-log4j12</artifactId>
+			    <version>1.7.30</version>
+			</dependency>
+
 			<!-- OK HTTP client -->
 			<dependency>
 				<groupId>com.squareup.okhttp3</groupId>
 				<artifactId>okhttp</artifactId>
 				<version>3.14.9</version>
-			</dependency>
-
-			<dependency>
-			    <groupId>org.slf4j</groupId>
-			    <artifactId>slf4j-log4j12</artifactId>
-			    <version>1.7.30</version>
-			    <scope>test</scope>
 			</dependency>
 
 		</dependencies>
