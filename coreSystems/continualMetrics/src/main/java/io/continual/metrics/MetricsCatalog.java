@@ -36,6 +36,24 @@ public interface MetricsCatalog extends JsonSerialized
 	}
 
 	/**
+	 * Remove a sub-catalog with the given name, as well as all of its entries.
+	 * @param name
+	 * @return this catalog
+	 */
+	MetricsCatalog removeSubCatalog ( Name name );
+
+	/**
+	 * Remove a sub-catalog with the given name, as well as all of its entries.
+	 * @param name
+	 * @return this catalog
+	 */
+	default MetricsCatalog removeSubCatalog ( String name )
+	{
+		return removeSubCatalog ( Name.fromString ( name ) );
+	}
+	
+	
+	/**
 	 * Pops a path on close
 	 */
 	interface PathPopper extends AutoCloseable

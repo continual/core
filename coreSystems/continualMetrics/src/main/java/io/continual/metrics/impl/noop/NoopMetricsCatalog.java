@@ -18,11 +18,17 @@ public class NoopMetricsCatalog implements MetricsCatalog
 	}
 
 	@Override
-	public MetricsCatalog getSubCatalog ( Name name )
+	public NoopMetricsCatalog getSubCatalog ( Name name )
 	{
 		return this;
 	}
-	
+
+	@Override
+	public NoopMetricsCatalog removeSubCatalog ( Name name )
+	{
+		return this;
+	}
+
 	@Override
 	public void remove ( String name )
 	{

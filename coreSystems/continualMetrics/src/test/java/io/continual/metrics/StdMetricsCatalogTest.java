@@ -51,4 +51,28 @@ public class StdMetricsCatalogTest extends TestCase
 
 		assertNotNull ( o.getJSONObject ( "foo" ).getJSONObject ( "bar_baz" ).getJSONObject ( "c" ) );
 	}
+
+	@Test
+	public void testSubCatalogRemoval ()
+	{
+		final MetricRegistry reg = new MetricRegistry ();
+		final StdMetricsCatalog cat = new StdMetricsCatalog ( reg );
+		cat.counter ( "foo" );
+		cat.counter ( "s13" );
+
+		final MetricsCatalog subcat = cat.getSubCatalog ( "s1" );
+		subcat.counter ( "bar" );
+		subcat.counter ( "baz" );
+
+		final MetricsCatalog subcat2 = cat.getSubCatalog ( "s2" );
+		subcat2.counter ( "bar" );
+		subcat2.counter ( "baz" );
+
+		JSONObject top = cat.toJson ();
+		assertEquals ( 4, top.keySet ().size () );
+
+		cat.removeSubCatalog ( "s1" );
+		top = cat.toJson ();
+		assertEquals ( 3, top.keySet ().size () );
+	}
 }

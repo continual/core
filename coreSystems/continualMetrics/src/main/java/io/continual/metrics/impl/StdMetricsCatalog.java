@@ -2,6 +2,7 @@ package io.continual.metrics.impl;
 
 import java.time.Duration;
 import java.util.LinkedList;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -68,13 +69,30 @@ public class StdMetricsCatalog implements MetricsCatalog
 	{
 		return new StdMetricsCatalog ( fReg, getCurrentBase().makeChildItem ( convertName ( name ) ) );
 	}
-	
+
 	@Override
 	public StdMetricsCatalog getSubCatalog ( String name )
 	{
 		return getSubCatalog ( Name.fromString ( name ) );
 	}
 
+	public StdMetricsCatalog removeSubCatalog ( Name name )
+	{
+		final String pathPrefix = convertPath ( getCurrentBase().makeChildItem ( convertName ( name ) ) ) + ".";
+
+		// from here we want to remove all entries in the actual registry that start with the prefix
+		final Set<String> metrics = fReg.getMetrics ().keySet ();
+		for ( String metric : metrics )
+		{
+			if ( metric.startsWith ( pathPrefix ) )
+			{
+				fReg.remove ( metric );
+			}
+		}
+
+		return this;
+	}
+	
 	@Override
 	public PathPopper push ( String name )
 	{
