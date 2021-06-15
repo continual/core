@@ -219,6 +219,8 @@ public class Engine extends SimpleService implements Service
 				log.warn ( "Problem closing source {}: {}", t.getSourceName (), e.getMessage () );
 			}
 		}
+
+		// fMetricsDumper will stop on all execthreads quit
 	}
 
 	private final Program fProgram;
@@ -242,13 +244,22 @@ public class Engine extends SimpleService implements Service
 		{
 			try
 			{
-				while ( true )
+				boolean running = true;
+				while ( running )
 				{
 					Thread.sleep ( 5000 );
-	
+
 					final String text = fEngineMetrics.toJson ().toString ();
 					metricsLog.info ( text );
+
+					running = false;
+					for ( ExecThread t : fThreads.values () )
+					{
+						running = t.isAlive ();
+						if ( running ) break;
+					}
 				}
+				log.info ( "Metrics dump thread exiting." );
 			}
 			catch ( InterruptedException e )
 			{
