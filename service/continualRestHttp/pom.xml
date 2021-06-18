@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.2.22</version>
+		<version>0.2.23</version>
 		<artifactId>continualService</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -46,13 +46,6 @@
 			<groupId>io.continual</groupId>
 			<artifactId>continualMetrics</artifactId>
 			<version>${project.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>com.amazonaws</groupId>
-	 		<artifactId>aws-java-sdk-s3</artifactId>
-			<version>1.11.575</version>
-			<optional>true</optional>
 		</dependency>
 
 	</dependencies>

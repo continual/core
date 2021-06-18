@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.2.22</version>
+		<version>0.2.23</version>
 		<artifactId>continualModelSystems</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -41,27 +41,6 @@
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
-		</dependency>
-
-		<!-- csv reader -->
-		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-csv</artifactId>
-			<version>1.5</version>
-		</dependency>
-
-		<!-- https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-s3 -->
-		<dependency>
-			<groupId>com.amazonaws</groupId>
-			<artifactId>aws-java-sdk-s3</artifactId>
-			<version>1.11.467</version>
-		</dependency>
-
-		<!-- https://mvnrepository.com/artifact/com.datastax.cassandra/cassandra-driver-core -->
-		<dependency>
-			<groupId>com.datastax.cassandra</groupId>
-			<artifactId>cassandra-driver-core</artifactId>
-			<version>3.6.0</version>
 		</dependency>
 
 	</dependencies>

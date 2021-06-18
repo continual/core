@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.2.22</version>
+		<version>0.2.23</version>
 		<artifactId>continualService</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -18,7 +18,7 @@
 	<url>https://continual.io</url>
 
 	<properties>
-		<tomcatVersion>8.5.42</tomcatVersion>
+		<tomcatVersion>8.5.65</tomcatVersion>
 	</properties>
 
 	<dependencies>

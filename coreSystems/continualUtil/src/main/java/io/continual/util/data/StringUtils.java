@@ -19,6 +19,10 @@ package io.continual.util.data;
 import java.util.LinkedList;
 import java.util.List;
 
+import io.continual.util.data.exprEval.EnvDataSource;
+import io.continual.util.data.exprEval.ExprDataSource;
+import io.continual.util.data.exprEval.ExpressionEvaluator;
+import io.continual.util.data.exprEval.SpecialFnsDataSource;
 import io.continual.util.nv.NvReadable;
 
 public class StringUtils
@@ -358,41 +362,17 @@ public class StringUtils
 
 	public static String evaluate ( NvReadable data, String val )
 	{
-		if ( !val.contains ( "${" ) )
-		{
-			return val;
-		}
-
-		final StringBuffer sb = new StringBuffer ();
-
-		String remains = val;
-		while ( remains.length () > 0 )
-		{
-			final int dollar = remains.indexOf ( "${" );
-			if ( dollar > -1 )
+		return ExpressionEvaluator.evaluateText (
+			val,
+			new ExprDataSource ()
 			{
-				// there's no escaping here -- it's a symbol
-				final int closeBrace = remains.indexOf ( "}", dollar + 2 );
-				if ( closeBrace > -1 )
+				public Object eval ( String label )
 				{
-					if ( dollar > 0 )
-					{
-						sb.append ( remains.substring ( 0, dollar ) );
-					}
-					final String symbol = remains.substring ( dollar + 2, closeBrace );
-
-					final String replacement = data.getString ( symbol, "" );
-					sb.append ( replacement );
-					remains = remains.substring ( closeBrace + 1 );
+					return data.getString ( label, null );
 				}
-			}
-			else
-			{
-				sb.append ( remains );
-				remains = "";
-			}
-		}
-
-		return sb.toString ();
+			},
+			new EnvDataSource (),
+			new SpecialFnsDataSource ()
+		);
 	}
 }
