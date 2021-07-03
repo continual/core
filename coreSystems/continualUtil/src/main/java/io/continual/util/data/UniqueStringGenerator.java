@@ -16,6 +16,7 @@
 
 package io.continual.util.data;
 
+import java.nio.ByteBuffer;
 import java.util.UUID;
 
 /**
@@ -103,6 +104,33 @@ public class UniqueStringGenerator
 		return sb.toString ();
 	}
 
+	/**
+	 * Return a base64 encoded UUID
+	 * @return a base64 encoded UUID string
+	 */
+	public static String createEncodedUuid ()
+	{
+		// create a uuid
+		final UUID uuid = UUID.randomUUID ();
+
+		final ByteBuffer bb = ByteBuffer.wrap ( new byte [16] );
+		bb.putLong ( uuid.getMostSignificantBits () );
+		bb.putLong ( uuid.getLeastSignificantBits () );
+	    final byte[] uuidArray = bb.array();
+
+		String encoded = TypeConvertor.base64Encode ( uuidArray );
+		if ( encoded.endsWith ( "==" ) )
+		{
+			encoded = encoded.substring ( 0, encoded.length () - 2 );
+		}
+		else if ( encoded.endsWith ( "=" ) )
+		{
+			encoded = encoded.substring ( 0, encoded.length () - 1 );
+		}
+
+		return encoded;
+	}
+	
 	private static final String kLicenseKeyAlphabet = "123456789BCDFGHJKLMNPQRTVWXYZ";
 	private static final String kUrlKeyAlphabet = "0123456789ABCDFGHJKLMNPQRTVWXYZabcdefhigjklmnopqrstuvwxyz";
 

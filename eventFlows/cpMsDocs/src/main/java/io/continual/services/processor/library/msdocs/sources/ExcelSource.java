@@ -156,17 +156,32 @@ public class ExcelSource extends BasicSource
 	private final String fLineNumberToField;
 	private final HashMap<String,FieldInfo> fFieldMap;
 
+	private enum Subtype
+	{
+		NONE,
+		DATE
+	}
+	
 	private static class FieldInfo
 	{
 		public FieldInfo ( String srcName )
 		{
 			fSrcName = srcName;
 			fType = null;
+			fSubtype = null;
 		}
 		public FieldInfo ( JSONObject data )
 		{
+			CellType ct = null;
+			final String type = data.optString ( "type", null );
+			if ( type != null )
+			{
+				ct = CellType.valueOf ( type.toUpperCase () );
+			}
+
 			fSrcName = data.optString ( "name", null );
-			fType = CellType.valueOf ( data.optString ( "type", CellType._NONE.toString () ).toUpperCase () );
+			fType = ct;
+			fSubtype = Subtype.valueOf ( data.optString ( "subtype", Subtype.NONE.toString () ).toUpperCase () );
 		}
 		public String getMappedName ()
 		{
@@ -176,9 +191,14 @@ public class ExcelSource extends BasicSource
 		{
 			return fType;
 		}
+		public Subtype getCellSubtype ()
+		{
+			return fSubtype;
+		}
 
 		private final String fSrcName;
 		private final CellType fType;
+		private final Subtype fSubtype;
 	}
 	
 	private boolean fInited = false;
@@ -245,7 +265,7 @@ public class ExcelSource extends BasicSource
 		}
 	}
 
-	private void cellToValue ( JSONObject target, String fieldName, Cell cell, CellType asType )
+	private void cellToValue ( JSONObject target, String fieldName, Cell cell, CellType asType, Subtype subtype )
 	{
 		switch ( asType )
 		{
@@ -262,7 +282,15 @@ public class ExcelSource extends BasicSource
 				break;
 
 			case NUMERIC:
-				target.put ( fieldName, cell.getNumericCellValue () );
+				if ( subtype == Subtype.DATE )
+				{
+					final java.util.Date d = cell.getDateCellValue ();
+					target.put ( fieldName, d == null ? null : d.getTime () );
+				}
+				else
+				{
+					target.put ( fieldName, cell.getNumericCellValue () );
+				}
 				break;
 
 			case BLANK:
@@ -297,6 +325,12 @@ public class ExcelSource extends BasicSource
 			type = cell.getCellType ();
 		}
 
+		Subtype st = fi == null ? Subtype.NONE : fi.getCellSubtype ();
+		if ( st == null )
+		{
+			st = Subtype.NONE;
+		}
+		
 		switch ( type )
 		{
 			case BOOLEAN:
@@ -304,11 +338,11 @@ public class ExcelSource extends BasicSource
 			case STRING:
 			case BLANK:
 			case ERROR:
-				cellToValue ( target, fieldName, cell, type );
+				cellToValue ( target, fieldName, cell, type, st );
 				break;
 
 			case FORMULA:
-				cellToValue ( target, fieldName, cell, cell.getCachedFormulaResultType () );
+				cellToValue ( target, fieldName, cell, cell.getCachedFormulaResultType (), st );
 				break;
 
 			case _NONE:
@@ -317,7 +351,7 @@ public class ExcelSource extends BasicSource
 				break;
 		}
 	}
-	
+
 	private MessageAndRouting buildMessage ( Row currentRow )
 	{
 		final JSONObject data = new JSONObject ();

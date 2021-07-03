@@ -326,7 +326,7 @@ public class JdbcSink extends DbConnector implements Sink
 			{
 				java.sql.Date d = null;
 				final String fmt = ci.getFormat ();
-				if ( fmt.equals ( "#" ) )
+				if ( fmt != null && fmt.equals ( "#" ) )
 				{
 					try
 					{
