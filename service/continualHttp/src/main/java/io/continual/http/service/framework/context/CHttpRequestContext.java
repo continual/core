@@ -27,6 +27,8 @@ import org.slf4j.LoggerFactory;
 
 import io.continual.http.service.framework.CHttpConnection;
 import io.continual.http.service.framework.CHttpServlet;
+import io.continual.http.service.framework.inspection.CHttpObserver;
+import io.continual.http.service.framework.inspection.impl.NoopInspector;
 import io.continual.http.service.framework.routing.CHttpRequestRouter;
 import io.continual.util.nv.NvReadable;
 
@@ -48,7 +50,30 @@ public class CHttpRequestContext
 		fObjects = objects;
 		fRouter = router;
 
-		fRequestImpl = new StdRequest ( fRequest );
+		fRequestWrapper = null;
+		fResponseWrapper = null;
+
+		fInspector = new NoopInspector ();
+	}
+
+	public void install ( CHttpObserver i )
+	{
+		if ( i != null )
+		{
+			fInspector = i;
+
+			// if these were already created, recreate them
+			fRequestWrapper = null;
+			fResponseWrapper = null;
+		}
+	}
+
+	public void close ()
+	{
+		if ( fInspector != null )
+		{
+			fInspector.closeTrx ();
+		}
 	}
 
 	/**
@@ -128,12 +153,20 @@ public class CHttpRequestContext
 
 	public CHttpRequest request ()
 	{
-		return fRequestImpl;
+		if ( fRequestWrapper == null )
+		{
+			fRequestWrapper = new StdRequest ( fRequest, fInspector );
+		}
+		return fRequestWrapper;
 	}
 
 	public CHttpResponse response ()
 	{
-		return new StdResponse ( fRequest, fResponse, fRouter );
+		if ( fResponseWrapper == null )
+		{
+			fResponseWrapper = new StdResponse ( fRequest, fResponse, fRouter, fInspector );
+		}
+		return fResponseWrapper;
 	}
 
 	private final HttpServletRequest fRequest;
@@ -144,7 +177,10 @@ public class CHttpRequestContext
 	private final Map<String, Object> fObjects;
 	private final CHttpRequestRouter fRouter;
 
-	private final CHttpRequest fRequestImpl;
-	
+	private StdRequest fRequestWrapper;
+	private StdResponse fResponseWrapper;
+
+	private CHttpObserver fInspector;
+
 	static org.slf4j.Logger log = LoggerFactory.getLogger ( CHttpRequestContext.class );
 }

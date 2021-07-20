@@ -30,18 +30,20 @@ import javax.servlet.http.HttpServletResponse;
 import org.slf4j.LoggerFactory;
 
 import io.continual.http.service.framework.CHttpConnection;
+import io.continual.http.service.framework.inspection.CHttpObserver;
 import io.continual.http.service.framework.routing.CHttpRequestRouter;
 import io.continual.http.util.http.standards.HttpMethods;
 import io.continual.http.util.http.standards.MimeTypes;
 
 class StdResponse implements CHttpResponse
 {
-	public StdResponse ( HttpServletRequest req, HttpServletResponse r, CHttpRequestRouter rr )
+	public StdResponse ( HttpServletRequest req, HttpServletResponse r, CHttpRequestRouter rr, CHttpObserver inspector )
 	{
 		fRequest = req;
 		fResponseEntityAllowed = !(req.getMethod ().equalsIgnoreCase ( HttpMethods.HEAD ));
 		fResponse = r;
 		fRouter = rr;
+		fInspector = inspector;
 	}
 
 	@Override
@@ -69,6 +71,7 @@ class StdResponse implements CHttpResponse
 	{
 		try
 		{
+			fInspector.replyWith ( status, msg );
 			fResponse.sendError ( status, msg );
 		}
 		catch ( IOException e )
@@ -80,6 +83,7 @@ class StdResponse implements CHttpResponse
 	@Override
 	public CHttpResponse setStatus ( int code )
 	{
+		fInspector.replyWith ( code );
 		fResponse.setStatus ( code );
 		return this;
 	}
@@ -93,6 +97,7 @@ class StdResponse implements CHttpResponse
 	@Override
 	public CHttpResponse setContentType ( String mimeType )
 	{
+		fInspector.replyHeader ( "ContentType", mimeType );
 		fResponse.setContentType ( mimeType );
 		return this;
 	}
@@ -116,6 +121,8 @@ class StdResponse implements CHttpResponse
 	@Override
 	public CHttpResponse writeHeader ( String headerName, String headerValue, boolean overwrite )
 	{
+		fInspector.replyHeader ( headerName, headerValue );
+
 		if ( overwrite )
 		{
 			fResponse.setHeader ( headerName, headerValue );
@@ -141,7 +148,7 @@ class StdResponse implements CHttpResponse
 		OutputStream os ;
 		if ( fResponseEntityAllowed )
 		{
-			os = fResponse.getOutputStream ();
+			os = fInspector.wrap ( fResponse.getOutputStream () );
 		}
 		else
 		{
@@ -172,7 +179,7 @@ class StdResponse implements CHttpResponse
 		PrintWriter pw ;
 		if ( fResponseEntityAllowed )
 		{
-			pw = fResponse.getWriter ();
+			pw = fInspector.wrap ( fResponse.getWriter () );
 		}
 		else
 		{
@@ -222,6 +229,7 @@ class StdResponse implements CHttpResponse
 	private final boolean fResponseEntityAllowed;
 	private final HttpServletResponse fResponse;
 	private final CHttpRequestRouter fRouter;
+	private final CHttpObserver fInspector;
 
 	private static org.slf4j.Logger log = LoggerFactory.getLogger ( StdResponse.class );
 

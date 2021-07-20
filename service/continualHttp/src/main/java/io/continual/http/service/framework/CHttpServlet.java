@@ -42,6 +42,8 @@ import org.slf4j.LoggerFactory;
 import io.continual.http.service.framework.context.CHttpRequest;
 import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.http.service.framework.context.StdRequest;
+import io.continual.http.service.framework.inspection.CHttpObserverMgr;
+import io.continual.http.service.framework.inspection.impl.ObserveNoneMgr;
 import io.continual.http.service.framework.routing.CHttpRequestRouter;
 import io.continual.http.service.framework.routing.CHttpRequestRouter.noMatchingRoute;
 import io.continual.http.service.framework.routing.CHttpRouteInvocation;
@@ -114,7 +116,7 @@ public class CHttpServlet extends HttpServlet
 	 */
 	public CHttpServlet ( String prefsFileName, SessionLifeCycle slc )
 	{
-		this ( null, prefsFileName, slc, null );
+		this ( null, prefsFileName, slc, null, null );
 	}
 
 	/**
@@ -125,7 +127,7 @@ public class CHttpServlet extends HttpServlet
      * @param addlSettingsFileName an additional settings file
 	 * @param slc the session life cycle
 	 */
-	public CHttpServlet ( NvReadable settings, String addlSettingsFileName, SessionLifeCycle slc, MetricsCatalog metrics )
+	public CHttpServlet ( NvReadable settings, String addlSettingsFileName, SessionLifeCycle slc, MetricsCatalog metrics, CHttpObserverMgr inspector )
 	{
 		fWebInfDir = null;
 		fProvidedPrefs = settings;
@@ -136,6 +138,7 @@ public class CHttpServlet extends HttpServlet
 		fSearchDirs = new LinkedList<>();
 		fRuntimeControls = new CHttpRuntimeControls ();
 		fMetrics = metrics;
+		fInspector = inspector != null ? inspector : new ObserveNoneMgr();
 	}
 
 	/**
@@ -511,7 +514,8 @@ public class CHttpServlet extends HttpServlet
 	protected final void service ( HttpServletRequest req, HttpServletResponse resp ) throws ServletException, java.io.IOException
 	{
 		final long startMs = Clock.now ();
-		final String reqId = StdRequest.getBestRemoteAddress ( req ) + " " + req.getMethod () + " " + req.getRequestURI ();
+		final String clientIp = StdRequest.getBestRemoteAddress ( req );
+		final String reqId = clientIp + " " + req.getMethod () + " " + req.getRequestURI ();
 		log.debug ( "start " + reqId );
 
 		if ( getSettings().getBoolean ( CHttpRuntimeControls.kSetting_LogHeaders, false ) )
@@ -532,7 +536,10 @@ public class CHttpServlet extends HttpServlet
 		}
 
 		final CHttpConnection session = getSession ( req );
+
 		final CHttpRequestContext ctx = createHandlingContext ( req, resp, session, fObjects, fRouter );
+		fInspector.consider ( ctx );
+
 		final CHttpRequest reqObj = ctx.request ();
 		Path pathAsMetricName = getMetricNamer().getMetricNameFor ( reqObj );
 
@@ -594,6 +601,8 @@ public class CHttpServlet extends HttpServlet
 		final int returnedStatusCode = ctx.response ().getStatusCode ();
 		log.info ( "{} {} {} ms", reqId, returnedStatusCode, durationMs );
 
+		ctx.close ();
+		
 		if ( fMetrics != null && pathAsMetricName != null )
 		{
 			fMetrics
@@ -772,6 +781,7 @@ public class CHttpServlet extends HttpServlet
 	private CHttpRequestRouter fRouter;
 	private final HashMap<String,Object> fObjects;
 	private final MetricsCatalog fMetrics;
+	private final CHttpObserverMgr fInspector;
 
 	public static final String kJvmSetting_FileRoot = "CHTTP_FILES";
 	public static final String kSetting_BaseWebAppDir = "chttp.webapp.base"; 

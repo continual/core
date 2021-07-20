@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.http.service.framework.CHttpServlet.SessionLifeCycle;
+import io.continual.http.service.framework.inspection.CHttpObserverMgr;
 import io.continual.iam.IamService;
 import io.continual.metrics.MetricsCatalog;
 import io.continual.metrics.MetricsService;
@@ -108,6 +109,17 @@ public class HttpService implements Service
 			else
 			{
 				fMetrics = null;
+			}
+
+			final String inspectionServiceName = settings.optString ( "inspector", null );
+			if ( inspectionServiceName != null )
+			{
+				fInspector = fServices.get ( inspectionServiceName, CHttpObserverMgr.class );
+				if ( fInspector == null ) throw new BuildFailure ( "Inspector service specified as \"" + inspectionServiceName + "\" but the service was not found." );
+			}
+			else
+			{
+				fInspector = null;
 			}
 
 			fSettings = settings;
@@ -259,7 +271,8 @@ public class HttpService implements Service
 					fAccounts,
 					SessionLifeCycle.valueOf ( fSettings.optString ( "lifeCycle", SessionLifeCycle.NO_SESSION.toString () ) ),
 					fSettings,
-					fMetrics
+					fMetrics,
+					fInspector
 				);
 				for ( Entry<String, HttpRouter> s : fServlets.entrySet () )
 				{
@@ -318,6 +331,7 @@ public class HttpService implements Service
 	private final ServiceContainer fServices;
 	private final IamService<?,?> fAccounts;
 	private final MetricsCatalog fMetrics;
+	private final CHttpObserverMgr fInspector;
 
 	private final JSONObject fSettings;
 	private final Tomcat fTomcat;

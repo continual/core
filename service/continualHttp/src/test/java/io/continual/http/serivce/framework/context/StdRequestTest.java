@@ -39,6 +39,9 @@ public class StdRequestTest extends TestCase
 
 			@Override
 			public String getRequestURI () { return "/context/foo/bar%2Fbee"; }
+			
+			@Override
+			public StringBuffer getRequestURL () { return new StringBuffer().append( "https://foo.bar" ); }
 		};
 
 		final StdRequest req = new StdRequest ( base );

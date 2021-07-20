@@ -134,19 +134,6 @@ public class AccessControlList
 	 * from deny(), which adds an entry that explicitly denies access. 
 	 *  
 	 * @param userOrGroupId the user or group to clear entries for
-	 * @param op the operation to clear entries for
-	 * @return this ACL
-	 */
-	public AccessControlList clear ( String userOrGroupId, String op )
-	{
-		return clear ( userOrGroupId, new String[] { op } );
-	}
-
-	/**
-	 * Clear matching entries. This method removes a matching entry and is different
-	 * from deny(), which adds an entry that explicitly denies access. 
-	 *  
-	 * @param userOrGroupId the user or group to clear entries for
 	 * @param ops the operations to clear entries for
 	 * @return this ACL
 	 */

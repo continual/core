@@ -30,6 +30,7 @@ import io.continual.builder.Builder.BuildFailure;
 import io.continual.http.service.framework.CHttpMetricNamer;
 import io.continual.http.service.framework.CHttpServlet;
 import io.continual.http.service.framework.context.CHttpRequestContext;
+import io.continual.http.service.framework.inspection.CHttpObserverMgr;
 import io.continual.http.service.framework.routing.CHttpRequestRouter;
 import io.continual.iam.IamService;
 import io.continual.metrics.MetricsCatalog;
@@ -41,7 +42,12 @@ public class HttpServlet extends CHttpServlet
 {
 	public HttpServlet ( ServiceContainer sc, IamService<?,?> accounts, SessionLifeCycle lc, JSONObject settings, MetricsCatalog metrics ) throws BuildFailure
 	{
-		super ( new nvJsonObject ( settings ), null, lc, metrics );
+		this ( sc, accounts, lc, settings, metrics, null );
+	}
+
+	public HttpServlet ( ServiceContainer sc, IamService<?,?> accounts, SessionLifeCycle lc, JSONObject settings, MetricsCatalog metrics, CHttpObserverMgr inspector ) throws BuildFailure
+	{
+		super ( new nvJsonObject ( settings ), null, lc, metrics, inspector );
 
 		fAccounts = accounts;
 		fContainer = sc;

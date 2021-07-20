@@ -29,14 +29,29 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import io.continual.http.service.framework.inspection.CHttpObserver;
+import io.continual.http.service.framework.inspection.impl.NoopInspector;
 import io.continual.util.data.TypeConvertor;
 
 public class StdRequest implements CHttpRequest
 {
 	public StdRequest ( HttpServletRequest r )
 	{
+		this ( r, new NoopInspector () );
+	}
+
+	public StdRequest ( HttpServletRequest r, CHttpObserver inspector )
+	{
 		fRequest = r;
 		fParamOverrides = new HashMap<>();
+		fInspector = inspector;
+
+		fInspector
+			.method ( getMethod () )
+			.onUrl ( getUrl () )
+			.queryString ( getQueryString () )
+			.withHeaders ( () -> getAllHeaders () )
+		;
 	}
 
 	@Override
@@ -94,25 +109,27 @@ public class StdRequest implements CHttpRequest
 	@Override
 	public String getContentType ()
 	{
-		return fRequest.getContentType ();
+		final String result = fRequest.getContentType ();
+		fInspector.contentTypeRequest ( result );
+		return result;
 	}
 
 	@Override
 	public int getContentLength ()
 	{
-		return fRequest.getContentLength ();
+		final int result = fRequest.getContentLength ();
+		fInspector.contentLengthRequest ( result );
+		return result;
 	}
 
 	@Override
-	public InputStream getBodyStream ()
-		throws IOException
+	public InputStream getBodyStream () throws IOException
 	{
-		return fRequest.getInputStream ();
+		return fInspector.wrap ( fRequest.getInputStream () );
 	}
 
 	@Override
-	public BufferedReader getBodyStreamAsText ()
-		throws IOException
+	public BufferedReader getBodyStreamAsText () throws IOException
 	{
 		return new BufferedReader ( new InputStreamReader ( getBodyStream () ) );
 	}
@@ -342,4 +359,5 @@ public class StdRequest implements CHttpRequest
 
 	private final HttpServletRequest fRequest;
 	private final HashMap<String,String[]> fParamOverrides;
+	private final CHttpObserver fInspector;
 }
