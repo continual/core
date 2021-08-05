@@ -62,13 +62,6 @@ public class Engine extends SimpleService implements Service
 		fUserData = new HashMap<> ();
 		fEngineMetrics = new StdMetricsCatalog.Builder ().build ();
 
-		final TreeSet<String> names = new TreeSet<String> (); 
-		for ( Map.Entry<String,Source> src : fProgram.getSources ().entrySet() )
-		{
-			final String threadName = getName ( names, src.getKey () );
-			fThreads.put ( threadName, new ExecThread ( threadName, src.getKey (), src.getValue () ) );
-		}
-
 		fExprEvalStack = new ExprDataSourceStack (
 
 			// user data...
@@ -93,6 +86,13 @@ public class Engine extends SimpleService implements Service
 		);
 
 		fMetricsDumper = new MetricsDumpThread ();
+
+		final TreeSet<String> names = new TreeSet<String> (); 
+		for ( Map.Entry<String,Source> src : fProgram.getSources ().entrySet() )
+		{
+			final String threadName = getName ( names, src.getKey () );
+			fThreads.put ( threadName, new ExecThread ( threadName, src.getKey (), src.getValue () ) );
+		}
 	}
 
 	/**

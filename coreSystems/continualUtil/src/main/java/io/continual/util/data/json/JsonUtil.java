@@ -21,6 +21,7 @@ import java.io.Reader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -244,6 +245,27 @@ public class JsonUtil
 	 */
 	public static List<String> readStringArray ( JSONObject base, String key ) throws JSONException
 	{
+		return readStringArray ( base, key, null );
+	}
+
+	/**
+	 * Parse a string value into a list.
+	 */
+	public interface StringArrayValueParser
+	{
+		Collection<String> parse ( String rawValue );
+	}
+
+	/**
+	 * Load a string or array of strings into a string list.
+	 * 
+	 * @param base the base json object
+	 * @param key the key of the string array
+	 * @return a list of 0 or more strings
+	 * @throws JSONException if the key doesn't exist, or if it's not a string or array of strings
+	 */
+	public static List<String> readStringArray ( JSONObject base, String key, StringArrayValueParser parser ) throws JSONException
+	{
 		final LinkedList<String> result = new LinkedList<String> ();
 
 		final Object oo = base.opt ( key );
@@ -263,7 +285,15 @@ public class JsonUtil
 		}
 		else
 		{
-			result.add ( oo.toString () );
+			final String val = oo.toString ();
+			if ( parser != null )
+			{
+				result.addAll ( parser.parse ( val ) );
+			}
+			else
+			{
+				result.add ( val );
+			}
 		}
 
 		return result;
