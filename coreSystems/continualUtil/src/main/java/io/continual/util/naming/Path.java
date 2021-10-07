@@ -15,8 +15,8 @@
  */
 package io.continual.util.naming;
 
-import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A path identifies an item in a model. A path starts with the model's
@@ -41,7 +41,7 @@ public class Path implements Comparable<Path>
 	 */
 	public static Path getRootPath ()
 	{
-		return Path.fromString ( "/" );
+		return Path.fromString ( kSepStr );
 	}
 
 	/**
@@ -74,8 +74,7 @@ public class Path implements Comparable<Path>
 	 */
 	public Path getParentPath ()
 	{
-		final File parent = fFile.getParentFile ();
-		return parent == null ? null : new Path ( parent.getAbsolutePath () );
+		return fParent;
 	}
 
 	/**
@@ -84,7 +83,7 @@ public class Path implements Comparable<Path>
 	 */
 	public Name getItemName ()
 	{
-		return Name.fromString ( fFile.getName () );
+		return fName;
 	}
 
 	/**
@@ -158,19 +157,25 @@ public class Path implements Comparable<Path>
 	 */
 	public Name[] getSegments ()
 	{
-		final ArrayList<Name> result = new ArrayList<> ();
-
-		File f = fFile;
-		while ( !f.toString ().equals ( "/" ) )
-		{
-			final String name = f.getName ();
-			result.add ( 0, Name.fromString ( name ) );
-			f = f.getParentFile ();
-		}
-
-		return result.toArray ( new Name[result.size ()] );
+		final List<Name> segments = getSegmentList();
+		return segments.toArray ( new Name[segments.size ()] );
 	}
-	
+
+	/**
+	 * Break a path into its name segments. /foo/bar = [ "foo", "bar" ] and
+	 * the root path (/) = [].
+	 * @return a list of names
+	 */
+	public List<Name> getSegmentList ()
+	{
+		final List<Name> segments = fParent == null ? new ArrayList<> () : fParent.getSegmentList ();
+		if ( fName != null )
+		{
+			segments.add ( fName );
+		}
+		return segments;
+	}
+
 	/**
 	 * Get the number of name segments in this path. "/foo" = 1, "/foo/bar" = 2
 	 * @return the number of name segments in this path
@@ -188,13 +193,26 @@ public class Path implements Comparable<Path>
 	@Override
 	public String toString ()
 	{
-		return fFile.toString ();
+		if ( fParent == null && fName == null ) return "/";
+
+		final String parentPart = fParent == null ? "" : fParent.toString ();
+
+		final StringBuilder sb = new StringBuilder ();
+		sb.append ( parentPart );
+
+		if ( !parentPart.endsWith ( "/" ) )
+		{
+			sb.append ( "/" );
+		}
+		sb.append ( fName == null ? "" : fName.toString () );
+
+		return sb.toString ();
 	}
 
 	@Override
 	public int hashCode ()
 	{
-		return fFile.toString().hashCode ();
+		return toString().hashCode ();
 	}
 
 	@Override
@@ -207,30 +225,75 @@ public class Path implements Comparable<Path>
 		if ( getClass () != obj.getClass () )
 			return false;
 		Path other = (Path) obj;
-
-		if ( fFile == null && other.fFile != null ) return false;
-		if ( fFile != null && other.fFile == null ) return false;
-
-		return fFile.getAbsolutePath ().equals ( other.fFile.getAbsolutePath() );
+		return toString().equals ( other.toString() );
 	}
 
 	private Path ( String path )
 	{
-		fFile = new File ( path );
-		if ( !fFile.isAbsolute () )
+		if ( path == null || !path.startsWith ( "/" ) )
 		{
-			throw new IllegalArgumentException ( path + " is not absolute." );
+			throw new IllegalArgumentException ( "Path string must be absolute." );
+		}
+
+		// clean up collapsible segments
+		while ( path.contains  ( "//" ) || path.contains ( "/./" ) )
+		{
+			path = path
+				.replaceAll ( "//", "/" )
+				.replaceAll ( "/\\./", "/" )
+			;
+		}
+
+		// ignore a trailing /. (which the loop above won't catch)
+		while ( path.endsWith ( "/." ) )
+		{
+			path = path.substring ( 0, path.length () - 2 );
+		}
+
+		// root path is a special case. The path could now be empty
+		if ( path.length () == 0 || path.equals ( "/" ) )
+		{
+			fParent = null;
+			fName = null;
+			return;
+		}
+
+		// split on the last slash...
+		final int lastSlash = path.lastIndexOf ( '/' );
+		if ( lastSlash == 0 )
+		{
+			fParent = getRootPath ();
+			fName = buildName ( path.substring ( 1 ) );
+		}
+		else
+		{
+			final String parentPart = path.substring ( 0, lastSlash );
+			final String namePart = path.substring ( lastSlash + 1 );
+
+			fParent = new Path ( parentPart );
+			fName = buildName ( namePart );
 		}
 	}
 
 	private Path ( Path path, Name child )
 	{
-		fFile = new File ( path.toString (), child.toString () );
-		if ( !fFile.isAbsolute () )
-		{
-			throw new IllegalArgumentException ( path + " is not absolute." );
-		}
+		fParent = path;
+		fName = child;
 	}
 
-	private final File fFile;
+	private static Name buildName ( String name )
+	{
+		if ( name.contains ( "." ) )
+		{
+			throw new IllegalArgumentException ( "Path components may not contain dots." );
+		}
+		return Name.fromString ( name );
+	}
+
+	// if both are null, this is the root path
+	private final Path fParent;
+	private final Name fName;
+
+	private static final char kSepChar = '/';
+	private static final String kSepStr = "" + kSepChar;
 }

@@ -45,11 +45,11 @@ import io.continual.util.naming.Path;
 
 public class FileBasedModel extends CommonJsonDbModel
 {
-	public FileBasedModel ( String acctId, String modelId, String baseDir )
+	public FileBasedModel ( String acctId, String modelId, File baseDir )
 	{
 		super ( acctId, modelId );
 
-		fBaseDir = new File ( baseDir );
+		fBaseDir = baseDir;
 	}
 
 	public FileBasedModel ( ServiceContainer sc, JSONObject config )

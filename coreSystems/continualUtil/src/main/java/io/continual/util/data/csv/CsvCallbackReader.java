@@ -25,7 +25,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-public class CsvCallbackReader
+public class CsvCallbackReader<E extends Exception>
 {
 	public static final String kLineField = "line";
 	public static final String kLineField_Default = "line";
@@ -35,22 +35,22 @@ public class CsvCallbackReader
 	public static final String kQuote = "quote";
 	public static final String kPassThru = "passthru";
 
-	public interface recordHandler
+	public interface RecordHandler<E extends Exception>
 	{
 		/**
 		 * handle a CSV line
 		 * @param fields the field values for a record
 		 * @return true to continue
 		 */
-		boolean handler ( Map<String,String> fields );
+		boolean handler ( Map<String,String> fields ) throws E;
 	}
 
-	public CsvCallbackReader(boolean header )
+	public CsvCallbackReader ( boolean header )
 	{
 		this ( '"', ',', header );
 	}
 
-	public CsvCallbackReader(char quoteChar, char fieldSepChar, boolean header )
+	public CsvCallbackReader ( char quoteChar, char fieldSepChar, boolean header )
 	{
 		fDelimiter = fieldSepChar;
 		fQuote = quoteChar;
@@ -64,14 +64,14 @@ public class CsvCallbackReader
 		fLineCount = 0;
 	}
 
-	public void read ( InputStream is, recordHandler rh ) throws IOException
+	public void read ( InputStream is, RecordHandler<E> rh ) throws IOException, E
 	{
 		if ( is == null ) throw new IOException ( "No CSV stream provided" );
 		final InputStreamReader isr = new InputStreamReader ( is, StandardCharsets.UTF_8 );
 		read ( isr, rh );
 	}
 
-	public void read ( InputStreamReader isr, recordHandler rh ) throws IOException
+	public void read ( InputStreamReader isr, RecordHandler<E> rh ) throws IOException, E
 	{
 		boolean keepGoing = true;
 		HashMap<String,String> s = readNextLine ( isr );
@@ -250,7 +250,7 @@ public class CsvCallbackReader
 	private void parseHeader ( InputStreamReader is ) throws IOException
 	{
 		List<String> headers = readLineValues ( is, true );
-		
+
 		// skip empty lines or those that start with "#"
 		while ( headers.size () == 0 || headers.iterator ().next ().startsWith ( "#" ) )
 		{

@@ -1,5 +1,6 @@
 package io.continual.services.model.tools;
 
+import java.io.File;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Vector;
@@ -78,7 +79,7 @@ public class ModelTools extends ConfiguredConsole
 					}
 
 					closeModel ( outTo );
-					fModel = new FileBasedModel ( args.get ( 1 ), args.get ( 2 ), args.get ( 3 ) );
+					fModel = new FileBasedModel ( args.get ( 1 ), args.get ( 2 ), new File ( args.get ( 3 ) ) );
 				}
 				else if ( type.trim ().equalsIgnoreCase ( "s3" ) )
 				{

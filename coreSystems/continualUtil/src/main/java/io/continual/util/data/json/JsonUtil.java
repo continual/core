@@ -78,6 +78,12 @@ public class JsonUtil
 		return (JSONObject) cloneJsonValue ( that );
 	}
 
+	public static JSONArray clone ( JSONArray that )
+	{
+		if ( that == null ) return null;
+		return (JSONArray) cloneJsonValue ( that );
+	}
+
 	public static Object cloneJsonValue ( Object value )
 	{
 		if ( value == null ) return null;

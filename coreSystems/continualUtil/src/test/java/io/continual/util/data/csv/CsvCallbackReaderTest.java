@@ -21,16 +21,15 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Map;
 
-import junit.framework.TestCase;
-
 import org.junit.Test;
 
-import io.continual.util.data.csv.CsvCallbackReader.recordHandler;
+import io.continual.util.data.csv.CsvCallbackReader.RecordHandler;
+import junit.framework.TestCase;
 
 public class CsvCallbackReaderTest extends TestCase
 {
 	@Test
-	public void testBrokenLine () throws IOException
+	public void testBrokenLine () throws Exception
 	{
 		final ByteArrayInputStream is = new ByteArrayInputStream (
 			(
@@ -41,8 +40,8 @@ public class CsvCallbackReaderTest extends TestCase
 			).getBytes () );
 
 		final StringBuffer sb = new StringBuffer ();
-		final CsvCallbackReader reader = new CsvCallbackReader( true );
-		reader.read ( is, new recordHandler()
+		final CsvCallbackReader<Exception> reader = new CsvCallbackReader<Exception> ( true );
+		reader.read ( is, new RecordHandler<Exception> ()
 		{
 			@Override
 			public boolean handler ( Map<String, String> fields )
@@ -55,7 +54,7 @@ public class CsvCallbackReaderTest extends TestCase
 	}
 
 	@Test
-	public void testBrokenHeaderLine () throws IOException
+	public void testBrokenHeaderLine () throws IOException, Exception
 	{
 		final ByteArrayInputStream is = new ByteArrayInputStream (
 			(
@@ -65,8 +64,8 @@ public class CsvCallbackReaderTest extends TestCase
 			).getBytes () );
 
 		final StringBuffer sb = new StringBuffer ();
-		final CsvCallbackReader reader = new CsvCallbackReader( true );
-		reader.read ( is, new recordHandler()
+		final CsvCallbackReader<Exception> reader = new CsvCallbackReader<Exception> ( true );
+		reader.read ( is, new RecordHandler<Exception> ()
 		{
 			@Override
 			public boolean handler ( Map<String, String> fields )
@@ -83,7 +82,7 @@ public class CsvCallbackReaderTest extends TestCase
 	{
 		for ( String[] test : terms )
 		{
-			final CsvCallbackReader r = new CsvCallbackReader( false );
+			final CsvCallbackReader<Exception> r = new CsvCallbackReader<Exception> ( false );
 			r.readTerm ( new InputStreamReader ( new ByteArrayInputStream ( test[0].getBytes () ) ) );
 			assertEquals ( test[1], r.fLastToken );
 		}

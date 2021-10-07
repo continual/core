@@ -62,6 +62,14 @@ public class AccessControlEntry
 		public Builder withAccess ( Access a ) { fAccess = a; return this; }
 
 		public Builder operation ( String op ) { fOps.add ( op ); return this; }
+		public Builder operations ( String... ops )
+		{
+			for ( String op : ops )
+			{
+				fOps.add ( op );
+			}
+			return this;
+		}
 		public Builder operations ( Collection<String> ops ) { fOps.addAll ( ops ); return this; }
 
 		public AccessControlEntry build () { return new AccessControlEntry ( this ); }

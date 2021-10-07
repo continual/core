@@ -40,12 +40,12 @@ public class CsvStream
 	public static final String kQuote = "quote";
 	public static final String kPassThru = "passthru";
 
-	public CsvStream(boolean header )
+	public CsvStream ( boolean header )
 	{
 		this ( CsvEncoder.kDefaultQuoteChar, CsvEncoder.kDefaultFieldSeparatorChar, header );
 	}
 
-	public CsvStream(char quoteChar, char fieldSepChar, boolean header )
+	public CsvStream ( char quoteChar, char fieldSepChar, boolean header )
 	{
 		fDelimiter = fieldSepChar;
 		fQuote = quoteChar;

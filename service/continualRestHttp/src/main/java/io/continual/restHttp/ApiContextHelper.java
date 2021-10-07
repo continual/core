@@ -196,12 +196,12 @@ public class ApiContextHelper<I extends Identity>
 		catch ( IOException e )
 		{
 			log.warn ( e.getMessage () );
-			context.response ().sendError ( HttpStatusCodes.k500_internalServerError, "I/O problem writing the response, but... you got it???" );
+			sendStatusCodeAndMessage ( context, HttpStatusCodes.k500_internalServerError, "I/O problem writing the response, but... you got it???" );
 		}
 		catch ( JSONException | IamSvcException e )
 		{
 			log.warn ( e.getMessage (), e );
-			context.response ().sendError ( HttpStatusCodes.k500_internalServerError, "There was a problem handling your API request." );
+			sendStatusCodeAndMessage ( context, HttpStatusCodes.k500_internalServerError, "There was a problem handling your API request." );
 		}
 	}
 
