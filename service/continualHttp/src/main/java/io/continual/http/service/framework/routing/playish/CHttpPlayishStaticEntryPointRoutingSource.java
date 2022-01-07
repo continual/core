@@ -29,6 +29,7 @@ import io.continual.http.service.framework.CHttpConnection;
 import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.http.service.framework.routing.CHttpRouteInvocation;
 import io.continual.http.service.framework.routing.CHttpRouteSource;
+import io.continual.util.naming.Path;
 
 /**
  * A static entry point routing source is a collection of routing entries for mapping request
@@ -122,14 +123,14 @@ public class CHttpPlayishStaticEntryPointRoutingSource implements CHttpRouteSour
 
 	private static final org.slf4j.Logger log = LoggerFactory.getLogger ( CHttpPlayishStaticEntryPointRoutingSource.class );
 
-	protected invocation getInvocation ( CHttpPathInfo pe, List<String> args )
+	protected Invocation getInvocation ( CHttpPathInfo pe, List<String> args )
 	{
-		return new invocation ( pe, args );
+		return new Invocation ( pe, args );
 	}
 
-	protected class invocation implements CHttpRouteInvocation
+	protected class Invocation implements CHttpRouteInvocation
 	{
-		public invocation ( CHttpPathInfo pe, List<String> args )
+		public Invocation ( CHttpPathInfo pe, List<String> args )
 		{
 			fPe = pe;
 			fArgs = args;
@@ -140,7 +141,18 @@ public class CHttpPlayishStaticEntryPointRoutingSource implements CHttpRouteSour
 		{
 			fPe.getHandler ().handle ( ctx, fArgs );
 		}
-	
+
+		@Override
+		public Path getRouteNameForMetrics ()
+		{
+			String pathPart = fPe.getPath();
+			if ( !pathPart.startsWith ( "/" ) )
+			{
+				pathPart = "/" + pathPart;
+			}
+			return Path.fromString ( "/" + fPe.getVerb () + pathPart );
+		}
+
 		private final CHttpPathInfo fPe;
 		private final List<String> fArgs;
 	}

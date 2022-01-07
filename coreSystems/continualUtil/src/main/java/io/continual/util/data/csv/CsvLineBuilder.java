@@ -40,14 +40,14 @@ public class CsvLineBuilder
 		return fBuilder.toString ();
 	}
 
+	public CsvLineBuilder appendEmpty ( )
+	{
+		return appendLiteral ( "" );
+	}
+
 	public CsvLineBuilder append ( String value )
 	{
 		return appendLiteral ( CsvEncoder.encodeForCsv ( value, fQuoteChar, fSepChar, fForceQuotes ) );
-	}
-
-	public CsvLineBuilder append ( )
-	{
-		return append ( "" );
 	}
 
 	public CsvLineBuilder append ( long value )

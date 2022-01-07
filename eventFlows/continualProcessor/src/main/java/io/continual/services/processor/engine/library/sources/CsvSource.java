@@ -187,7 +187,8 @@ public class CsvSource extends BasicSource
 			CSVFormat format = CSVFormat.DEFAULT;
 			if ( fFieldDelim != null )
 			{
-				if ( fFieldDelim.equals ( "\t" ) )
+				// literal tab or escaped tab syntax
+				if ( fFieldDelim.equals ( "\\t" ) || fFieldDelim.equals ( "\t" ) )
 				{
 					format = CSVFormat.TDF;
 				}

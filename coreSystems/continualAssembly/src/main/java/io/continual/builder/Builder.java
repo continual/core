@@ -76,6 +76,24 @@ public class Builder<T>
 	}
 
 	/**
+	 * Typical build from JSON data with a context. No search path is used.
+	 * 
+	 * @param base
+	 * @param data
+	 * @param context
+	 * @return an instance of the base class
+	 * @throws BuildFailure
+	 */
+	public static <T> T fromJson ( Class<T> base, JSONObject data, Object context ) throws BuildFailure
+	{
+		return withBaseClass ( base )
+			.withClassNameInData ()
+			.usingData ( new BuilderJsonDataSource ( data ) )
+			.providingContext ( context )
+			.build ();
+	}
+
+	/**
 	 * construct a builder
 	 * @param base
 	 * @return

@@ -16,29 +16,38 @@
 
 package io.continual.services.model.core;
 
-import java.util.Set;
-
 import org.json.JSONObject;
 
 import io.continual.iam.access.ProtectedResource;
+import io.continual.util.data.json.JsonSerialized;
 
 /**
  * A model object is data that can be represented as JSON, is a protected resource
  * in the system, and is subject to type-locking.
  */
-public interface ModelObject extends ProtectedResource
+public interface ModelObject extends ProtectedResource, JsonSerialized
 {
 	/**
-	 * Get the set of locked type names for this object
-	 * @return a set of 0 or more type names
+	 * Get this object's metadata
+	 * @return object metadata
 	 */
-	Set<String> getTypes ();
+	ModelObjectMetadata getMetadata ();
 
 	/**
-	 * Get a JSON representation of this object.
-	 * @return a JSON string
+	 * Get a copy of the data in this object
+	 * @return a JSON object
 	 */
-	String asJson ();
-
 	JSONObject getData ();
+
+	/**
+	 * Replace the data in this object with the given data.
+	 * @param data
+	 */
+	void putData ( JSONObject data );
+	
+	/**
+	 * Path the data in this object with the given data.
+	 * @param data
+	 */
+	void patchData ( JSONObject data );
 }

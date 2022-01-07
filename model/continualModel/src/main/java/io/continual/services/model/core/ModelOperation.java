@@ -41,15 +41,51 @@ public class ModelOperation
 	public static final ModelOperation DELETE = new ModelOperation ( AccessControlList.DELETE );
 
 	/**
+	 * Update an ACL
+	 */
+	public static final ModelOperation ACL_UPDATE = new ModelOperation ( "acl_update" );
+
+	/**
+	 * The set of all operations as strings
+	 */
+	public static String[] kAllOperations = new String[]
+	{
+		CREATE.toString (),
+		READ.toString (),
+		UPDATE.toString (),
+		DELETE.toString (),
+		ACL_UPDATE.toString ()
+	};
+	
+	/**
 	 * Get the string value for the selected operation.
 	 * @return the value as a string
 	 */
 	@Override
-	public String toString () { return fValue; }
+	public String toString ()
+	{
+		return fValue;
+	}
 	
+	@Override
+	public int hashCode ()
+	{
+		return fValue.hashCode ();
+	}
+
+	@Override
+	public boolean equals ( Object obj )
+	{
+		if ( this == obj ) return true;
+		if ( obj == null ) return false;
+		if ( getClass () != obj.getClass () ) return false;
+		return fValue.equals ( ((ModelOperation) obj).fValue );
+	}
+
 	private ModelOperation ( String val )
 	{
 		fValue = val;
+		if ( fValue == null ) throw new IllegalArgumentException ( "A model operation cannot have a null value." );
 	}
 
 	private final String fValue;

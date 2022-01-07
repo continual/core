@@ -88,7 +88,7 @@ public class JsonEval
 	 * a boolean representation. If the evaluation is null, false is returned. If
 	 * the evaluation results in a JSON boolean, the value is returned. Anything else
 	 * is converted to a string (via toString) and converted to a boolean via
-	 * rrConvertor.convertToBooleanBroad
+	 * TypeConvertor.convertToBooleanBroad
 	 * @param root the root JSON document
 	 * @param expression an expression to evaluate
 	 * @return true or false
@@ -108,7 +108,7 @@ public class JsonEval
 	 * Evaluate the given expression against the given root JSON object and return
 	 * an integer representation. If the evaluation is null, the default value is returned.
 	 * If the value is an integer, it's returned. Otherwise, the value is used as a string
-	 * and then converted to an integer via rrConvertor.convertToInt with the default
+	 * and then converted to an integer via TypeConvertor.convertToInt with the default
 	 * value as the default.
 	 * 
 	 * @param root the root JSON document
@@ -129,9 +129,32 @@ public class JsonEval
 
 	/**
 	 * Evaluate the given expression against the given root JSON object and return
+	 * a long representation. If the evaluation is null, the default value is returned.
+	 * If the value is a long, it's returned. Otherwise, the value is used as a string
+	 * and then converted to a long via TypeConvertor.convertToLong with the default
+	 * value as the default.
+	 * 
+	 * @param root the root JSON document
+	 * @param expression an expression to evaluate
+	 * @param defaultValue the default int value to use if the evaluation results in null
+	 * @return an integer
+	 */
+	public static long evalToLong ( JSONObject root, String expression, long defaultValue )
+	{
+		final Object result = eval ( root, expression );
+		if ( result == null ) return defaultValue;
+		if ( result instanceof Long )
+		{
+			return (Long) result;
+		}
+		return TypeConvertor.convertToLong ( result.toString (), defaultValue );
+	}
+
+	/**
+	 * Evaluate the given expression against the given root JSON object and return
 	 * a double representation. If the evaluation is null, the default value is returned.
 	 * If the value is a double, it's returned. Otherwise, the value is used as a string
-	 * and then converted to a dboule via rrConvertor.convertToDouble with the default
+	 * and then converted to a dboule via TypeConvertor.convertToDouble with the default
 	 * value as the default.
 	 * 
 	 * @param root the root JSON document
@@ -224,13 +247,17 @@ public class JsonEval
 		}
 	}
 
+	public static List<String> splitPath ( String key )
+	{
+		final String[] parts = key.split ( "\\." );
+		return new LinkedList<String> ( Arrays.asList ( parts ) );
+	}
+
 	public static boolean hasKey ( JSONObject root, String key )
 	{
 		try
 		{
-			final String[] parts = key.split ( "\\." );
-			final List<String> partList = new LinkedList<String> ( Arrays.asList ( parts ) );
-
+			final List<String> partList = splitPath ( key );
 			final String lastPart = partList.remove ( partList.size () - 1 );
 			final JSONObject container = getContainer ( root, partList, false );
 			return container != null && container.has ( lastPart );
@@ -243,12 +270,18 @@ public class JsonEval
 
 	public static JSONObject getContainer ( JSONObject root, String key )
 	{
-		final String[] parts = key.split ( "\\." );
-		final List<String> partList = new LinkedList<String> ( Arrays.asList ( parts ) );
+		final List<String> partList = splitPath ( key );
 		return getContainer ( root, partList, false );
 	}
 
-	private static JSONObject getContainer ( JSONObject root, List<String> parts, boolean withCreate )
+	public static JSONObject getContainerOf ( JSONObject root, String key )
+	{
+		final List<String> partList = splitPath ( key );
+		partList.remove ( partList.size () - 1 );
+		return getContainer ( root, partList, false );
+	}
+
+	public static JSONObject getContainer ( JSONObject root, List<String> parts, boolean withCreate )
 	{
 		JSONObject current = root;
 		for ( String thisPart : parts )
@@ -315,7 +348,12 @@ public class JsonEval
 		}
 		else
 		{
-			return root.opt ( term );
+			final Object val = root.opt ( term );
+			if ( val == null || val.equals ( JSONObject.NULL ) )
+			{
+				return null;
+			}
+			return val;
 		}
 	}
 

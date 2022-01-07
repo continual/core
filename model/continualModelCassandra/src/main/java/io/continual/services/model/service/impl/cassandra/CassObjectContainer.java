@@ -31,8 +31,8 @@ import io.continual.services.model.core.ModelObjectPath;
 import io.continual.services.model.core.ModelOperation;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
-import io.continual.services.model.core.exceptions.ModelServiceIoException;
-import io.continual.services.model.core.exceptions.ModelServiceRequestException;
+import io.continual.services.model.core.exceptions.ModelServiceException;
+import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.service.ModelObjectContainer;
 import io.continual.util.data.json.JsonUtil;
 import io.continual.util.naming.Name;
@@ -50,10 +50,10 @@ public abstract class CassObjectContainer extends CassBackedObject implements Mo
 	 * @param context
 	 * @param parentPath
 	 * @return
-	 * @throws ModelServiceRequestException
-	 * @throws ModelServiceIoException
+	 * @throws ModelRequestException
+	 * @throws ModelServiceException
 	 */
-	public CassElementList getElementsBelow ( ModelRequestContext context, Path parentPath ) throws ModelServiceRequestException, ModelServiceIoException
+	public CassElementList getElementsBelow ( ModelRequestContext context, Path parentPath ) throws ModelRequestException, ModelServiceException
 	{
 		final ModelObjectPath mop = pathToFullPath ( parentPath );
 		final String keyspace = CassModel.getKeyspaceNameFor ( mop.getAcctId (), mop.getModelName () );
@@ -72,7 +72,7 @@ public abstract class CassObjectContainer extends CassBackedObject implements Mo
 
 	@Override
 	public ModelObjectContainer load ( ModelRequestContext context, Name itemName )
-		throws ModelItemDoesNotExistException, ModelServiceRequestException, ModelServiceIoException
+		throws ModelItemDoesNotExistException, ModelRequestException, ModelServiceException
 	{
 		final ModelObjectPath itemPath = getBaseContext().getPath ().makeChildItem ( itemName );
 		if ( context.knownToNotExist ( itemPath ) ) throw new ModelItemDoesNotExistException ( itemPath );
@@ -90,7 +90,7 @@ public abstract class CassObjectContainer extends CassBackedObject implements Mo
 
 		if ( rows.size () > 1 )
 		{
-			throw new ModelServiceIoException ( "Query for " + itemPath.toString () + " returned multiple objects" );
+			throw new ModelServiceException ( "Query for " + itemPath.toString () + " returned multiple objects" );
 		}
 
 		try
@@ -108,13 +108,13 @@ public abstract class CassObjectContainer extends CassBackedObject implements Mo
 		}
 		catch ( IOException | BuildFailure x )
 		{
-			throw new ModelServiceIoException ( x );
+			throw new ModelServiceException ( x );
 		}
 	}
 
 	@Override
 	public void store ( ModelRequestContext context, Name itemName, ModelObject o )
-		throws ModelServiceIoException, ModelServiceRequestException
+		throws ModelServiceException, ModelRequestException
 	{
 		checkUser ( context.getOperator (), exists ( context, itemName ) ? ModelOperation.UPDATE : ModelOperation.CREATE );
 
@@ -132,7 +132,7 @@ public abstract class CassObjectContainer extends CassBackedObject implements Mo
 
 	@Override
 	public boolean remove ( ModelRequestContext context, Name itemName )
-		throws ModelServiceIoException, ModelServiceRequestException
+		throws ModelServiceException, ModelRequestException
 	{
 		if ( !exists ( context, itemName ) ) return false;
 

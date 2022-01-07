@@ -31,8 +31,8 @@ import io.continual.iam.access.AclUpdateListener;
 import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.Identity;
 import io.continual.services.model.core.ModelOperation;
-import io.continual.services.model.core.exceptions.ModelServiceAccessException;
-import io.continual.services.model.core.exceptions.ModelServiceIoException;
+import io.continual.services.model.core.exceptions.ModelAccessException;
+import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.util.data.json.JsonSerialized;
 import io.continual.util.data.json.JsonUtil;
 
@@ -55,10 +55,10 @@ abstract class CassBackedObject implements JsonSerialized
 	 * @param is
 	 * @return an instance of clazz
 	 * @throws BuildFailure
-	 * @throws ModelServiceAccessException
-	 * @throws ModelServiceIoException
+	 * @throws ModelAccessException
+	 * @throws ModelServiceException
 	 */
-	static <T extends CassBackedObject> T build ( Class<T> clazz, CassModelLoaderContext ctx, Identity user, InputStream is ) throws BuildFailure, ModelServiceAccessException, ModelServiceIoException
+	static <T extends CassBackedObject> T build ( Class<T> clazz, CassModelLoaderContext ctx, Identity user, InputStream is ) throws BuildFailure, ModelAccessException, ModelServiceException
 	{
 		// get the object data
 		final T moc = Builder.withBaseClass ( clazz )
@@ -79,10 +79,10 @@ abstract class CassBackedObject implements JsonSerialized
 	 * @param json
 	 * @return an instance of clazz
 	 * @throws BuildFailure
-	 * @throws ModelServiceAccessException
-	 * @throws ModelServiceIoException
+	 * @throws ModelAccessException
+	 * @throws ModelServiceException
 	 */
-	static <T extends CassBackedObject> T build ( Class<T> clazz, String targetClass, CassModelLoaderContext ctx, Identity user, JSONObject json ) throws BuildFailure, ModelServiceAccessException, ModelServiceIoException
+	static <T extends CassBackedObject> T build ( Class<T> clazz, String targetClass, CassModelLoaderContext ctx, Identity user, JSONObject json ) throws BuildFailure, ModelAccessException, ModelServiceException
 	{
 		// get the object data
 		final T moc = Builder.withBaseClass ( clazz )
@@ -121,13 +121,13 @@ abstract class CassBackedObject implements JsonSerialized
 			checkUser ( operator, op );
 			return true;
 		}
-		catch ( ModelServiceAccessException | ModelServiceIoException e )
+		catch ( ModelAccessException | ModelServiceException e )
 		{
 			return false;
 		}
 	}
 
-	public void checkUser ( Identity operator, ModelOperation op ) throws ModelServiceAccessException, ModelServiceIoException
+	public void checkUser ( Identity operator, ModelOperation op ) throws ModelAccessException, ModelServiceException
 	{
 		try
 		{
@@ -141,11 +141,11 @@ abstract class CassBackedObject implements JsonSerialized
 		}
 		catch ( IamSvcException e )
 		{
-			throw new ModelServiceIoException ( e );
+			throw new ModelServiceException ( e );
 		}
 		catch ( AccessException e )
 		{
-			throw new ModelServiceAccessException ( e );
+			throw new ModelAccessException ( e );
 		}
 	}
 

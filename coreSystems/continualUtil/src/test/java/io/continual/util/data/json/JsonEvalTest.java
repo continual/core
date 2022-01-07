@@ -121,4 +121,22 @@ public class JsonEvalTest extends TestCase
 		assertFalse ( JsonEval.hasKey ( start, "foo.bar.baz.beet" ) );
 		assertFalse ( JsonEval.hasKey ( start, "foo.beast.baz.beet" ) );
 	}
+
+	@Test
+	public void testGetContainer ()
+	{
+		final JSONObject o = new JSONObject ()
+			.put ( "a", new JSONObject ()
+				.put ( "b", new JSONObject ()
+					.put ( "c", 123 )
+				)
+			)
+		;
+		
+		final JSONObject container = JsonEval.getContainer ( o, "a.b" );
+		assertEquals ( 123, container.getInt ( "c" ));
+
+		final JSONObject container2 = JsonEval.getContainerOf ( o, "a.b.c" );
+		assertEquals ( 123, container2.getInt ( "c" ));
+	}
 }

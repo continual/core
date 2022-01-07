@@ -17,11 +17,11 @@
 package io.continual.services.model.core;
 
 import io.continual.iam.identity.Identity;
+import io.continual.util.naming.Path;
 
 /**
  * The model request context is created once per user request. It caches data
  * used during request handling.
- *
  */
 public interface ModelRequestContext
 {
@@ -51,47 +51,71 @@ public interface ModelRequestContext
 	 * @param key
 	 * @return the object, if previously loaded (and stored here). Otherwise, null.
 	 */
-	ModelObject get ( ModelObjectPath key );
+	ModelObject get ( Path key );
 
 	/**
 	 * Put an object into the context
-	 * @param key
-	 * @param o
+	 * @param key the object path
+	 * @param o the object
 	 */
-	void put ( ModelObjectPath key, ModelObject o );
+	void put ( Path key, ModelObject o );
+
+	/**
+	 * Remove an object a given path.
+	 * @param objectPath the object path
+	 */
+	void remove ( Path objectPath );
 
 	/**
 	 * Get the named data from the context.
-	 * @param key
+	 * @param key the raw data key
 	 * @return the data, or null
 	 */
 	Object getRawData ( String key );
 
 	/**
 	 * Get raw data as the given type.
-	 * @param key
-	 * @param c
+	 * @param key the raw data key
+	 * @param c the class to cast the raw data to
 	 * @return the raw data stored with the key, cast to the given type, or null
 	 */
 	<T> T getRawData ( String key, Class<T> c );
 
 	/**
 	 * Put the named data and value into the context
-	 * @param key
-	 * @param value
+	 * @param key the raw data key
+	 * @param value a raw data object
 	 */
 	void putRawData ( String key, Object value );
 
 	/**
 	 * Tell the context that a key does not exist in the model.
-	 * @param key
+	 * @param key the object path
 	 */
-	void doesNotExist ( ModelObjectPath key );
+	void doesNotExist ( Path key );
 
 	/**
 	 * Check if the key is known to not exist (from a prior call to doesNotExist())
-	 * @param key
+	 * @param key the object path
 	 * @return true if the key is known to not exist
 	 */
-	boolean knownToNotExist ( ModelObjectPath key );
+	boolean knownToNotExist ( Path key );
+
+	/**
+	 * Where is this model mounted in the user's global name system?
+	 * @return a Path
+	 */
+	Path getMountPoint ();
+
+	/**
+	 * Get the schema registry
+	 * @return a schema registry
+	 */
+	ModelSchemaRegistry getSchemaRegistry ();
+
+	/**
+	 * Get notification service
+	 * @return a notification service
+	 */
+	ModelNotificationService getNotificationService ();
 }

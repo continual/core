@@ -8,7 +8,7 @@
 
 	<!-- When changing version, also change parent version number in sub-pom files -->
 	<!-- You can run versionUpdate.sh in this directory to do this. -->
-	<version>0.2.27</version>
+	<version>0.2.28</version>
 	<packaging>pom</packaging>
 
 	<name>ContinualIO</name>
@@ -96,6 +96,13 @@
 				<groupId>com.squareup.okhttp3</groupId>
 				<artifactId>okhttp</artifactId>
 				<version>3.14.9</version>
+			</dependency>
+
+			<!-- Jayway JsonPath library -->
+			<dependency>
+				<groupId>com.jayway.jsonpath</groupId>
+				<artifactId>json-path</artifactId>
+				<version>2.6.0</version>
 			</dependency>
 
 		</dependencies>

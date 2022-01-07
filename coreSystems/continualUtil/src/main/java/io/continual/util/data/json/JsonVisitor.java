@@ -171,26 +171,47 @@ public class JsonVisitor
 		return list;
 	}
 
+	public interface ItemRenderer<T,O>
+	{
+		O render ( T t );
+	}
+
+	public static class StdItemRenderer<T> implements ItemRenderer<T,Object>
+	{
+		@Override
+		public Object render ( T t )
+		{
+			if ( t instanceof JsonSerialized )
+			{
+				return ((JsonSerialized)t).toJson ();
+			}
+			return t;
+		}
+	}
+	
 	public static <T> JSONArray listToArray ( Collection<T> list )
 	{
-		return collectionToArray ( list );
+		return listToArray ( list, new StdItemRenderer<T> () );
+	}
+
+	public static <T,O> JSONArray listToArray ( Collection<T> list, ItemRenderer<T,O> renderer )
+	{
+		return collectionToArray ( list, renderer );
 	}
 
 	public static <T> JSONArray collectionToArray ( Collection<T> list )
+	{
+		return collectionToArray ( list, new StdItemRenderer<T> () );
+	}
+	
+	public static <T,O> JSONArray collectionToArray ( Collection<T> list, ItemRenderer<T,O> renderer )
 	{
 		if ( list == null ) return null;
 
 		final JSONArray a = new JSONArray ();
 		for ( T o : list )
 		{
-			if ( o instanceof JsonSerialized )
-			{
-				a.put ( ((JsonSerialized)o).toJson () );
-			}
-			else
-			{
-				a.put ( o );
-			}
+			a.put ( renderer.render ( o ) );
 		}
 		return a;
 	}

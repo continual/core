@@ -1,5 +1,7 @@
 package io.continual.flowcontrol;
 
+import io.continual.flowcontrol.controlapi.FlowControlDeploymentService;
+import io.continual.flowcontrol.jobapi.FlowControlJobDb;
 import io.continual.services.Service;
 
 /**
@@ -9,6 +11,8 @@ import io.continual.services.Service;
 public interface FlowControlService extends Service
 {
 	FlowControlCallContextBuilder createtContextBuilder ();
-	
-	FlowControlApi getApiFor ( FlowControlCallContext ctx );
+
+	FlowControlJobDb getJobDb ( FlowControlCallContext fccc );
+
+	FlowControlDeploymentService getDeployer ( FlowControlCallContext fccc );
 }

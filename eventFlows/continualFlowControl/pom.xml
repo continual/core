@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.2.27</version>
+		<version>0.2.28</version>
 		<artifactId>continualEventFlows</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -50,6 +50,12 @@
 		</dependency>
 
 		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualModel</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
@@ -68,9 +74,9 @@
 
 		<!-- k8s client -->
 		<dependency>
-		    <groupId>io.kubernetes</groupId>
-		    <artifactId>client-java</artifactId>
-		    <version>12.0.0</version>
+			<groupId>io.fabric8</groupId>
+			<artifactId>kubernetes-client</artifactId>
+			<version>5.11.1</version>
 		</dependency>
 
 	</dependencies>

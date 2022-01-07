@@ -1,0 +1,71 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>io.continual</groupId>
+		<version>0.2.28</version>
+		<artifactId>continualModelSystems</artifactId>
+		<relativePath>..</relativePath>
+	</parent>
+
+	<artifactId>continualModelTool</artifactId>
+	<packaging>jar</packaging>
+
+	<name>continual.io model tool</name>
+	<description>Continual's model tool.</description>
+	<url>https://continual.io</url>
+
+	<dependencies>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualModel</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualIam</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualRestHttp</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualEmail</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualIamS3</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualJsonHttpClient</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+		</dependency>
+
+	</dependencies>
+
+</project>

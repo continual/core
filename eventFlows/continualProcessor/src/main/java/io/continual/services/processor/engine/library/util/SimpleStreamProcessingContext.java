@@ -6,6 +6,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.continual.iam.identity.Identity;
 import io.continual.metrics.MetricsCatalog;
 import io.continual.metrics.impl.noop.NoopMetricsCatalog;
 import io.continual.services.processor.engine.model.MessageAndRouting;
@@ -21,7 +22,7 @@ public class SimpleStreamProcessingContext implements StreamProcessingContext
 	{
 		public SimpleStreamProcessingContext build ()
 		{
-			final SimpleStreamProcessingContext sspc = new SimpleStreamProcessingContext ( fSource, fEvalStack, fLog, fMetrics );
+			final SimpleStreamProcessingContext sspc = new SimpleStreamProcessingContext ( fSource, fEvalStack, fLog, fOper, fMetrics );
 			for ( Map.Entry<String,Object> e : fData.entrySet () )
 			{
 				sspc.addNamedObject ( e.getKey (), e.getValue () );
@@ -34,11 +35,13 @@ public class SimpleStreamProcessingContext implements StreamProcessingContext
 		public Builder evaluatingAgainst ( ExprDataSource eval ) { fEvalStack = eval; return this; }
 		public Builder holdingObject ( String key, Object obj ) { fData.put ( key, obj ); return this; }
 		public Builder reportMetricsTo ( MetricsCatalog metrics ) { fMetrics = metrics; return this; }
+		public Builder operatedBy ( Identity ii ) { fOper = ii; return this; }
 
 		private Source fSource = null;
 		private ExprDataSource fEvalStack = new ExprDataSourceStack ();
 		private Logger fLog = defaultLog;
 		private HashMap<String,Object> fData = new HashMap<> ();
+		private Identity fOper = null;
 		private MetricsCatalog fMetrics = new NoopMetricsCatalog ();
 	}
 	
@@ -46,7 +49,13 @@ public class SimpleStreamProcessingContext implements StreamProcessingContext
 	{
 		return new Builder ();
 	}
-	
+
+	@Override
+	public Source getSource ()
+	{
+		return fSource;
+	}
+
 	@Override
 	public void warn ( String warningText )
 	{
@@ -165,22 +174,30 @@ public class SimpleStreamProcessingContext implements StreamProcessingContext
 		return fMetrics;
 	}
 
+	@Override
+	public Identity getOperator ()
+	{
+		return fOperator;
+	}
+
 	private final Source fSource;
 	private final HashMap<String,Object> fObjects;
 	private boolean fFailed;
 	private final ExprDataSource fExprEvalStack;
 	private final MetricsCatalog fMetrics;
+	private final Identity fOperator;
 	private final Logger fLog;
 
 	private static final Logger defaultLog = LoggerFactory.getLogger ( SimpleStreamProcessingContext.class );
 
-	private SimpleStreamProcessingContext ( Source src, ExprDataSource exprEvalStack, Logger log, MetricsCatalog metrics )
+	private SimpleStreamProcessingContext ( Source src, ExprDataSource exprEvalStack, Logger log, Identity oper, MetricsCatalog metrics )
 	{
 		fSource = src;
 		fFailed = false;
 		fObjects = new HashMap<> ();
 		fExprEvalStack = exprEvalStack;
 		fLog = log;
+		fOperator = oper;
 		fMetrics = metrics;
 	}
 }

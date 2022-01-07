@@ -89,9 +89,9 @@ public interface EmailService extends Service
 			return this;
 		}
 
-		MailBuilder withBodyPart ( MimeBodyPart part );
+		MailBuilder withBodyPart ( MimeBodyPart part ) throws MessagingException;
 
-		MailBuilder withSimpleText ( String text );
+		MailBuilder withSimpleText ( String text ) throws MessagingException;
 	}
 
 	/**

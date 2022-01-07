@@ -546,6 +546,7 @@ public class CHttpServlet extends HttpServlet
 		try
 		{
 			final CHttpRouteInvocation handler = fRouter.route ( reqObj, session );
+			pathAsMetricName = handler.getRouteNameForMetrics ();
 
 			final Timer.Context timer = fMetrics == null ? null : fMetrics.timer ( pathAsMetricName.makeChildItem ( Name.fromString ( "executionTime" ) ) ).time ();
 			try
@@ -766,7 +767,7 @@ public class CHttpServlet extends HttpServlet
 			@Override
 			public Path getMetricNameFor ( CHttpRequest req )
 			{
-				return Path.fromString ( "/" + req.getMethod () + " " + req.getPathInContext () );
+				return Path.fromString ( "/" + req.getMethod () + " " + req.getPathInContext ().replaceAll ( "\\.", "%2E" ) );
 			}
 		};
 	}

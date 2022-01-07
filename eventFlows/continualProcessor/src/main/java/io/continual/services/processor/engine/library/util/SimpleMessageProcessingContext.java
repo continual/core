@@ -1,5 +1,9 @@
 package io.continual.services.processor.engine.library.util;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.json.JSONTokener;
+
 import io.continual.metrics.MetricsCatalog;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
@@ -128,6 +132,14 @@ public class SimpleMessageProcessingContext implements MessageProcessingContext
 		if ( targetClass.equals ( Double.class ) )
 		{
 			return (T) new Double ( Double.parseDouble ( asString ) );
+		}
+		if ( targetClass.equals ( JSONArray.class ) )
+		{
+			return (T) new JSONArray ( new JSONTokener ( asString ) );
+		}
+		if ( targetClass.equals ( JSONObject.class ) )
+		{
+			return (T) new JSONObject ( new JSONTokener ( asString ) );
 		}
 
 		throw new IllegalArgumentException ( "Can't eval to " + targetClass.getName () );

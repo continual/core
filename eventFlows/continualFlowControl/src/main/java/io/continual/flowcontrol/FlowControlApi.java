@@ -2,6 +2,8 @@ package io.continual.flowcontrol;
 
 import java.util.Collection;
 
+import io.continual.flowcontrol.jobapi.FlowControlJob;
+
 public interface FlowControlApi
 {
 	class FlowControlApiException extends Exception
@@ -11,8 +13,6 @@ public interface FlowControlApi
 		public FlowControlApiException ( String msg, Throwable t ) { super(msg,t); }
 		private static final long serialVersionUID = 1L;
 	}
-	
-	FlowControlJobBuilder createJobBuilder () throws FlowControlApiException;
 
 	FlowControlApi registerJob ( FlowControlJob job ) throws FlowControlApiException;
 

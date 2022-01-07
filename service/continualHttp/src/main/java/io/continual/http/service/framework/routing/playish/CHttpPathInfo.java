@@ -42,7 +42,17 @@ public class CHttpPathInfo
 	{
 		return fVerb + " " + fPath + " ==> " + ( fHandler != null ? fHandler.toString () : "(null)" );
 	}
-	
+
+	public String getVerb ()
+	{
+		return fVerb;
+	}
+
+	public String getPath ()
+	{
+		return fPath;
+	}
+
 	public void setHandler ( CHttpPlayishRouteHandler handler )
 	{
 		fHandler = handler;

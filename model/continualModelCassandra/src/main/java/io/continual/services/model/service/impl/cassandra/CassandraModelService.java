@@ -40,8 +40,8 @@ import io.continual.services.model.core.ModelOperation;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelRequestContext.CacheControl;
 import io.continual.services.model.core.ModelStdUserGroups;
-import io.continual.services.model.core.exceptions.ModelServiceIoException;
-import io.continual.services.model.core.exceptions.ModelServiceRequestException;
+import io.continual.services.model.core.exceptions.ModelServiceException;
+import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.service.ModelLimitsAndCaps;
 import io.continual.services.model.service.ModelService;
 import io.continual.util.nv.NvReadable;
@@ -119,7 +119,7 @@ public class CassandraModelService extends SimpleService implements ModelService
 	}
 
 	@Override
-	public CassAccount createAccount ( ModelRequestContext mrc, String acctId, String ownerId ) throws ModelServiceIoException, ModelServiceRequestException
+	public CassAccount createAccount ( ModelRequestContext mrc, String acctId, String ownerId ) throws ModelServiceException, ModelRequestException
 	{
 		// FIXME-SECURITY: check admin access
 
@@ -131,19 +131,19 @@ public class CassandraModelService extends SimpleService implements ModelService
 				acctId, getAccountSetupData ( ownerId ) );
 			if ( !rs.wasApplied () )
 			{
-				throw new ModelServiceRequestException ( "Account [" + acctId + "] exists. Use PATCH or explicitly DELETE it." );
+				throw new ModelRequestException ( "Account [" + acctId + "] exists. Use PATCH or explicitly DELETE it." );
 			}
 		}
 		catch ( DriverException x )
 		{
-			throw new ModelServiceIoException ( x );
+			throw new ModelServiceException ( x );
 		}
 
 		return getAccount ( mrc, acctId );
 	}
 
 	@Override
-	public List<String> getAccounts ( ModelRequestContext mrc ) throws ModelServiceIoException, ModelServiceRequestException
+	public List<String> getAccounts ( ModelRequestContext mrc ) throws ModelServiceException, ModelRequestException
 	{
 		final LinkedList<String> result = new LinkedList <> ();
 		try
@@ -156,13 +156,13 @@ public class CassandraModelService extends SimpleService implements ModelService
 		}
 		catch ( DriverException x )
 		{
-			throw new ModelServiceIoException ( x );
+			throw new ModelServiceException ( x );
 		}
 		return result;
 	}
 
 	@Override
-	public CassAccount getAccount ( ModelRequestContext mrc, String acctId ) throws ModelServiceIoException, ModelServiceRequestException
+	public CassAccount getAccount ( ModelRequestContext mrc, String acctId ) throws ModelServiceException, ModelRequestException
 	{
 		try
 		{
@@ -172,7 +172,7 @@ public class CassandraModelService extends SimpleService implements ModelService
 			if ( row.isEmpty () ) return null;
 			if ( row.size () > 1 )
 			{
-				throw new ModelServiceIoException ( "Unexpected results for account load: Query for " + acctId + " produced " + row.size () + " records." );
+				throw new ModelServiceException ( "Unexpected results for account load: Query for " + acctId + " produced " + row.size () + " records." );
 			}
 
 			final Row data = row.get ( 0 );
@@ -185,7 +185,7 @@ public class CassandraModelService extends SimpleService implements ModelService
 		}
 		catch ( DriverException | UnsupportedEncodingException | BuildFailure x )
 		{
-			throw new ModelServiceIoException ( x );
+			throw new ModelServiceException ( x );
 		}
 	}
 
@@ -194,7 +194,7 @@ public class CassandraModelService extends SimpleService implements ModelService
 	private final CassModelLoaderContext fBaseContext;
 	private Session fCassandra;
 
-	ResultSet runQuery ( String query, Object... args ) throws ModelServiceIoException
+	ResultSet runQuery ( String query, Object... args ) throws ModelServiceException
 	{
 		try
 		{
@@ -203,7 +203,7 @@ public class CassandraModelService extends SimpleService implements ModelService
 		}
 		catch ( DriverException x )
 		{
-			throw new ModelServiceIoException ( x );
+			throw new ModelServiceException ( x );
 		}
 	}
 	

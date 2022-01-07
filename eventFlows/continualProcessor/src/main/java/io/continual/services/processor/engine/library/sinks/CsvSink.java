@@ -163,15 +163,36 @@ public class CsvSink implements Sink
 			{
 				if ( targetClass.equals ( Integer.class ) )
 				{
-					clb.append ( Integer.parseInt ( val ) );
+					if ( val.length () == 0 )
+					{
+						clb.appendEmpty ();
+					}
+					else
+					{
+						clb.append ( Integer.parseInt ( val ) );
+					}
 				}
 				else if ( targetClass.equals ( Long.class ) )
 				{
-					clb.append ( Long.parseLong ( val ) );
+					if ( val.length () == 0 )
+					{
+						clb.appendEmpty ();
+					}
+					else
+					{
+						clb.append ( Long.parseLong ( val ) );
+					}
 				}
 				else if ( targetClass.equals ( Double.class ) )
 				{
-					clb.append ( Double.parseDouble ( val ) );
+					if ( val.length () == 0 )
+					{
+						clb.appendEmpty ();
+					}
+					else
+					{
+						clb.append ( Double.parseDouble ( val ) );
+					}
 				}
 				else if ( targetClass.equals ( Boolean.class ) )
 				{

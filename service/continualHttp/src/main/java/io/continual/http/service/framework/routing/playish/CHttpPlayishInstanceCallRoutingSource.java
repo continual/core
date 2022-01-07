@@ -35,6 +35,7 @@ import io.continual.http.service.framework.CHttpConnection;
 import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.http.service.framework.routing.CHttpRouteInvocation;
 import io.continual.http.service.framework.routing.CHttpRouteSource;
+import io.continual.util.naming.Path;
 
 /**
  * This routing source routes to methods on an object instance.
@@ -141,7 +142,18 @@ public class CHttpPlayishInstanceCallRoutingSource<T> implements CHttpRouteSourc
 		{
 			fPe.getHandler ().handle ( ctx, fArgs );
 		}
-	
+
+		@Override
+		public Path getRouteNameForMetrics ()
+		{
+			String pathPart = fPe.getPath();
+			if ( !pathPart.startsWith ( "/" ) )
+			{
+				pathPart = "/" + pathPart;
+			}
+			return Path.fromString ( "/" + fPe.getVerb () + pathPart );
+		}
+
 		private final CHttpPathInfo fPe;
 		private final List<String> fArgs;
 	}

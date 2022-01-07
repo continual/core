@@ -17,6 +17,7 @@
 package io.continual.services.processor.engine.model;
 
 import io.continual.metrics.MetricsCatalog;
+import io.continual.iam.identity.Identity;
 
 /**
  * A stream processing context is provided to all processing components in a program
@@ -25,6 +26,12 @@ import io.continual.metrics.MetricsCatalog;
  */
 public interface StreamProcessingContext
 {
+	/**
+	 * Get this stream's source
+	 * @return a source instance
+	 */
+	Source getSource ();
+
 	/**
 	 * report a warning about processing the stream
 	 * @param warningText
@@ -42,7 +49,13 @@ public interface StreamProcessingContext
 	 * @return
 	 */
 	boolean failed ();
-	
+
+	/**
+	 * Get the identity of the operator running this process.
+	 * @return an identity, or null
+	 */
+	Identity getOperator ();
+
 	/**
 	 * Add a named object of any type.
 	 * @param name

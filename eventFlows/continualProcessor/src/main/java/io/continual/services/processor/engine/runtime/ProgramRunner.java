@@ -25,24 +25,18 @@ import io.continual.services.processor.engine.model.Program;
 
 public class ProgramRunner extends ConsoleProgram
 {
-	public static void main ( String[] args )
+	public static void runProgram ( String[] programList )
 	{
-		if ( args.length != 1 )
-		{
-			System.err.println ( "usage: ProgramRunner <program>" );
-			return;
-		}
-
 		try
 		{
 			final JsonConfigReader reader = new JsonConfigReader ();
-			final Program program = reader.read ( args[0].split ( "," ) );
+			final Program program = reader.read ( programList[0].split ( "," ) );
 			
 			final Engine e = new Engine ( program );
-			for ( int i=1; i<args.length; i++ )
+			for ( int i=1; i<programList.length; i++ )
 			{
 				// so we can say ${1} or ${2} to use command line items
-				e.setUserData ( ""+i, args[i] );
+				e.setUserData ( ""+i, programList[i] );
 			}
 			e.startAndWait ();
 		}
@@ -54,5 +48,15 @@ public class ProgramRunner extends ConsoleProgram
 		{
 			System.err.println ( e.getMessage () );
 		}
+	}
+	
+	public static void main ( String[] args )
+	{
+		if ( args.length != 1 )
+		{
+			System.err.println ( "usage: ProgramRunner <program>" );
+			return;
+		}
+		runProgram ( args );
 	}
 }

@@ -29,17 +29,15 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 
 import io.continual.iam.access.AccessControlList;
+import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelObjectPath;
-import io.continual.services.model.core.ModelObjectUpdater;
 import io.continual.services.model.core.ModelOperation;
+import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
-import io.continual.services.model.core.exceptions.ModelServiceIoException;
-import io.continual.services.model.core.exceptions.ModelServiceRequestException;
-import io.continual.services.model.service.Model;
-import io.continual.services.model.service.ModelObjectContainer;
-import io.continual.services.model.service.ModelRelation;
+import io.continual.services.model.core.exceptions.ModelServiceException;
+import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.util.data.json.CommentedJsonTokener;
 import io.continual.util.data.json.JsonUtil;
 import io.continual.util.naming.Name;
@@ -62,7 +60,7 @@ public class CassModel extends CassObjectContainer implements Model
 		return getKeyspaceNameFor ( acctId, modelName ) + ".relns";
 	}
 
-	public static CassModel fromJson ( JSONObject object, CassModelLoaderContext mlc ) throws ModelServiceIoException
+	public static CassModel fromJson ( JSONObject object, CassModelLoaderContext mlc ) throws ModelServiceException
 	{
 		return new CassModel ( mlc, object );
 	}
@@ -90,7 +88,7 @@ public class CassModel extends CassObjectContainer implements Model
 
 
 	@Override
-	public boolean exists ( ModelRequestContext context, Path id ) throws ModelServiceIoException, ModelServiceRequestException
+	public boolean exists ( ModelRequestContext context, Path id ) throws ModelServiceException, ModelRequestException
 	{
 		final ModelObjectPath mop = pathToFullPath ( id );
 		if ( context.knownToNotExist ( mop ) ) return false;
@@ -108,19 +106,19 @@ public class CassModel extends CassObjectContainer implements Model
 	}
 
 	@Override
-	public boolean exists ( ModelRequestContext context, Name itemName ) throws ModelServiceIoException, ModelServiceRequestException
+	public boolean exists ( ModelRequestContext context, Name itemName ) throws ModelServiceException, ModelRequestException
 	{
 		return exists ( context, Path.getRootPath ().makeChildItem ( itemName ) );
 	}
 
 	@Override
-	public CassElementList getElementsBelow ( ModelRequestContext context ) throws ModelServiceRequestException, ModelServiceIoException
+	public CassElementList getElementsBelow ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException
 	{
 		return getElementsBelow ( context, Path.getRootPath () );
 	}
 
 	@Override
-	public ModelObjectContainer load ( ModelRequestContext context, Path id ) throws ModelItemDoesNotExistException, ModelServiceRequestException, ModelServiceIoException
+	public ModelObjectContainer load ( ModelRequestContext context, Path id ) throws ModelItemDoesNotExistException, ModelRequestException, ModelServiceException
 	{
 		// requesting the root node? return this model.
 		if ( id == null || id.getParentPath () == null )
@@ -136,11 +134,11 @@ public class CassModel extends CassObjectContainer implements Model
 
 	@Override
 	public void store ( ModelRequestContext context, Path id, ModelObject o )
-		throws ModelServiceRequestException, ModelServiceIoException
+		throws ModelRequestException, ModelServiceException
 	{
 		if ( id == null || id.getParentPath () == null )
 		{
-			throw new ModelServiceRequestException ( "You cannot store to the model node." );
+			throw new ModelRequestException ( "You cannot store to the model node." );
 		}
 
 		final Path parentPath = id.getParentPath ();
@@ -150,7 +148,7 @@ public class CassModel extends CassObjectContainer implements Model
 
 	@Override
 	public void store ( ModelRequestContext context, Path id, String json )
-		throws ModelServiceRequestException, ModelServiceIoException
+		throws ModelRequestException, ModelServiceException
 	{
 		try
 		{
@@ -158,7 +156,7 @@ public class CassModel extends CassObjectContainer implements Model
 		}
 		catch ( JSONException e )
 		{
-			throw new ModelServiceRequestException ( e );
+			throw new ModelRequestException ( e );
 		}
 
 		final JSONObject objData = new JSONObject ( new CommentedJsonTokener (
@@ -204,7 +202,7 @@ public class CassModel extends CassObjectContainer implements Model
 
 	@Override
 	public void update ( ModelRequestContext context, Path id, ModelObjectUpdater updater )
-		throws ModelServiceRequestException, ModelServiceIoException
+		throws ModelRequestException, ModelServiceException
 	{
 		final ModelObject toUpdate;
 		if ( exists ( context, id ) )
@@ -259,7 +257,7 @@ public class CassModel extends CassObjectContainer implements Model
 
 	@Override
 	public boolean remove ( ModelRequestContext context, Path id )
-		throws ModelServiceIoException, ModelServiceRequestException
+		throws ModelServiceException, ModelRequestException
 	{
 		// remove this item by asking its parent to remove it
 		return load ( context, id.getParentPath () )
@@ -268,7 +266,7 @@ public class CassModel extends CassObjectContainer implements Model
 	}
 
 	@Override
-	public void relate ( ModelRequestContext context, ModelRelation reln ) throws ModelServiceIoException, ModelServiceRequestException
+	public void relate ( ModelRequestContext context, ModelRelation reln ) throws ModelServiceException, ModelRequestException
 	{
 		final LinkedList<ModelRelation> relns = new LinkedList<> ();
 		relns.add ( reln );
@@ -276,7 +274,7 @@ public class CassModel extends CassObjectContainer implements Model
 	}
 
 	@Override
-	public void relate ( ModelRequestContext context, Collection<ModelRelation> relns ) throws ModelServiceIoException, ModelServiceRequestException
+	public void relate ( ModelRequestContext context, Collection<ModelRelation> relns ) throws ModelServiceException, ModelRequestException
 	{
 		// check validity of inbound relations
 		for ( ModelRelation reln : relns )
@@ -288,7 +286,7 @@ public class CassModel extends CassObjectContainer implements Model
 				!reln.getTo ().getModelName ().equals ( getModelName () )
 			)
 			{
-				throw new ModelServiceRequestException ( "A relation may not span models." );
+				throw new ModelRequestException ( "A relation may not span models." );
 			}
 
 			final ModelObjectContainer from = load ( context, reln.getFrom ().getObjectPath () );
@@ -315,7 +313,7 @@ public class CassModel extends CassObjectContainer implements Model
 	}
 
 	@Override
-	public boolean unrelate ( ModelRequestContext context, ModelRelation reln ) throws ModelServiceIoException, ModelServiceRequestException
+	public boolean unrelate ( ModelRequestContext context, ModelRelation reln ) throws ModelServiceException, ModelRequestException
 	{
 		final String keyspace = getKeyspaceNameFor ( getAcctId (), getModelName () );
 		final CassandraModelService svc = getBaseContext().getModelService ();
@@ -331,7 +329,7 @@ public class CassModel extends CassObjectContainer implements Model
 	}
 
 	@Override
-	public List<ModelRelation> getRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceIoException, ModelServiceRequestException
+	public List<ModelRelation> getRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
 	{
 		// this has to be run as two queries because Cassandra has no "OR" operator.
 		final LinkedList<ModelRelation> result = new LinkedList<> ();
@@ -341,7 +339,7 @@ public class CassModel extends CassObjectContainer implements Model
 	}
 
 	@Override
-	public List<ModelRelation> getInboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceIoException, ModelServiceRequestException
+	public List<ModelRelation> getInboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
 	{
 		if ( !exists ( context, forObject ) )
 		{
@@ -359,7 +357,7 @@ public class CassModel extends CassObjectContainer implements Model
 	}
 
 	@Override
-	public List<ModelRelation> getOutboundRelations ( ModelRequestContext context, final Path forObject ) throws ModelServiceIoException, ModelServiceRequestException
+	public List<ModelRelation> getOutboundRelations ( ModelRequestContext context, final Path forObject ) throws ModelServiceException, ModelRequestException
 	{
 		if ( !exists ( context, forObject ) )
 		{
@@ -377,7 +375,7 @@ public class CassModel extends CassObjectContainer implements Model
 	}
 
 	@Override
-	public List<ModelRelation> getInboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceIoException, ModelServiceRequestException
+	public List<ModelRelation> getInboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
 	{
 		if ( !exists ( context, forObject ) )
 		{
@@ -395,7 +393,7 @@ public class CassModel extends CassObjectContainer implements Model
 	}
 
 	@Override
-	public List<ModelRelation> getOutboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceIoException, ModelServiceRequestException
+	public List<ModelRelation> getOutboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
 	{
 		if ( !exists ( context, forObject ) )
 		{

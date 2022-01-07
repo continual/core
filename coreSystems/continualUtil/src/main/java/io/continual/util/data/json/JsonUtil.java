@@ -117,7 +117,8 @@ public class JsonUtil
 
 	public static JSONObject overlay ( JSONObject target, JSONObject overlay )
 	{
-		if ( overlay == null || target == null ) return null;
+		if ( overlay == null ) return target;
+		if ( target == null ) return null;
 
 		for ( Object overlayKey : overlay.keySet () )
 		{

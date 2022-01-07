@@ -30,6 +30,8 @@ import io.continual.restHttp.HttpService;
 import io.continual.restHttp.HttpServlet;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
+import io.continual.util.naming.Name;
+import io.continual.util.naming.Path;
 import io.continual.util.nv.NvReadable;
 
 public class IamHttpApiService extends SimpleService
@@ -108,6 +110,13 @@ public class IamHttpApiService extends SimpleService
 						reply.writeHeader ( "Access-Control-Max-Age", "3600" );
 						reply.writeHeader ( "Access-Control-Allow-Headers", skAllowHeadersValue );
 						reply.setStatus ( HttpStatusCodes.k204_noContent );
+					}
+
+					@Override
+					public Path getRouteNameForMetrics ()
+					{
+						// FIXME: simple implementation for interface compliance
+						return Path.getRootPath ().makeChildItem ( Name.fromString ( "options" ) );
 					}
 				};
 			}

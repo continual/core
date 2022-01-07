@@ -16,6 +16,9 @@
 
 package io.continual.services.model.core;
 
+/**
+ * Compare two model objects
+ */
 public interface ModelObjectComparator
 {
 	int compare ( ModelObject o1, ModelObject o2 );

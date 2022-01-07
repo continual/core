@@ -1,0 +1,15 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://continual.io/model/types/basic/Alias",
+	"$version": "1-0-0",
+
+	"type": "object",
+	"properties":
+	{
+		"path":
+		{
+			"type": "string",
+		}
+	},
+	"required": [ "path" ]
+}

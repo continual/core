@@ -157,7 +157,7 @@ public class ApiContextHelper<I extends Identity>
 
 	public void handleWithApiAuthAndAccess ( CHttpRequestContext context, ApiHandler<I> am, ResourceAccess... accessReqd )
 	{
-		handleWithApiAuth ( context, getInternalAccts(context), am );
+		handleWithApiAuthAndAccess ( context, getInternalAccts(context), am );
 	}
 
 	public static <I extends Identity> void handleWithApiAuth ( CHttpRequestContext context, IamServiceManager<I,?> am, ApiHandler<I> h )

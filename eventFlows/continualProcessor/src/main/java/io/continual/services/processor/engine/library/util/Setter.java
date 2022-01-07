@@ -6,6 +6,7 @@ import org.json.JSONObject;
 
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
+import io.continual.util.data.exprEval.ExprDataSource;
 import io.continual.util.data.json.JsonEval;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.data.json.JsonVisitor.ArrayVisitor;
@@ -23,7 +24,7 @@ public class Setter
 		JsonEval.setValue ( msg.accessRawJson(), key, evaluate ( context, val, msg ), appendArray );
 	}
 
-	public static JSONObject evaluate ( MessageProcessingContext mpc, JSONObject value, Message msg )
+	public static JSONObject evaluate ( MessageProcessingContext mpc, JSONObject value, Message msg, final ExprDataSource... addlSrcs )
 	{
 		final JSONObject replacement = new JSONObject ();
 		JsonVisitor.forEachElement ( value, new ObjectVisitor<Object,JSONException> ()
@@ -31,15 +32,15 @@ public class Setter
 			@Override
 			public boolean visit ( String origKey, Object val ) throws JSONException
 			{
-				final String keyToUse = evaluateToString ( mpc, origKey, msg );
-				replacement.put ( keyToUse, evaluate ( mpc, val, msg ) );
+				final String keyToUse = evaluateToString ( mpc, origKey, msg, addlSrcs );
+				replacement.put ( keyToUse, evaluate ( mpc, val, msg, addlSrcs ) );
 				return true;
 			}
 		} );
 		return replacement;
 	}
 
-	public static JSONArray evaluate ( MessageProcessingContext mpc, JSONArray value, Message msg )
+	public static JSONArray evaluate ( MessageProcessingContext mpc, JSONArray value, Message msg, final ExprDataSource... addlSrcs )
 	{
 		final JSONArray replacement = new JSONArray ();
 		JsonVisitor.forEachElement ( value, new ArrayVisitor<Object,JSONException> ()
@@ -47,35 +48,35 @@ public class Setter
 			@Override
 			public boolean visit ( Object val ) throws JSONException
 			{
-				replacement.put ( evaluate ( mpc, val, msg ) );
+				replacement.put ( evaluate ( mpc, val, msg, addlSrcs ) );
 				return true;
 			}
 		} );
 		return replacement;
 	}
 
-	public static Object evaluate ( MessageProcessingContext mpc, Object t, Message msg )
+	public static Object evaluate ( MessageProcessingContext mpc, Object t, Message msg, final ExprDataSource... addlSrcs )
 	{
 		if ( t instanceof JSONObject )
 		{
-			return evaluate ( mpc, (JSONObject) t, msg );
+			return evaluate ( mpc, (JSONObject) t, msg, addlSrcs );
 		}
 		else if ( t instanceof JSONArray )
 		{
-			return evaluate ( mpc, (JSONArray) t, msg );
+			return evaluate ( mpc, (JSONArray) t, msg, addlSrcs );
 		}
 		else if ( t instanceof String )
 		{
 			final String key = t.toString ();
-			final String val = mpc.evalExpression ( key );
+			final String val = mpc.evalExpression ( key, addlSrcs );
 			return val == null ? "" : val;
 		}
 		return t;
 	}
 
-	public static String evaluateToString ( MessageProcessingContext mpc, Object t, Message msg )
+	public static String evaluateToString ( MessageProcessingContext mpc, Object t, Message msg, final ExprDataSource... addlSrcs )
 	{
-		Object o = evaluate ( mpc, t, msg );
+		Object o = evaluate ( mpc, t, msg, addlSrcs );
 		return o == null ? "" : o.toString ();
 	}
 }

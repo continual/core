@@ -1,0 +1,91 @@
+{
+	"config":
+	{
+		"aws":
+		{
+			"accessKey": "AKIA5JEQHRDUI3EOR3K4",
+			"secretKey": "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"
+		}
+	},
+
+	"services":
+	[
+		//
+		//	Email out
+		//
+		{
+			"name": "emailer",
+			"class": "io.continual.email.impl.SimpleEmailService",
+
+			"mailSmtpServer": "smtp.gmail.com",
+			"mailLogin": "hello@continual.io",
+			"mailFromEmail": "hello@continual.io",
+			"mailPassword": "changeme",
+			"mailFromName": "Continual.io Model Service"
+		},
+
+		//
+		//	Clerk service for account management, backed by AWS S3
+		//
+		{
+			"name": "accounts",
+			"class": "io.continual.iam.impl.s3.S3IamServiceManager",
+
+			"bucketId": "io.continual.clerkdb",
+			"pathPrefix": "iam",
+
+			"jwt":
+			{
+				"issuer": "continual.io",
+				"sha256Key": "this is a value used as a secret key spec for SHA-256 signatures"
+			}
+		},
+
+		{
+			"name": "settingsModel",
+			"class": "io.continual.services.model.impl.files.FileSystemModel",
+
+			"acctId": "system",
+			"modelId": "settings",
+			"baseDir": "/Users/peter/vols/code/continual/private/tmp/models/systemSettings"
+		},
+
+		//
+		//	The model service.
+		//
+		{
+			"name": "modelService",
+			"class":"io.continual.services.model.service.impl.StdModelService",
+
+			"settings": "settingsModel",
+		},
+
+		//
+		//	An HTTP server for API network presence
+		//
+		{
+			"name": "http",
+			"class":"io.continual.restHttp.HttpService",
+
+			"http":
+			{
+				"port": "8080"
+			}
+		},
+
+		//
+		//	model service API
+		//
+		{
+			"name": "modelServiceApi",
+			"class": "io.continual.services.model.api.ModelApiService",
+
+			"httpService": "http",
+			"modelService": "modelService"
+		}
+	],
+
+	"profiles":
+	{
+	}
+}

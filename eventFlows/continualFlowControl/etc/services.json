@@ -17,6 +17,55 @@
 		},
 
 		//
+		//	job db over a model
+		//
+		{
+			"name": "jobDb",
+			"class": "io.continual.flowcontrol.impl.jobdb.model.ModelJobDb",
+
+			"model":
+			{
+				"class": "io.continual.services.model.impl.files.FileSystemModel",
+				"acctId": "none",
+				"modelId": "jobDb",
+				"baseDir": "/Users/peter/vols/code/continual/private/continual_private/eventFlows/continualFlowControl/etc/jobdb"
+			},
+
+			"secretEncryptKey": "fuga.key.123"
+		},
+
+		//
+		//	Config Transfer
+		//
+		{
+			"name": "configTransfer",
+			"class": "io.continual.flowcontrol.impl.transfer.ConfigFetchService",
+
+			"jobDb": "jobDb",
+
+			"signingKey": "test",
+			"baseUrl": "http://10.94.62.115:8080/config/"
+		},
+
+		//
+		//	controller
+		//
+		{
+			"name": "controller",
+			"class": "io.continual.flowcontrol.impl.controller.k8s.K8sController",
+
+			"configTransfer": "configTransfer",
+
+			"context": "minikube",
+			"storageClass": "standard",
+
+//			"context": "do-nyc3-rr-k8s-do-nyc3",
+//			"storageClass": "do-block-storage",
+
+			"namespace": "flowcontrol"
+		},
+
+		//
 		//	An HTTP server for API network presence
 		//
 		{
@@ -30,11 +79,14 @@
 		//
 		{
 			"name": "flowcontrol",
-			"class": "io.continual.flowcontrol.impl.k8s.K8sFlowControlService",
+			"class": "io.continual.flowcontrol.svcapi.BaseHttpService",
 			"namespace": "api-test-namespace",
 
 			"accounts": "accounts",
-			"httpService": "HttpService"
+			"httpService": "HttpService",
+			"jobDb": "jobDb",
+			"deployApi": "controller",
+			"configTransfer": "configTransfer"
 		}
 	],
 

@@ -17,9 +17,6 @@ package io.continual.iam.impl.s3;
 
 import java.util.Set;
 
-import io.continual.iam.impl.s3.S3IamDb;
-import junit.framework.TestCase;
-
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -34,6 +31,7 @@ import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.Identity;
 import io.continual.iam.impl.common.CommonJsonGroup;
 import io.continual.iam.impl.common.CommonJsonIdentity;
+import junit.framework.TestCase;
 
 // this test must be run manually
 @Ignore

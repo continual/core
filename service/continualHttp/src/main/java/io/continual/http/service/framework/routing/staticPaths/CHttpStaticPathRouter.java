@@ -35,6 +35,8 @@ import io.continual.http.service.framework.routing.playish.StaticDirHandler;
 import io.continual.http.service.framework.routing.playish.StaticFileHandler;
 import io.continual.http.util.http.standards.HttpMethods;
 import io.continual.util.data.StreamTools;
+import io.continual.util.naming.Name;
+import io.continual.util.naming.Path;
 
 /**
  * A static entry point routing source is a collection of routing entries for
@@ -116,6 +118,15 @@ public class CHttpStaticPathRouter implements CHttpRouteSource
 					log.warn ( "500 [" + toServe.getAbsolutePath () + "]: " + e.getMessage () );
 					context.response ().sendError ( 500, e.getMessage () );
 				}
+			}
+
+			@Override
+			public Path getRouteNameForMetrics ()
+			{
+				return Path.getRootPath ()
+					.makeChildItem ( Name.fromString ( verb ) )
+					.makeChildItem ( Name.fromString ( path.replaceAll ( "\\.", "%2E" ) ) )
+				;
 			}
 		};
 	}

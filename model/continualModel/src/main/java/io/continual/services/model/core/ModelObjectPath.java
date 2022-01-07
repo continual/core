@@ -21,18 +21,21 @@ import io.continual.util.naming.Path;
 
 /**
  * A full path, including account and model name, to a model object.
+ * 
+ * @deprecated These are not very useful, because we want to relate to models mounted at particular paths. 
  */
+@Deprecated
 public class ModelObjectPath
 {
 	public ModelObjectPath ( String acctId, String modelName, Path objectPath )
 	{
 		fAcctId = acctId;
-		fModelName = modelName;
+		fModelId = modelName;
 		fObjectPath = objectPath;
 	}
 
 	/**
-	 * Get the account ID for this object
+	 * Get the account ID for this model
 	 * @return the account ID
 	 */
 	public String getAcctId () { return fAcctId; }
@@ -41,7 +44,7 @@ public class ModelObjectPath
 	 * Get the model name for this object in the account
 	 * @return the model name
 	 */
-	public String getModelName () { return fModelName; }
+	public String getModelName () { return fModelId; }
 
 	/**
 	 * Get the path to this object within the model.
@@ -56,8 +59,7 @@ public class ModelObjectPath
 	public String getId ()
 	{
 		final Path modelPart = Path.getRootPath ()
-			.makeChildItem ( Name.fromString ( fAcctId ) )
-			.makeChildItem ( Name.fromString ( fModelName ) )
+			.makeChildItem ( Name.fromString ( fModelId ) )
 			.makeChildPath ( fObjectPath )
 		;
 		return modelPart.getId ();
@@ -97,9 +99,9 @@ public class ModelObjectPath
 	{
 		return getId ();
 	}
-	
+
 	private final String fAcctId;
-	private final String fModelName;
+	private final String fModelId;
 	private final Path fObjectPath;
 
 }

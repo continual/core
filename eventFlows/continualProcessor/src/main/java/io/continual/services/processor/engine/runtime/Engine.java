@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.continual.iam.identity.Identity;
 import io.continual.metrics.MetricsCatalog;
 import io.continual.metrics.MetricsCatalog.PathPopper;
 import io.continual.metrics.impl.StdMetricsCatalog;
@@ -44,18 +45,25 @@ import io.continual.services.processor.engine.model.StreamProcessingContext;
 import io.continual.services.processor.service.ProcessingService;
 import io.continual.util.data.exprEval.ExprDataSource;
 import io.continual.util.data.exprEval.ExprDataSourceStack;
+import io.continual.util.data.exprEval.SpecialFnsDataSource;
 
 /**
  * An engine for message stream processing.
  */
 public class Engine extends SimpleService implements Service
 {
+	public Engine ( Program p )
+	{
+		this ( null, p );
+	}
+
 	/**
 	 * Construct an engine to run a given program.
 	 * @param p
 	 */
-	public Engine ( Program p )
+	public Engine ( Identity ii, Program p )
 	{
+		fIdentity = ii;
 		fProgram = p;
 		fThreads = new HashMap<> ();
 		fSnGen = new SerialNumberGenerator ();
@@ -82,7 +90,10 @@ public class Engine extends SimpleService implements Service
 				{
 					return System.getenv ().get ( label );
 				}
-			}
+			},
+
+			// special functions...
+			new SpecialFnsDataSource ()
 		);
 
 		fMetricsDumper = new MetricsDumpThread ();
@@ -228,6 +239,7 @@ public class Engine extends SimpleService implements Service
 	private final MetricsDumpThread fMetricsDumper;
 	private final SerialNumberGenerator fSnGen;
 	private final HashMap<String,String> fUserData;
+	private final Identity fIdentity;
 	private final ExprDataSourceStack fExprEvalStack;
 	private final MetricsCatalog fEngineMetrics;
 
@@ -286,6 +298,7 @@ public class Engine extends SimpleService implements Service
 			fThreadMetrics = fEngineMetrics.getSubCatalog ( threadName );
 			fStreamContext = SimpleStreamProcessingContext.builder ()
 				.withSource ( s )
+				.operatedBy ( fIdentity )
 				.evaluatingAgainst ( fExprEvalStack )
 				.loggingTo ( log )
 				.reportMetricsTo ( fThreadMetrics )

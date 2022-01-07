@@ -7,7 +7,7 @@ import java.net.Proxy;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPOutputStream;
@@ -292,9 +292,7 @@ public class OnapMsgRouterPublisher
 	 */
 	public OnapMrResponse send ( Message msg )
 	{
-		final LinkedList<Message> msgs = new LinkedList<> ();
-		msgs.add ( msg );
-		return send ( msgs );
+		return send ( Collections.singletonList ( msg ) );
 	}
 
 	/**

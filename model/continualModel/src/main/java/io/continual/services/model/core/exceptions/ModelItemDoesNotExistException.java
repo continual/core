@@ -16,14 +16,14 @@
 
 package io.continual.services.model.core.exceptions;
 
-import io.continual.services.model.core.ModelObjectPath;
+import io.continual.util.naming.Path;
 
 /**
  * An exception thrown when a referenced object does not exist.
  */
-public class ModelItemDoesNotExistException extends ModelServiceRequestException
+public class ModelItemDoesNotExistException extends ModelRequestException
 {
-	public ModelItemDoesNotExistException ( ModelObjectPath p ) { super(p.toString()); }
+	public ModelItemDoesNotExistException ( Path p ) { super(p.toString()); }
 	public ModelItemDoesNotExistException ( String msg ) { super(msg); }
 	public ModelItemDoesNotExistException ( Throwable t ) { super(t); }
 	private static final long serialVersionUID = 1L;

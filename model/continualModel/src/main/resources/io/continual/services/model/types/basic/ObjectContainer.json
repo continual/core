@@ -1,0 +1,20 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://continual.io/model/types/basic/ObjectContainer",
+	"$version": "1-0-0",
+
+	"type": "object",
+	"properties":
+	{
+		"objects":
+		{
+			"type": "array",
+			"uniqueItems": true,
+			"items":
+			{
+				"type": "string"
+			}
+		}
+	},
+	"required": [ "objects" ]
+}

@@ -41,6 +41,20 @@ public class PathTest extends TestCase
 		assertEquals ( "baz", names[2].toString () );
 	}
 
+	@Test
+	public void testPathWithinParent ()
+	{
+		for ( Path[] pathSet : kParentPathTests )
+		{
+			final Path child = pathSet[0];
+			final Path parent = pathSet[1];
+			final Path expect = pathSet[2];
+
+			final Path result = child.makePathWithinParent ( parent );
+			assertEquals ( expect, result );
+		}
+	}
+
 	private static class SimpleTest
 	{
 		public static SimpleTest validPath ( String input )
@@ -82,11 +96,20 @@ public class PathTest extends TestCase
 		SimpleTest.validPath ( "/foo/./bar", "/foo/bar" ),
 		SimpleTest.validPath ( "/foo/./bar/baz", "/foo/bar/baz" ),
 		SimpleTest.invalidPath ( "/foo/../bar" ),
-		SimpleTest.invalidPath ( "/foo/a.b/bar" ),
+		SimpleTest.validPath ( "/foo/a.b/bar" ),
 		SimpleTest.validPath ( "///huh", "/huh" ),
 		SimpleTest.validPath ( "////", "/" ),
 		SimpleTest.validPath ( "/./././.", "/" ),
 		SimpleTest.validPath ( "/foo/.", "/foo" ),
 		SimpleTest.invalidPath ( "foo/bar" ),
+	};
+
+	private static Path[][] kParentPathTests =
+	{
+		// { child, parent, expectedResult }
+		{ Path.fromString ( "/foo/bar/bee" ), Path.fromString ( "/foo" ), Path.fromString ( "/bar/bee" ) },
+		{ Path.fromString ( "/foo/bar/bee" ), Path.fromString ( "/" ), Path.fromString ( "/foo/bar/bee" ) },
+		{ Path.fromString ( "/foo/bar/bee" ), Path.fromString ( "/foo/bar/bee" ), Path.fromString ( "/" ) },
+		{ Path.fromString ( "/foo" ), Path.fromString ( "/" ), Path.fromString ( "/foo" ) },
 	};
 }

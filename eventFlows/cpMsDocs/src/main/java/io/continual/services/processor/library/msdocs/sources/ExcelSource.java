@@ -356,7 +356,8 @@ public class ExcelSource extends BasicSource
 	{
 		final JSONObject data = new JSONObject ();
 
-		for ( int colNo = 0; colNo < fRowWidth; colNo++ )
+		final int rowWidth = fRowWidth > -1 ? fRowWidth : currentRow.getLastCellNum ();
+		for ( int colNo = 0; colNo < rowWidth; colNo++ )
 		{
 			// get the column name
 			final String name = fHeaderValues != null ? fHeaderValues.get ( colNo ) : "" + colNo;

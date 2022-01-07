@@ -64,6 +64,13 @@ public class MessageGenerator extends QueuingSource
 			fNextMs += fPauseMs;
 			result.add ( makeDefRoutingMessage ( Message.copyJsonToMessage ( fMessage.put ( "serialNumber", ++fSerialNumber ) ) ) );
 		}
+
+		// if we're not generating at a frequency, that was the only message.
+		if ( fPauseMs == 0 )
+		{
+			noteEndOfStream ();
+			fNextMs = Long.MAX_VALUE;
+		}
 		return result;
 	}
 

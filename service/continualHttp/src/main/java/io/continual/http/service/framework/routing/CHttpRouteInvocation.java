@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 
 import io.continual.http.service.framework.context.CHttpRequestContext;
+import io.continual.util.naming.Path;
 
 /**
  * A route invocation is returned by a route source as a match for an incoming route. It's then run()
@@ -29,4 +30,6 @@ import io.continual.http.service.framework.context.CHttpRequestContext;
 public interface CHttpRouteInvocation
 {
 	void run ( CHttpRequestContext ctx ) throws IOException, IllegalArgumentException, IllegalAccessException, InvocationTargetException;
+
+	Path getRouteNameForMetrics ();
 }

@@ -140,7 +140,10 @@ public class Path implements Comparable<Path>
 	 */
 	public Path makePathWithinParent ( Path parentPath )
 	{
-		// if our target is within the relativeTo path, just return what's left after the parent is removed
+		// special case the root path
+		if ( parentPath.isRootPath () ) return this;
+
+		// if our target is within the parent path, just return what's left after the parent is removed
 		if ( !startsWith ( parentPath ) )
 		{
 			throw new IllegalArgumentException ( "The target path [" + toString () +
@@ -283,9 +286,9 @@ public class Path implements Comparable<Path>
 
 	private static Name buildName ( String name )
 	{
-		if ( name.contains ( "." ) )
+		if ( name.equals ( ".." ) )
 		{
-			throw new IllegalArgumentException ( "Path components may not contain dots." );
+			throw new IllegalArgumentException ( "Path components may not contain '..'." );
 		}
 		return Name.fromString ( name );
 	}

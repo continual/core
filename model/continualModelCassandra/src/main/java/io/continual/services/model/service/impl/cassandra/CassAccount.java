@@ -34,15 +34,15 @@ import io.continual.services.model.core.ModelObjectPath;
 import io.continual.services.model.core.ModelOperation;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelStdUserGroups;
-import io.continual.services.model.core.exceptions.ModelServiceIoException;
-import io.continual.services.model.core.exceptions.ModelServiceRequestException;
+import io.continual.services.model.core.exceptions.ModelServiceException;
+import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.service.Model;
 import io.continual.services.model.service.ModelAccount;
 import io.continual.util.data.json.JsonUtil;
 
 public class CassAccount extends CassBackedObject implements ModelAccount
 {
-	public static CassAccount fromJson ( JSONObject object, CassModelLoaderContext mlc ) throws ModelServiceIoException
+	public static CassAccount fromJson ( JSONObject object, CassModelLoaderContext mlc ) throws ModelServiceException
 	{
 		return new CassAccount ( mlc, object );
 	}
@@ -73,7 +73,7 @@ public class CassAccount extends CassBackedObject implements ModelAccount
 	}
 
 	@Override
-	public boolean doesModelExist ( ModelRequestContext mrc, String modelName ) throws ModelServiceIoException, ModelServiceRequestException
+	public boolean doesModelExist ( ModelRequestContext mrc, String modelName ) throws ModelServiceException, ModelRequestException
 	{
 		final ResultSet rs = getBaseContext().getModelService ().runQuery ( "SELECT data FROM continual.models WHERE acctId=? AND modelName=?", fAcctId, modelName );
 		final List<Row> rows = rs.all ();
@@ -81,7 +81,7 @@ public class CassAccount extends CassBackedObject implements ModelAccount
 	}
 
 	@Override
-	public List<String> getModelsInAccount ( ModelRequestContext mrc ) throws ModelServiceIoException, ModelServiceRequestException
+	public List<String> getModelsInAccount ( ModelRequestContext mrc ) throws ModelServiceException, ModelRequestException
 	{
 		final LinkedList<String> result = new LinkedList<> ();
 
@@ -94,18 +94,18 @@ public class CassAccount extends CassBackedObject implements ModelAccount
 	}
 
 	@Override
-	public Model initModel ( ModelRequestContext mrc, String modelName ) throws ModelServiceIoException, ModelServiceRequestException
+	public Model initModel ( ModelRequestContext mrc, String modelName ) throws ModelServiceException, ModelRequestException
 	{
 		if ( doesModelExist ( mrc, modelName ) )
 		{
-			throw new ModelServiceRequestException ( "Model " + modelName + " already exists. It must be explicitly deleted." );
+			throw new ModelRequestException ( "Model " + modelName + " already exists. It must be explicitly deleted." );
 		}
 
 		// get the new keyspace name
 		final String keyspace = makeKeyspaceNameFor ( modelName );
 		if ( keyspace.length () > 48 )
 		{
-			throw new ModelServiceRequestException ( "The model name is too long." );
+			throw new ModelRequestException ( "The model name is too long." );
 		}
 
 		log.info ( "Initializing model " + fAcctId + " / " + modelName );
@@ -125,7 +125,7 @@ public class CassAccount extends CassBackedObject implements ModelAccount
 			final String modelData = getModelSetupData ( mrc.getOperator ().getId () );
 			svc.runQuery ( "INSERT INTO continual.models ( acctId, modelName, data ) VALUES ( ?, ?, ? )", fAcctId, modelName, modelData );
 		}
-		catch ( ModelServiceIoException e )
+		catch ( ModelServiceException e )
 		{
 			log.error ( "Problem with model creation: " + e.getMessage (), e );
 			throw e;
@@ -135,7 +135,7 @@ public class CassAccount extends CassBackedObject implements ModelAccount
 	}
 
 	@Override
-	public Model getModel ( ModelRequestContext mrc, String modelName ) throws ModelServiceIoException, ModelServiceRequestException
+	public Model getModel ( ModelRequestContext mrc, String modelName ) throws ModelServiceException, ModelRequestException
 	{
 		final ResultSet rs = getBaseContext().getModelService ().runQuery (
 			"SELECT data FROM continual.models WHERE acctId=? AND modelName=?",
@@ -145,12 +145,12 @@ public class CassAccount extends CassBackedObject implements ModelAccount
 		final List<Row> rows = rs.all ();
 		if ( rows.size () < 1 )
 		{
-			throw new ModelServiceRequestException ( "Model " + modelName + " was not found." );
+			throw new ModelRequestException ( "Model " + modelName + " was not found." );
 		}
 
 		if ( rows.size() > 1 )
 		{
-			throw new ModelServiceIoException ( "Multiple model records found." );
+			throw new ModelServiceException ( "Multiple model records found." );
 		}
 
 		try
@@ -166,7 +166,7 @@ public class CassAccount extends CassBackedObject implements ModelAccount
 		}
 		catch ( BuildFailure e )
 		{
-			throw new ModelServiceRequestException ( e );
+			throw new ModelRequestException ( e );
 		}
 	}
 

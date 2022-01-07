@@ -28,15 +28,15 @@ import io.continual.services.model.core.ModelObjectPath;
 import io.continual.services.model.core.ModelOperation;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelStdUserGroups;
-import io.continual.services.model.core.exceptions.ModelServiceIoException;
-import io.continual.services.model.core.exceptions.ModelServiceRequestException;
+import io.continual.services.model.core.exceptions.ModelServiceException;
+import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.service.ModelObjectContainer;
 import io.continual.util.data.json.JsonUtil;
 import io.continual.util.naming.Name;
 
 public class CassModelObject extends CassObjectContainer implements ModelObjectContainer
 {
-	public static CassModelObject fromJson ( JSONObject object, CassModelLoaderContext mlc ) throws ModelServiceIoException
+	public static CassModelObject fromJson ( JSONObject object, CassModelLoaderContext mlc ) throws ModelServiceException
 	{
 		return new CassModelObject ( mlc, object );
 	}
@@ -58,7 +58,7 @@ public class CassModelObject extends CassObjectContainer implements ModelObjectC
 	}
 
 	@Override
-	public boolean exists ( ModelRequestContext context, Name itemName ) throws ModelServiceIoException
+	public boolean exists ( ModelRequestContext context, Name itemName ) throws ModelServiceException
 	{
 		// ask the top-level model service if the full path exists
 		try
@@ -70,14 +70,14 @@ public class CassModelObject extends CassObjectContainer implements ModelObjectC
 				.exists ( context, fPathAsLoaded.getObjectPath ().makeChildItem ( itemName ) )
 			;
 		}
-		catch ( ModelServiceRequestException e )
+		catch ( ModelRequestException e )
 		{
-			throw new ModelServiceIoException ( e );
+			throw new ModelServiceException ( e );
 		}
 	}
 
 	@Override
-	public CassElementList getElementsBelow ( ModelRequestContext context ) throws ModelServiceRequestException, ModelServiceIoException
+	public CassElementList getElementsBelow ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException
 	{
 		return getElementsBelow ( context, fPathAsLoaded.getObjectPath () );
 	}
