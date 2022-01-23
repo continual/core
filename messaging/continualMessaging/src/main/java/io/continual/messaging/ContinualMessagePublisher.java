@@ -3,7 +3,7 @@ package io.continual.messaging;
 import java.io.Closeable;
 
 /**
- * An abstraction of a message publisher for this system.
+ * An abstraction of a message publisher for this system. A publisher contains message sinks.
  */
 public interface ContinualMessagePublisher extends Closeable
 {

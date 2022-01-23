@@ -4,6 +4,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 
 import io.continual.messaging.ContinualMessageSink;
+import io.continual.services.model.core.Model;
 
 /**
  * A very general monitor that examines its target and reports status
@@ -37,17 +38,16 @@ public interface ContinualMonitor
 		JSONObject getSettings ();
 
 		/**
-		 * Get a writeable data space for this monitor instance, which is
-		 * persistent across runs.
+		 * Get a model mount for this monitor, which provides a place to read and write data
+		 * that's persistent across runs.
 		 * @return a data object
 		 */
-		JSONObject getData ();
+		Model getModel ();
 	};
 	
 	/**
-	 * Run the monitoring task and report results to the client provided.
-	 * @param monctx
+	 * Run the monitoring task and report results to the message sink.
+	 * @param context
 	 */
-	void run ( MonitorContext monctx );
-
+	void run ( MonitorContext context );
 }

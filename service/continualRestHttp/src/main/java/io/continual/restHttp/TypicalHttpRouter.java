@@ -30,8 +30,8 @@ import io.continual.http.service.framework.routing.CHttpRequestRouter;
 import io.continual.http.service.framework.routing.playish.CHttpPlayishInstanceCallRoutingSource;
 import io.continual.http.service.framework.routing.playish.CHttpPlayishRoutingFileSource;
 import io.continual.http.util.http.standards.HttpStatusCodes;
-import io.continual.http.util.http.standards.MimeTypes;
 import io.continual.restHttp.HttpSessionContextHelper.NoLoginException;
+import io.continual.util.standards.MimeTypes;
 
 public abstract class TypicalHttpRouter implements HttpRouter
 {

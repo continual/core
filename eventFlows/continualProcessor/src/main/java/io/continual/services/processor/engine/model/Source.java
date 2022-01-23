@@ -23,6 +23,11 @@ import java.util.concurrent.TimeUnit;
 public interface Source extends Closeable
 {
 	/**
+	 * Called when source reader begins.
+	 */
+	default void open () throws IOException {};
+	
+	/**
 	 * Is the source at EOF?  Not all sources are bounded, so they may
 	 * always return false.
 	 * @return true if the source is at EOF

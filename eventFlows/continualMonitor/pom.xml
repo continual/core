@@ -4,9 +4,9 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.2.8-SNAPSHOT</version>
-		<artifactId>continualBase</artifactId>
-		<relativePath>../continualBase</relativePath>
+		<version>0.2.29</version>
+		<artifactId>continualEventFlows</artifactId>
+		<relativePath>..</relativePath>
 	</parent>
 
 	<artifactId>continualMonitor</artifactId>
@@ -36,25 +36,8 @@
 
 		<dependency>
 			<groupId>io.continual</groupId>
-			<artifactId>continualClient</artifactId>
+			<artifactId>continualModel</artifactId>
 			<version>${project.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.quartz-scheduler</groupId>
-			<artifactId>quartz</artifactId>
-			<version>2.2.1</version>
-			<exclusions>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>slf4j-api</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>org.quartz-scheduler</groupId>
-			<artifactId>quartz-jobs</artifactId>
-			<version>2.2.1</version>
 		</dependency>
 
 	</dependencies>

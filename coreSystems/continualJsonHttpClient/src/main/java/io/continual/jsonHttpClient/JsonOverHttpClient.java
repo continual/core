@@ -192,6 +192,20 @@ public interface JsonOverHttpClient
 		HttpRequest withHeaders ( Map<String,String> headers );
 
 		/**
+		 * Add a query string to the request.
+		 * @param qs
+		 * @return this request
+		 */
+		HttpRequest withQueryString ( String qs );
+
+		/**
+		 * Add a query string to the request.
+		 * @param qsMap
+		 * @return this request
+		 */
+		HttpRequest withQueryString ( Map<String,String> qsMap );
+
+		/**
 		 * Execute a GET and return the response
 		 * @return a response which must be closed
 		 */
@@ -223,6 +237,13 @@ public interface JsonOverHttpClient
 		 * @return a response which must be closed
 		 */
 		HttpResponse post ( JSONObject body ) throws HttpServiceException;
+
+		/**
+		 * Execute a POST and return the response
+		 * @param body the JSON to post
+		 * @return a response which must be closed
+		 */
+		HttpResponse post ( JSONArray body ) throws HttpServiceException;
 	}
 
 	/**

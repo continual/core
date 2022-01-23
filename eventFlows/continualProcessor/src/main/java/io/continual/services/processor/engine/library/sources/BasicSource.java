@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageAndRouting;
+import io.continual.services.processor.engine.model.Program;
 import io.continual.services.processor.engine.model.Source;
 import io.continual.services.processor.engine.model.StreamProcessingContext;
 import io.continual.util.time.Clock;
@@ -65,8 +66,13 @@ public abstract class BasicSource implements Source
 		{
 			synchronized ( this )
 			{
+				// first check the buffer
 				if ( fRequeued.size () > 0 ) return fRequeued.remove ( 0 );
-	
+
+				// is the source stream EOF?
+				if ( fEof ) return null;
+
+				// go to the stream
 				final MessageAndRouting mr = internalGetNextMessage ( spc );
 				if ( mr != null ) return mr;
 			}
@@ -93,7 +99,9 @@ public abstract class BasicSource implements Source
 	}
 
 	/**
-	 * Get the next pending message, if any.
+	 * Get the next pending message, if any. This won't be called after a noteEndOfStream() call.
+	 * The caller handles back-off, so it's not necessary to force a sleep during this call. 
+	 * The object has the instance synchronization lock during this call.
 	 * @param spc
 	 * @return the next message, or null
 	 * @throws IOException
@@ -109,7 +117,7 @@ public abstract class BasicSource implements Source
 	
 	protected BasicSource ( String defaultPipelineName )
 	{
-		fDefPipeline = defaultPipelineName;
+		fDefPipeline = defaultPipelineName == null ? Program.kDefaultPipeline : defaultPipelineName;
 		fRequeued = new ArrayList<> ();
 	}
 

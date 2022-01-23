@@ -15,8 +15,6 @@ import io.continual.builder.Builder.BuildFailure;
 import io.continual.http.app.htmlForms.CHttpFormPostWrapper;
 import io.continual.http.app.htmlForms.CHttpFormPostWrapper.ParseException;
 import io.continual.http.service.framework.context.CHttpRequestContext;
-import io.continual.http.util.http.standards.HttpStatusCodes;
-import io.continual.http.util.http.standards.MimeTypes;
 import io.continual.iam.IamService;
 import io.continual.iam.identity.Identity;
 import io.continual.iam.identity.UserContext;
@@ -31,6 +29,8 @@ import io.continual.services.ServiceContainer;
 import io.continual.util.data.StreamTools;
 import io.continual.util.data.json.JsonUtil;
 import io.continual.util.data.json.JsonVisitor;
+import io.continual.util.standards.HttpStatusCodes;
+import io.continual.util.standards.MimeTypes;
 
 /**
  * Handle inbound user events.
@@ -216,7 +216,14 @@ public class ReceiverApi<I extends Identity> extends ApiContextHelper<I>
 		final String contentType = context.request ().getContentType ();
 		if ( contentType == null ) return null;
 
-		final ContentTypeHandler cth = fContentTypeHandlers.get ( contentType );
+		String prefix = contentType;
+		final int semi = contentType.indexOf ( ';' );
+		if ( semi > -1 )
+		{
+			prefix = prefix.substring ( 0, semi );
+		}
+
+		final ContentTypeHandler cth = fContentTypeHandlers.get ( prefix );
 		if ( cth == null ) return null;
 
 		return cth.handle ( context );

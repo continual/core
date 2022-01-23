@@ -27,7 +27,12 @@ public class HasField implements Filter
 {
 	public HasField ( ConfigLoadContext sc, JSONObject config )
 	{
-		fFieldName = config.getString ( "key" );
+		this ( config.getString ( "key" ) );
+	}
+
+	public HasField ( String fieldName )
+	{
+		fFieldName = fieldName;
 	}
 
 	@Override

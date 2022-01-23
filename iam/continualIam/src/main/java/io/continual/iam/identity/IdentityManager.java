@@ -152,6 +152,15 @@ public interface IdentityManager<I extends Identity> extends IdentityDb<I>
 	ApiKey loadApiKeyRecord ( String apiKey ) throws IamSvcException;
 
 	/**
+	 * Restore an API key into the API key store
+	 * @param key
+	 * @throws IamBadRequestException 
+	 * @throws IamIdentityDoesNotExist 
+	 * @throws IamSvcException
+	 */
+	void restoreApiKey ( ApiKey key ) throws IamIdentityDoesNotExist, IamBadRequestException, IamSvcException;
+
+	/**
 	 * Add a JWT validator to the identity manager.
 	 * @param v a validator
 	 */

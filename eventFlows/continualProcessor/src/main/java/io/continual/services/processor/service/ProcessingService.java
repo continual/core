@@ -39,4 +39,9 @@ public interface ProcessingService
 	 * stopped.
 	 */
 	void stopBackgroundProcessing ();
+
+	/**
+	 * Called when the source associated with this service instance reaches EOF
+	 */
+	default void onSourceEof () {}
 }

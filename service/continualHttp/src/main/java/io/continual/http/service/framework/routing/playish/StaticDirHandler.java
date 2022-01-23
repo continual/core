@@ -29,8 +29,8 @@ import java.util.List;
 import org.slf4j.LoggerFactory;
 
 import io.continual.http.service.framework.context.CHttpRequestContext;
-import io.continual.http.util.http.standards.MimeTypes;
 import io.continual.util.data.StreamTools;
+import io.continual.util.standards.MimeTypes;
 
 public class StaticDirHandler implements CHttpPlayishRouteHandler
 {

@@ -1,8 +1,5 @@
 package io.continual.monitor.daemon;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,13 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder;
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.client.ClientBuilders;
-import io.continual.client.events.EventClient;
-import io.continual.client.events.EventClient.EventServiceException;
-import io.continual.messaging.ContinualMessage;
 import io.continual.messaging.ContinualMessageSink;
-import io.continual.messaging.ContinualMessageStream;
-import io.continual.messaging.MessagePublishException;
 import io.continual.monitor.ContinualMonitor;
 import io.continual.monitor.ContinualMonitor.MonitorContext;
 import io.continual.util.data.json.JsonUtil;
@@ -96,46 +87,7 @@ public class ContinualMonitorWrapper implements Job, InterruptableJob
 			return;
 		}
 
-		final EventClient fClient;
-		try
-		{
-			// instantiate the nebby api client
-			fClient = new ClientBuilders.EventClientBuilder ()
-//				.usingHost ( fSettings.getString ( "CIO_EVENT_API", null ) )
-				.asUser ( monitorConfig.optString ( "CIO_USER", "" ), monitorConfig.optString ( "CIO_PASSWORD", "" ) )
-				.usingApiKey ( monitorConfig.optString ( "CIO_APIKEY", "" ), monitorConfig.optString ( "CIO_APISECRET", "" ) )
-				.build ()
-			;
-		}
-		catch ( MalformedURLException e )
-		{
-			// remove this job because we can't build it
-			log.error ( "Failed to build job's client: " + e.getMessage () );
-			cancelJob ( context, e );
-			return;
-		}
-
-		final ContinualMessageSink ces = new ContinualMessageSink ()
-		{
-			public void send ( ContinualMessageStream stream, Collection<ContinualMessage> events ) throws MessagePublishException
-			{
-				for ( ContinualMessage event : events )
-				{
-					try
-					{
-						fClient.send ( event.toJson (), "events", stream.getName () );
-					}
-					catch ( EventServiceException e )
-					{
-						throw new MessagePublishException ( e );
-					}
-					catch ( IOException e )
-					{
-						throw new MessagePublishException ( e );
-					}
-				}
-			}
-		};
+		final ContinualMessageSink ces = null; // ?;
 		
 		final Logger monitorLog = LoggerFactory.getLogger ( "by.neb.monitor" );
 

@@ -8,11 +8,11 @@ import io.continual.flowcontrol.controlapi.ConfigTransferService;
 import io.continual.flowcontrol.controlapi.ConfigTransferService.ServiceException;
 import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.http.service.framework.context.CHttpResponse;
-import io.continual.http.util.http.standards.HttpStatusCodes;
-import io.continual.http.util.http.standards.MimeTypes;
 import io.continual.iam.identity.Identity;
 import io.continual.restHttp.ApiContextHelper;
 import io.continual.util.data.StreamTools;
+import io.continual.util.standards.MimeTypes;
+import io.continual.util.standards.HttpStatusCodes;
 
 public class ConfigFetch<I extends Identity> extends ApiContextHelper<I>
 {

@@ -33,7 +33,7 @@ import io.continual.http.service.framework.CHttpConnection;
 import io.continual.http.service.framework.inspection.CHttpObserver;
 import io.continual.http.service.framework.routing.CHttpRequestRouter;
 import io.continual.http.util.http.standards.HttpMethods;
-import io.continual.http.util.http.standards.MimeTypes;
+import io.continual.util.standards.MimeTypes;
 
 class StdResponse implements CHttpResponse
 {

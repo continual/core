@@ -55,10 +55,10 @@ public class SimpleEmailService extends SimpleService implements EmailService
 		final ExpressionEvaluator ee = sc.getExprEval ( config );
 		
 		fMailProps = new Properties ();
-		fMailProps.put ( "mail.smtp.port", "" + ee.evaluateTextToInt ( config.opt ( kSetting_MailFromEmail ), 587 ) );
+		fMailProps.put ( "mail.smtp.host", ee.evaluateText ( config.optString ( kSetting_SmtpServer, "smtp.gmail.com" ) ) );
+		fMailProps.put ( "mail.smtp.port", "" + ee.evaluateTextToInt ( config.opt ( kSetting_SmtpServerPort ), 587 ) );
 		fMailProps.put ( "mail.smtp.socketFactory.fallback", "false" );
 		fMailProps.put ( "mail.smtp.quitwait", "false" );
-		fMailProps.put ( "mail.smtp.host", ee.evaluateText ( config.optString ( kSetting_SmtpServer, "smtp.gmail.com" ) ) );
 		fMailProps.put ( "mail.smtp.auth", "" + ee.evaluateTextToBoolean ( config.opt ( kSetting_SmtpServerUseAuth ), true ) ); 
 		fMailProps.put ( "mail.smtp.starttls.enable", "" + ee.evaluateTextToBoolean ( config.opt ( kSetting_SmtpServerSsl ), true ) );
 

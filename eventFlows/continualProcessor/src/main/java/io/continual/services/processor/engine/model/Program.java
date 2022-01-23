@@ -28,6 +28,8 @@ import io.continual.services.processor.service.ProcessingService;
  */
 public class Program
 {
+	public static final String kDefaultPipeline = "default";
+
 	public static JSONObject config () { return new JSONObject(); }
 
 	/**

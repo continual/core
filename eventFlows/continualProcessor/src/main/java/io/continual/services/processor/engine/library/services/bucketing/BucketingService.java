@@ -259,6 +259,13 @@ public class BucketingService extends SimpleProcessingService
 		return result;
 	}
 
+	@Override
+	public void onSourceEof ()
+	{
+		flush ();
+		fRptTo.noteEndOfStream ();
+	}
+
 	private void flush ()
 	{
 		if ( fRptTo == null ) return;

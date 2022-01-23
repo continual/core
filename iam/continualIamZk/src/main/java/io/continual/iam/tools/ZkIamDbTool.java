@@ -11,6 +11,7 @@ import io.continual.iam.impl.common.CommonJsonDb.AclFactory;
 import io.continual.iam.impl.common.CommonJsonGroup;
 import io.continual.iam.impl.common.CommonJsonIdentity;
 import io.continual.iam.impl.zk.StdZkIamDb;
+import io.continual.iam.impl.zk.ZkIamDb;
 
 public class ZkIamDbTool extends IamDbTool<CommonJsonIdentity,CommonJsonGroup>
 {
@@ -42,11 +43,13 @@ public class ZkIamDbTool extends IamDbTool<CommonJsonIdentity,CommonJsonGroup>
 			throw new IamSvcException ( "Incorrect usage for connect." );
 		}
 		
-		return new StdZkIamDb.Builder ()
+		final ZkIamDb<CommonJsonIdentity, CommonJsonGroup> db = new StdZkIamDb.Builder ()
 			.connectingTo ( args.elementAt ( 0 ) )
 			.withPathPrefix ( args.elementAt ( 1 ) )
 			.usingAclFactory ( new IamDbAclFactory () )
 			.build ()
 		;
+		db.start ();
+		return db;
 	}
 }

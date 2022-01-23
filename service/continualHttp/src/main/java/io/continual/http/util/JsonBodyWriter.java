@@ -24,7 +24,7 @@ import org.json.JSONObject;
 
 import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.http.util.http.standards.HttpStatusCodes;
-import io.continual.http.util.http.standards.MimeTypes;
+import io.continual.util.standards.MimeTypes;
 
 /**
  * Write JSON objects to a response.

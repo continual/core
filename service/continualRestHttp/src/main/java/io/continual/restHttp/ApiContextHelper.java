@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.http.service.framework.context.CHttpResponse;
 import io.continual.http.util.http.standards.HttpStatusCodes;
-import io.continual.http.util.http.standards.MimeTypes;
 import io.continual.iam.IamAuthLog;
 import io.continual.iam.IamServiceManager;
 import io.continual.iam.access.AccessDb;
@@ -46,6 +45,7 @@ import io.continual.util.data.TypeConvertor;
 import io.continual.util.data.json.CommentedJsonTokener;
 import io.continual.util.data.json.JsonUtil;
 import io.continual.util.nv.NvReadable;
+import io.continual.util.standards.MimeTypes;
 
 /**
  * Intended as a base or utility class for entry point implementations.

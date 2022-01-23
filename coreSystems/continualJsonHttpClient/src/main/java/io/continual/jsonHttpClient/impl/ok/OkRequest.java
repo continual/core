@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -68,10 +69,42 @@ class OkRequest implements HttpRequest
 		return this;
 	}
 
+	@Override
+	public HttpRequest withQueryString ( String qs )
+	{
+		fQueryString = qs;
+		return this;
+	}
+
+	@Override
+	public HttpRequest withQueryString ( Map<String, String> qsMap )
+	{
+		final StringBuilder sb = new StringBuilder ();
+		for ( Map.Entry<String,String> e : qsMap.entrySet () )
+		{
+			if ( sb.length () > 0 )
+			{
+				sb.append ( "&" );
+			}
+			sb
+				.append ( e.getKey () )
+				.append ( "=" )
+				.append ( e.getValue () )		// FIXME: encoding
+			;
+		}
+		return withQueryString ( sb.toString () );
+	}
+
 	private Request.Builder basicReq ()
 	{
+		String path = fPath;
+		if ( fQueryString != null && fQueryString.length () > 0 )
+		{
+			path = path + "?" + fQueryString;
+		}
+
 		Request.Builder rb = new Request.Builder ()
-			.url ( fPath )
+			.url ( path )
 		;
 
 		if ( fCreds != null )
@@ -86,6 +119,7 @@ class OkRequest implements HttpRequest
 				rb.addHeader ( e.getKey (), val );
 			}
 		}
+
 		return rb;
 	}
 
@@ -131,11 +165,22 @@ class OkRequest implements HttpRequest
 		return run ( "POS", basicReq ().post(rb).build () );
 	}
 
+	@Override
+	public HttpResponse post ( JSONArray body ) throws HttpServiceException
+	{
+		final RequestBody rb = RequestBody.create (
+			MediaType.parse("application/json"),
+			body.toString ()
+		);
+		return run ( "POS", basicReq ().post(rb).build () );
+	}
+
 	private final OkHttpClient fHttpClient;
 
 	private String fPath;
 	private HttpUsernamePasswordCredentials fCreds;
 	private HashMap<String,List<String>> fHeaders;
+	private String fQueryString = null;
 
 	private HttpResponse run ( String verbForLog, Request request ) throws HttpServiceException
 	{

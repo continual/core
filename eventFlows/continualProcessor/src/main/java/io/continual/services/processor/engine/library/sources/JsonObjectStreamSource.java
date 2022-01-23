@@ -71,6 +71,12 @@ public class JsonObjectStreamSource extends BasicSource
 	}
 
 	@Override
+	public synchronized void noteEndOfStream ()
+	{
+		super.noteEndOfStream ();
+	}
+	
+	@Override
 	protected synchronized MessageAndRouting internalGetNextMessage ( StreamProcessingContext spc ) throws IOException, InterruptedException
 	{
 		if ( fPending.size () > 0 )

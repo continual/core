@@ -18,7 +18,6 @@ import io.continual.flowcontrol.jobapi.FlowControlJob;
 import io.continual.flowcontrol.jobapi.FlowControlJobConfig;
 import io.continual.flowcontrol.jobapi.FlowControlJobDb;
 import io.continual.flowcontrol.jobapi.FlowControlJobDb.ServiceException;
-import io.continual.http.util.http.standards.MimeTypes;
 import io.continual.iam.access.AccessControlList;
 import io.continual.iam.access.AclUpdateListener;
 import io.continual.util.data.StreamTools;
@@ -28,6 +27,7 @@ import io.continual.util.data.json.JsonSerialized;
 import io.continual.util.data.json.JsonUtil;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.data.json.JsonVisitor.ObjectVisitor;
+import io.continual.util.standards.MimeTypes;
 
 public class JsonJob implements FlowControlJob, JsonSerialized
 {

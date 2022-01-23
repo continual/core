@@ -200,6 +200,26 @@ public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends Common
 		return null;
 	}
 
+	/**
+	 * Restore an API key into the API key store
+	 * @param key
+	 * @throws IamSvcException
+	 * @throws IamBadRequestException 
+	 * @throws IamIdentityDoesNotExist 
+	 */
+	@Override
+	public void restoreApiKey ( ApiKey key ) throws IamIdentityDoesNotExist, IamBadRequestException, IamSvcException
+	{
+		final JSONObject record = loadApiKeyObject ( key.getKey () );
+		if ( record != null )
+		{
+			throw new IamBadRequestException ( "The API key already exists." );
+		}
+
+		final JSONObject o = createApiKeyObject ( key.getUserId (), key.getKey (), key.getSecret () );
+		storeApiKeyObject ( key.getKey (), o );
+	}
+
 	@Override
 	public String createJwtToken ( Identity ii ) throws IamSvcException
 	{

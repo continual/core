@@ -40,7 +40,7 @@ public class Message implements JsonSerialized
 		this ( new JSONObject (), false );
 	}
 
-	private Message ( JSONObject msgData, boolean clone )
+	protected Message ( JSONObject msgData, boolean clone )
 	{
 		fData = clone ? JsonUtil.clone ( msgData ) : msgData;
 	}

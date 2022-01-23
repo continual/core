@@ -31,7 +31,7 @@ public class ProgramRunner extends ConsoleProgram
 		{
 			final JsonConfigReader reader = new JsonConfigReader ();
 			final Program program = reader.read ( programList[0].split ( "," ) );
-			
+
 			final Engine e = new Engine ( program );
 			for ( int i=1; i<programList.length; i++ )
 			{

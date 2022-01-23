@@ -516,6 +516,40 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 				}
 			} );
 
+			registerCommand ( new IamDbCmd ( "restoreApiKey", true )
+			{
+				@Override
+				protected void execute ( IamDb<?,?> db, Vector<String> args,
+					HashMap<String,Object> workspace, CmdLinePrefs p, PrintStream outTo )
+						throws UsageException, NvReadable.MissingReqdSettingException
+				{
+					if ( args.size () != 3 )
+					{
+						outTo.println ( "usage: restoreApiKey <userId> <apiKey> <apiSecret>" );
+						return;
+					}
+
+					try
+					{
+						fDb.restoreApiKey ( new ApiKey ()
+						{
+							@Override
+							public String getUserId () { return args.elementAt ( 0 ); }
+
+							@Override
+							public String getKey () { return args.elementAt ( 1 ); }
+
+							@Override
+							public String getSecret () { return args.elementAt ( 2 ); }
+						} );
+					}
+					catch ( IamSvcException | IamBadRequestException e )
+					{
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
+					}
+				}
+			} );
+
 			registerCommand ( new IamDbCmd ( "getUser", true )
 			{
 				@Override

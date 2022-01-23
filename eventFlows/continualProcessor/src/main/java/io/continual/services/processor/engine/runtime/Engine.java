@@ -57,11 +57,18 @@ public class Engine extends SimpleService implements Service
 		this ( null, p );
 	}
 
+	public Engine ( Identity ii, Program p )
+	{
+		this ( ii, p, 5000L );
+	}
+
+	// FIXME: create a builder to set options rather than growing the constructor arg list
+
 	/**
 	 * Construct an engine to run a given program.
 	 * @param p
 	 */
-	public Engine ( Identity ii, Program p )
+	public Engine ( Identity ii, Program p, long metricsPeriodMs )
 	{
 		fIdentity = ii;
 		fProgram = p;
@@ -96,7 +103,7 @@ public class Engine extends SimpleService implements Service
 			new SpecialFnsDataSource ()
 		);
 
-		fMetricsDumper = new MetricsDumpThread ();
+		fMetricsDumper = new MetricsDumpThread ( metricsPeriodMs );
 
 		final TreeSet<String> names = new TreeSet<String> (); 
 		for ( Map.Entry<String,Source> src : fProgram.getSources ().entrySet() )
@@ -245,10 +252,11 @@ public class Engine extends SimpleService implements Service
 
 	private class MetricsDumpThread extends Thread
 	{
-		public MetricsDumpThread ()
+		public MetricsDumpThread ( long periodMs )
 		{
 			super ( "processor metrics dumper" );
 			setDaemon ( true );
+			fPeriodMs = periodMs;
 		}
 	
 		@Override
@@ -259,7 +267,7 @@ public class Engine extends SimpleService implements Service
 				boolean running = true;
 				while ( running )
 				{
-					Thread.sleep ( 5000 );
+					Thread.sleep ( fPeriodMs );
 
 					final String text = fEngineMetrics.toJson ().toString ();
 					metricsLog.info ( text );
@@ -282,6 +290,8 @@ public class Engine extends SimpleService implements Service
 				log.warn ( "Metrics dumper terminated: ", e );
 			}
 		}
+
+		private final long fPeriodMs;
 	}
 	
 	/**
@@ -351,45 +361,60 @@ public class Engine extends SimpleService implements Service
 
 				// while we have messages, push them through the pipeline...
 				log.info ( "Source " + fSrcName + ": START" );
-				while ( !fSource.isEof () && !fStreamContext.failed () )
+
+				// open the source
+				fSource.open ();
+				try
 				{
-					cycles.mark ();
-
-					final MessageAndRouting msgAndRoute;
-					try (
-						PathPopper pp = fThreadMetrics.push ( fSrcName );
-						Timer.Context mlt = msgLoadTime.time ()
-					)
+					while ( !fSource.isEof () && !fStreamContext.failed () )
 					{
-						msgAndRoute = fSource.getNextMessage ( fStreamContext, 500, TimeUnit.MILLISECONDS );
-					}
-
-					if ( msgAndRoute != null )
-					{
-						msgsIn.mark ();
-
-						final Pipeline pl = fProgram.getPipeline ( msgAndRoute.getPipelineName () );
-						if ( pl == null )
+						cycles.mark ();
+	
+						final MessageAndRouting msgAndRoute;
+						try (
+							PathPopper pp = fThreadMetrics.push ( fSrcName );
+							Timer.Context mlt = msgLoadTime.time ()
+						)
 						{
-							log.info ( "No pipeline {} for source \"{}\", ignored.", msgAndRoute.getPipelineName (), fSrcName );
+							msgAndRoute = fSource.getNextMessage ( fStreamContext, 500, TimeUnit.MILLISECONDS );
 						}
-						else
+	
+						if ( msgAndRoute != null )
 						{
-							try ( Timer.Context ctx = procTime.time () )
+							msgsIn.mark ();
+	
+							final Pipeline pl = fProgram.getPipeline ( msgAndRoute.getPipelineName () );
+							if ( pl == null )
 							{
-								pl.process ( mpcBuilder.build ( msgAndRoute.getMessage () ) );
+								log.info ( "No pipeline {} for source \"{}\", ignored.", msgAndRoute.getPipelineName (), fSrcName );
 							}
+							else
+							{
+								try ( Timer.Context ctx = procTime.time () )
+								{
+									pl.process ( mpcBuilder.build ( msgAndRoute.getMessage () ) );
+								}
+							}
+							fSource.markComplete ( fStreamContext, msgAndRoute );
 						}
-						fSource.markComplete ( fStreamContext, msgAndRoute );
+					}
+					if ( fSource.isEof () )
+					{
+						log.info ( "Source " + fSrcName + ": EOF" );
+	
+						for ( Map.Entry<String, ProcessingService> entry : fProgram.getServicesFor ( fSrcName ).entrySet () )
+						{
+							entry.getValue ().onSourceEof ();
+						}
+					}
+					else
+					{
+						log.warn ( "Processing stopped." );
 					}
 				}
-				if ( fSource.isEof () )
+				finally
 				{
-					log.info ( "Source " + fSrcName + ": EOF" );
-				}
-				else
-				{
-					log.warn ( "Processing stopped." );
+					fSource.close ();
 				}
 			}
 			catch ( IOException e )

@@ -29,9 +29,29 @@ public class Log implements Processor
 {
 	public Log ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
-		fLog = LoggerFactory.getLogger ( config.optString ( "logName", "" ) );
-		fFormat = config.optString ( "format", "{}" );
-		fEval = config.optString ( "expression", null );
+		this ( config.optString ( "logName", "" ), config.optString ( "format", "{}" ), config.optString ( "expression", null ) );
+	}
+
+	public Log ( ) throws BuildFailure
+	{
+		this ( "" );
+	}
+
+	public Log ( String logName ) throws BuildFailure
+	{
+		this ( logName, "{}" );
+	}
+
+	public Log ( String logName, String format ) throws BuildFailure
+	{
+		this ( logName, format, null );
+	}
+
+	public Log ( String logName, String format, String eval ) throws BuildFailure
+	{
+		fLog = LoggerFactory.getLogger ( logName );
+		fFormat = format;
+		fEval = eval;
 	}
 
 	@Override

@@ -8,7 +8,7 @@
 
 	<!-- When changing version, also change parent version number in sub-pom files -->
 	<!-- You can run versionUpdate.sh in this directory to do this. -->
-	<version>0.2.28</version>
+	<version>0.2.29</version>
 	<packaging>pom</packaging>
 
 	<name>ContinualIO</name>
@@ -58,8 +58,8 @@
 		<module>iam</module>
 		<module>service</module>
 		<module>messaging</module>
-		<module>eventFlows</module>
 		<module>model</module>
+		<module>eventFlows</module>
 		<module>integration</module>
 	</modules>
 
@@ -103,6 +103,12 @@
 				<groupId>com.jayway.jsonpath</groupId>
 				<artifactId>json-path</artifactId>
 				<version>2.6.0</version>
+			</dependency>
+
+	 		<dependency>
+				<groupId>javax.mail</groupId>
+				<artifactId>javax.mail-api</artifactId>
+				<version>1.6.2</version>
 			</dependency>
 
 		</dependencies>
