@@ -35,6 +35,7 @@ public class CommonJsonApiKey implements ApiKey
 		fId = id;
 		fUserId = record.optString ( CommonJsonDb.kUserId, record.optString ( "user", null ) );
 		fSecret = record.getString ( CommonJsonDb.kSecret );
+		fCreateTsMs = record.optLong ( CommonJsonDb.kCreateTsMs, kDefaultTs );
 
 		if ( fUserId == null )
 		{
@@ -51,7 +52,13 @@ public class CommonJsonApiKey implements ApiKey
 	@Override
 	public String getUserId () { return fUserId; }
 
+	@Override
+	public long getCreationTimestamp () { return fCreateTsMs; }
+
 	private final String fId;
 	private final String fSecret;
 	private final String fUserId;
+	private final long fCreateTsMs;
+
+	private static final long kDefaultTs = 0L;
 }

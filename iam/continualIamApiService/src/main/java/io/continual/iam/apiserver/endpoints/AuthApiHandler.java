@@ -6,7 +6,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.continual.http.service.framework.context.CHttpRequestContext;
-import io.continual.http.util.http.standards.HttpStatusCodes;
 import io.continual.iam.IamServiceManager;
 import io.continual.iam.credentials.UsernamePasswordCredential;
 import io.continual.iam.exceptions.IamSvcException;
@@ -14,6 +13,7 @@ import io.continual.iam.identity.Identity;
 import io.continual.iam.identity.UserContext;
 import io.continual.restHttp.ApiContextHelper;
 import io.continual.restHttp.HttpServlet;
+import io.continual.util.standards.HttpStatusCodes;
 
 /**
  * Auth API

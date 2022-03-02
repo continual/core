@@ -281,6 +281,8 @@ public class FileSystemModel extends CommonJsonDbModel
 		return new File ( getObjectDir(), mop.toString () );
 	}
 
+	private static final String kOldDataTag = "Ⓤ";
+	
 	protected ModelObject loadObject ( ModelRequestContext context, final Path objectPath ) throws ModelServiceException, ModelRequestException
 	{
 		final File obj = getFileFor ( objectPath );
@@ -299,6 +301,15 @@ public class FileSystemModel extends CommonJsonDbModel
 			{
 				throw new ModelServiceException ( x );
 			}
+			
+			// an older version of this system put data into a field called "Ⓤ"
+			final JSONObject inner = rawData.optJSONObject ( kOldDataTag);
+			if ( inner != null )
+			{
+				rawData.remove ( kOldDataTag );
+				rawData.put ( "data", inner );
+			}
+
 			return new CommonJsonDbObject ( objectPath.toString (), rawData );
 		}
 		else if ( obj.isDirectory () )

@@ -29,8 +29,8 @@ import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.http.service.framework.routing.CHttpRequestRouter;
 import io.continual.http.service.framework.routing.playish.CHttpPlayishInstanceCallRoutingSource;
 import io.continual.http.service.framework.routing.playish.CHttpPlayishRoutingFileSource;
-import io.continual.http.util.http.standards.HttpStatusCodes;
 import io.continual.restHttp.HttpSessionContextHelper.NoLoginException;
+import io.continual.util.standards.HttpStatusCodes;
 import io.continual.util.standards.MimeTypes;
 
 public abstract class TypicalHttpRouter implements HttpRouter

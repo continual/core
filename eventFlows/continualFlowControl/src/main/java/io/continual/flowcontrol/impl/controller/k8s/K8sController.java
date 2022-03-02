@@ -48,18 +48,20 @@ import io.fabric8.kubernetes.client.dsl.PodResource;
 
 public class K8sController extends SimpleService implements FlowControlDeploymentService
 {
-	private static final String kSetting_k8sContext = "context";
-	private static final String kSetting_Namespace = "namespace";
+	static final String kSetting_k8sContext = "context";
+	static final String kSetting_Namespace = "namespace";
 
-	private static final String kSetting_StorageClass = "storageClass";
-	private static final String kDefault_StorageClass = "";
+	static final String kSetting_StorageClass = "storageClass";
+	static final String kDefault_StorageClass = "";
 
-	private static final String kSetting_ConfigMountLoc = "configMountLoc";
-	private static final String kDefault_ConfigMountLoc = "/var/flowcontrol";
-	
+	static final String kSetting_ConfigMountLoc = "configMountLoc";
+	static final String kDefault_ConfigMountLoc = "/var/flowcontrol";
+
+	static final String kSetting_ConfigTransfer = "configTransfer";
+
 	public K8sController ( ServiceContainer sc, JSONObject config ) throws BuildFailure
 	{
-		fConfigTransfer = sc.get ( config.optString ( "configTransfer", "configTransfer" ), ConfigTransferService.class );
+		fConfigTransfer = sc.get ( config.optString ( kSetting_ConfigTransfer, "configTransfer" ), ConfigTransferService.class );
 		if ( fConfigTransfer == null ) throw new BuildFailure ( "No configTransfer service" );
 
 		final String contextName = config.optString ( kSetting_k8sContext, null );

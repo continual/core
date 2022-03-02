@@ -22,9 +22,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.continual.http.service.framework.context.CHttpRequestContext;
-import io.continual.http.util.http.standards.HttpStatusCodes;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.service.ModelService;
+import io.continual.util.standards.HttpStatusCodes;
 
 public class ModelApi extends ModelApiContextHelper
 {

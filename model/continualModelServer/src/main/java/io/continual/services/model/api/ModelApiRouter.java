@@ -27,7 +27,6 @@ import io.continual.builder.Builder.BuildFailure;
 import io.continual.http.service.framework.CHttpErrorHandler;
 import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.http.service.framework.routing.CHttpRequestRouter;
-import io.continual.http.util.http.standards.HttpStatusCodes;
 import io.continual.restHttp.HttpServlet;
 import io.continual.restHttp.TypicalHttpRouter;
 import io.continual.services.ServiceContainer;
@@ -41,6 +40,7 @@ import io.continual.services.model.core.exceptions.ModelItemDoesNotExistExceptio
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.service.ModelService;
 import io.continual.util.nv.NvReadable;
+import io.continual.util.standards.HttpStatusCodes;
 import io.continual.util.standards.MimeTypes;
 
 public class ModelApiRouter extends TypicalHttpRouter

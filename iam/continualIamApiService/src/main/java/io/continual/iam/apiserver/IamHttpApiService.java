@@ -19,7 +19,6 @@ import io.continual.http.service.framework.routing.CHttpRouteInvocation;
 import io.continual.http.service.framework.routing.CHttpRouteSource;
 import io.continual.http.service.framework.routing.playish.CHttpPlayishInstanceCallRoutingSource;
 import io.continual.http.service.framework.routing.playish.CHttpPlayishStaticEntryPointRoutingSource;
-import io.continual.http.util.http.standards.HttpStatusCodes;
 import io.continual.iam.IamServiceManager;
 import io.continual.iam.apiserver.endpoints.AuthApiHandler;
 import io.continual.iam.apiserver.endpoints.IamApiHandler;
@@ -32,6 +31,7 @@ import io.continual.services.SimpleService;
 import io.continual.util.naming.Name;
 import io.continual.util.naming.Path;
 import io.continual.util.nv.NvReadable;
+import io.continual.util.standards.HttpStatusCodes;
 import io.continual.util.standards.MimeTypes;
 
 public class IamHttpApiService extends SimpleService

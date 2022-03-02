@@ -23,11 +23,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.continual.http.service.framework.context.CHttpRequestContext;
-import io.continual.http.util.http.standards.HttpStatusCodes;
 import io.continual.iam.IamServiceManager;
 import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.Identity;
 import io.continual.iam.identity.UserContext;
+import io.continual.util.standards.HttpStatusCodes;
 import io.continual.util.standards.MimeTypes;
 
 public class HttpSessionContextHelper

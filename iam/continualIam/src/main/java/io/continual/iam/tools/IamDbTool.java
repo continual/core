@@ -1,5 +1,9 @@
 package io.continual.iam.tools;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collections;
 import java.util.HashMap;
@@ -7,6 +11,8 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Vector;
+
+import org.json.JSONException;
 
 import io.continual.iam.IamDb;
 import io.continual.iam.access.AccessControlList;
@@ -27,6 +33,7 @@ import io.continual.util.console.shell.SimpleCommand;
 import io.continual.util.console.shell.StdCommandList;
 import io.continual.util.nv.NvReadable;
 import io.continual.util.nv.NvReadable.MissingReqdSettingException;
+import io.continual.util.time.Clock;
 
 public abstract class IamDbTool<I extends Identity, G extends Group> extends ConsoleProgram
 {
@@ -523,6 +530,8 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					HashMap<String,Object> workspace, CmdLinePrefs p, PrintStream outTo )
 						throws UsageException, NvReadable.MissingReqdSettingException
 				{
+					final long nowMs = Clock.now ();
+
 					if ( args.size () != 3 )
 					{
 						outTo.println ( "usage: restoreApiKey <userId> <apiKey> <apiSecret>" );
@@ -541,6 +550,9 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 
 							@Override
 							public String getSecret () { return args.elementAt ( 2 ); }
+
+							@Override
+							public long getCreationTimestamp () { return nowMs; }
 						} );
 					}
 					catch ( IamSvcException | IamBadRequestException e )
@@ -986,6 +998,62 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 					catch ( IamBadRequestException e )
 					{
 						outTo.println ( "Request problem: " + e.getMessage () );
+					}
+				}
+			} );
+
+			registerCommand ( new IamDbCmd ( "backup", true )
+			{
+				@Override
+				protected void execute ( IamDb<?,?> db, Vector<String> args,
+					HashMap<String,Object> workspace, CmdLinePrefs p, PrintStream outTo )
+						throws UsageException, NvReadable.MissingReqdSettingException
+				{
+					if ( args.size () != 1 )
+					{
+						outTo.println ( "usage: backup <toFile>" );
+						return;
+					}
+
+					try ( FileOutputStream fos = new FileOutputStream ( new File ( args.elementAt ( 0 ) ) ) )
+					{
+						new IamDbBackup<I,G> ( fDb ).backupTo ( fos );
+					}
+					catch ( IOException e )
+					{
+						outTo.println ( "Couldn't write file: " + e.getMessage () );
+					}
+					catch ( IamSvcException e )
+					{
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
+					}
+				}
+			} );
+
+			registerCommand ( new IamDbCmd ( "restore", true )
+			{
+				@Override
+				protected void execute ( IamDb<?,?> db, Vector<String> args,
+					HashMap<String,Object> workspace, CmdLinePrefs p, PrintStream outTo )
+						throws UsageException, NvReadable.MissingReqdSettingException
+				{
+					if ( args.size () != 1 )
+					{
+						outTo.println ( "usage: restore <fromFile>" );
+						return;
+					}
+
+					try ( FileInputStream fis = new FileInputStream ( new File ( args.elementAt ( 0 ) ) ) )
+					{
+						new IamDbBackup<I,G> ( fDb ).restoreFrom ( fis );
+					}
+					catch ( JSONException | IOException e )
+					{
+						outTo.println ( "Couldn't read file: " + e.getMessage () );
+					}
+					catch ( IamSvcException e )
+					{
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
 					}
 				}
 			} );

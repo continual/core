@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.http.service.framework.context.CHttpRequestContext;
-import io.continual.http.util.http.standards.HttpStatusCodes;
 import io.continual.iam.IamServiceManager;
 import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.Identity;
@@ -37,6 +36,7 @@ import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.model.service.ModelService;
 import io.continual.services.model.service.ModelSession;
 import io.continual.util.naming.Path;
+import io.continual.util.standards.HttpStatusCodes;
 import io.continual.util.standards.MimeTypes;
 
 public class ModelApiContextHelper extends ApiContextHelper<Identity>

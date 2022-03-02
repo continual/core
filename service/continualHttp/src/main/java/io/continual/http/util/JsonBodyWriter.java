@@ -23,7 +23,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import io.continual.http.service.framework.context.CHttpRequestContext;
-import io.continual.http.util.http.standards.HttpStatusCodes;
+import io.continual.util.standards.HttpStatusCodes;
 import io.continual.util.standards.MimeTypes;
 
 /**

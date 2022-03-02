@@ -227,12 +227,12 @@ public class HttpService implements Service
 
 					connector.setScheme ( "https" );
 					connector.setSecure ( true );
-					connector.setAttribute ( "keystoreFile", keystoreFilename );
-					connector.setAttribute ( "keystorePass", keystorePassword );
-					connector.setAttribute ( "keyAlias", keystoreAlias );
-					connector.setAttribute ( "clientAuth", "false" );
-					connector.setAttribute ( "sslProtocol", "TLS" );
-					connector.setAttribute ( "SSLEnabled", true );
+					connector.setProperty ( "keystoreFile", keystoreFilename );
+					connector.setProperty ( "keystorePass", keystorePassword );
+					connector.setProperty ( "keyAlias", keystoreAlias );
+					connector.setProperty ( "clientAuth", "false" );
+					connector.setProperty ( "sslProtocol", "TLS" );
+					connector.setProperty ( "SSLEnabled", "true" );
 					connector.setPort ( port );
 
 					transferConnectorAttributes ( connector, httpConfig.optJSONObject ( "tomcat" ) );
@@ -350,7 +350,7 @@ public class HttpService implements Service
 			@Override
 			public boolean visit ( String key, Object val ) throws JSONException
 			{
-				connector.setAttribute ( key, val );
+				connector.setProperty ( key, String.valueOf ( val ) );
 				return true;
 			}
 		} );

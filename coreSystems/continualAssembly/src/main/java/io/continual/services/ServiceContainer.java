@@ -142,7 +142,7 @@ public class ServiceContainer
 		fServiceByName = new MultiMap<String,Service> ();
 	}
 
-	public synchronized void add ( String name, Service s )
+	public synchronized ServiceContainer add ( String name, Service s )
 	{
 		fServices.add ( s );
 		if ( name != null )
@@ -154,6 +154,7 @@ public class ServiceContainer
 			}
 			fServiceByName.put ( name, s );
 		}
+		return this;
 	}
 
 	public synchronized List<String> getServiceNames ()

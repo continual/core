@@ -64,6 +64,7 @@ public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends Common
 	public static final String kExpireEpoch = "expireEpoch";
 	public static final String kSecret = "secret";
 	public static final String kAlias = "alias";
+	public static final String kCreateTsMs = "createMs";
 
 	public static final String kEnabled = "enabled";
 

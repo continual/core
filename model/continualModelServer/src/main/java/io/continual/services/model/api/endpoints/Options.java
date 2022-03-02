@@ -18,9 +18,9 @@ package io.continual.services.model.api.endpoints;
 
 import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.http.service.framework.context.CHttpResponse;
-import io.continual.http.util.http.standards.HttpStatusCodes;
 import io.continual.iam.identity.Identity;
 import io.continual.restHttp.ApiContextHelper;
+import io.continual.util.standards.HttpStatusCodes;
 
 public class Options extends ApiContextHelper<Identity>
 {

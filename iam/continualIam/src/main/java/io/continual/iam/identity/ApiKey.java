@@ -37,4 +37,10 @@ public interface ApiKey
 	 * @return the user id
 	 */
 	String getUserId ();
+
+	/**
+	 * Get the creation timestamp
+	 * @return the API creation timestamp
+	 */
+	long getCreationTimestamp ();
 }
