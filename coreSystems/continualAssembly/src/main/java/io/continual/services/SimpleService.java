@@ -16,7 +16,11 @@
 
 package io.continual.services;
 
+import java.util.concurrent.TimeUnit;
+
 import org.json.JSONObject;
+
+import io.continual.util.time.Clock;
 
 /**
  * A simple service doesn't start/stop.
@@ -43,6 +47,23 @@ public class SimpleService implements Service
 	{
 		fStopped = true;
 		onStopRequested ();
+	}
+
+	/**
+	 * Request this service to finish and then wait for up to the given time. 
+	 * @param duration
+	 * @param units
+	 * @throws InterruptedException
+	 */
+	public void requestFinishAndWait ( long duration, TimeUnit units ) throws InterruptedException
+	{
+		requestFinish ();
+
+		final long waitUntilMs = Clock.now () + TimeUnit.MILLISECONDS.convert ( duration, units );
+		while ( isRunning () && Clock.now () <= waitUntilMs )
+		{
+			Thread.sleep ( 100 );
+		}
 	}
 
 	@Override

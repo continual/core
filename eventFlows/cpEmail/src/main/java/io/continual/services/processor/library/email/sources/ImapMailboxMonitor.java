@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Properties;
 
+import javax.mail.AuthenticationFailedException;
 import javax.mail.Flags;
 import javax.mail.Folder;
 import javax.mail.Message;
@@ -22,14 +23,23 @@ import io.continual.builder.Builder;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.email.impl.SimpleEmailService;
 import io.continual.services.ServiceContainer;
+import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.library.sources.BasicSource;
 import io.continual.services.processor.engine.model.MessageAndRouting;
 import io.continual.services.processor.engine.model.StreamProcessingContext;
+import io.continual.services.processor.library.email.sources.support.DataLoader;
+import io.continual.services.processor.library.email.sources.support.SeenTracker;
+import io.continual.services.processor.library.email.sources.support.SimpleMessageDataLoader;
 import io.continual.util.data.exprEval.ExpressionEvaluator;
 import io.continual.util.time.Clock;
 
 public class ImapMailboxMonitor extends BasicSource
 {
+	public ImapMailboxMonitor ( ConfigLoadContext clc, JSONObject config ) throws JSONException, BuildFailure
+	{
+		this ( clc.getServiceContainer (), config );
+	}
+
 	public ImapMailboxMonitor ( ServiceContainer sc, JSONObject config ) throws JSONException, BuildFailure
 	{
 		super ();
@@ -51,7 +61,17 @@ public class ImapMailboxMonitor extends BasicSource
 		fMailProps.put ( "mail.imaps.usesocketchannels", "true" );	// required for IMAP watch 
 		
 		fPending = new LinkedList<>();
-		fSeen = Builder.fromJson ( SeenTracker.class, config.getJSONObject ( "tracker" ), sc );
+		fSeenTracker = Builder.fromJson ( SeenTracker.class, config.getJSONObject ( "tracker" ), sc );
+
+		final JSONObject dataLoader = config.optJSONObject ( "dataLoader" );
+		if ( dataLoader != null )
+		{
+			fDataLoader = Builder.fromJson ( DataLoader.class, dataLoader );
+		}
+		else
+		{
+			fDataLoader = new SimpleMessageDataLoader ();
+		}
 	}
 
 	@Override
@@ -78,7 +98,8 @@ public class ImapMailboxMonitor extends BasicSource
 	private final long fPollIntervalMs;
 
 	private final LinkedList<io.continual.services.processor.engine.model.Message> fPending;
-	private final SeenTracker fSeen;
+	private final SeenTracker fSeenTracker;
+	private final DataLoader fDataLoader;
 
 	public static final String kSetting_MailLogin = SimpleEmailService.kSetting_MailLogin;
 	public static final String kSetting_MailPassword = SimpleEmailService.kSetting_MailPassword;
@@ -91,15 +112,15 @@ public class ImapMailboxMonitor extends BasicSource
 	public static final String kSetting_ImapServerUseAuth = "mailImapServerUseAuth";
 
 	public static final long kDefault_PollFreqMinutes = 5L;
-	
+
 	private synchronized void enqueue ( long uid, Message msg ) throws MessagingException
 	{
-		if ( fSeen.isUidSeen ( uid ) )
+		if ( fSeenTracker.isUidSeen ( uid ) )
 		{
 			log.debug ( "Msg " + uid + " was seen here; skipping" );
 			return;
 		}
-		fSeen.addUid ( uid );
+		fSeenTracker.addUid ( uid );
 
 		if ( msg.getFlags ().contains ( Flags.Flag.DELETED ) )
 		{
@@ -112,11 +133,14 @@ public class ImapMailboxMonitor extends BasicSource
 		{
 			try
 			{
-				fPending.add ( new MimeMessageWrapper ( uid, (MimeMessage) msg ) );
+				for ( io.continual.services.processor.engine.model.Message mmw : fDataLoader.getMessages ( uid, (MimeMessage) msg ) )
+				{
+					fPending.add ( mmw );
+				}
 			}
-			catch ( BuildFailure e )
+			catch ( BuildFailure | IOException e )
 			{
-				log.warn ( e.getMessage (), e );
+				log.warn ( "Failed to read message from IMAP email: " + e.getMessage () );
 			}
 		}
 		else
@@ -126,7 +150,7 @@ public class ImapMailboxMonitor extends BasicSource
 		}
 	}
 
-	private synchronized void readNextBatch ()
+	private synchronized void readNextBatch () throws IOException
 	{
 		final long nowMs = Clock.now ();
 		if ( fLastPollMs + fPollIntervalMs > nowMs )
@@ -161,6 +185,11 @@ public class ImapMailboxMonitor extends BasicSource
 					log.warn ( e.getMessage (), e );
 				}
 			}
+		}
+		catch ( AuthenticationFailedException e )
+		{
+			log.warn ( "Error reading email: {}", e.getMessage(), e );
+			throw new IOException ( e );
 		}
 		catch ( MessagingException e )
 		{

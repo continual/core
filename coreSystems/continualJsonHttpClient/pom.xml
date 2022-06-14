@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.2.30</version>
+		<version>0.2.31</version>
 		<artifactId>continualCoreSystems</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -46,9 +46,9 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-log4j12</artifactId>
-			<scope>test</scope>
+			<groupId>ch.qos.logback</groupId>
+		    <artifactId>logback-classic</artifactId>
+		    <scope>test</scope>
 		</dependency>
 
 	</dependencies>

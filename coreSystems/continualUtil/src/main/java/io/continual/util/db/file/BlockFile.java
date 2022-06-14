@@ -17,6 +17,7 @@ package io.continual.util.db.file;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -46,7 +47,7 @@ import javax.crypto.spec.PBEParameterSpec;
  * for the last block in the chain, the length of the data in the block.
  * 
  */
-public class BlockFile
+public class BlockFile implements Closeable
 {
 	public static final long kBadHandle = -1;
 
@@ -161,7 +162,7 @@ public class BlockFile
 	{
 		return fUnderlyingFile.getAbsolutePath ();
 	}
-	
+
 	/**
 	 * Close the file.
 	 * @throws IOException if the underlying file operation throws it
@@ -302,6 +303,11 @@ public class BlockFile
 	 */
 	public void overwrite ( long address, InputStream bytes ) throws IOException
 	{
+		if ( address < kHeaderLength )
+		{
+			throw new IOException ( "Address " + address + " is in the header block. (Did you mean to use indexToAddress?)" );
+		}
+
 		final OutputStream os = writeStream ( address );
 		copyStream ( bytes, os );
 		os.close ();

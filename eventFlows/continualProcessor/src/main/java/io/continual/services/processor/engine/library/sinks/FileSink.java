@@ -43,6 +43,14 @@ public class FileSink implements Sink
 		this ( new JSONObject ().put ( "to", stream ) );
 	}
 
+	public FileSink ( String stream, String lineFormat ) throws BuildFailure
+	{
+		this ( new JSONObject ()
+			.put ( "to", stream )
+			.put ( "lineFormat", lineFormat )
+		);
+	}
+
 	public FileSink ( JSONObject config ) throws BuildFailure
 	{
 		this ( null, config );
@@ -74,17 +82,29 @@ public class FileSink implements Sink
 			}
 		}
 
-		fLineFormat = config.optString ( "line", null );
+		fLineFormat = config.optString ( "lineFormat", null );
+
+		fHeader = config.optString ( "header", null );
+		fFooter = config.optString ( "footer", null );
 	}
 
 	@Override
 	public void init ()
 	{
+		if ( fHeader != null )
+		{
+			fStream.println ( fHeader );
+		}
 	}
 
 	@Override
 	public void close ()
 	{
+		if ( fFooter != null )
+		{
+			fStream.println ( fFooter );
+		}
+
 		if ( fCloseStream )
 		{
 			fStream.close ();
@@ -100,10 +120,16 @@ public class FileSink implements Sink
 	@Override
 	public void process ( MessageProcessingContext context )
 	{
-		fStream.println ( fLineFormat == null ? context.getMessage ().toLine () : context.evalExpression ( fLineFormat ) );
+		final String line = fLineFormat == null ?
+			context.getMessage ().toLine () :
+			context.evalExpression ( fLineFormat ) 
+		;
+		fStream.println ( line );
 	}
 
 	private final PrintStream fStream;
 	private final boolean fCloseStream;
 	private final String fLineFormat;
+	private final String fHeader;
+	private final String fFooter;
 }

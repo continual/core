@@ -22,6 +22,7 @@ import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONTokener;
 import org.junit.Test;
 
 import io.continual.util.data.json.JsonVisitor.ArrayOfObjectVisitor;
@@ -84,6 +85,73 @@ public class JsonUtilTest extends TestCase
 				return false;
 			}
 		} );
+	}
+
+	@Test
+	public void testArraySort2 ()
+	{
+		final String arrayData = "[\n"
+			+ "  {\n"
+			+ "    \"op\": 20,\n"
+			+ "    \"system\": \"CIN-13DIGITAL-TEMP\",\n"
+			+ "    \"qty\": 316.4375,\n"
+			+ "    \"category\": \"WASTE\"\n"
+			+ "  },\n"
+			+ "  {\n"
+			+ "    \"op\": 20,\n"
+			+ "    \"system\": \"CIN-13DIGITAL-TEMP\",\n"
+			+ "    \"qty\": 100,\n"
+			+ "    \"category\": \"INK\"\n"
+			+ "  },\n"
+			+ "  {\n"
+			+ "    \"op\": 20,\n"
+			+ "    \"system\": \"CIN-13DIGITAL-TEMP\",\n"
+			+ "    \"qty\": 25521.25,\n"
+			+ "    \"category\": \"LABOR\"\n"
+			+ "  },\n"
+			+ "  {\n"
+			+ "    \"op\": 20,\n"
+			+ "    \"system\": \"CIN-13DIGITAL-TEMP\",\n"
+			+ "    \"qty\": 100,\n"
+			+ "    \"category\": \"MATERIAL\"\n"
+			+ "  },\n"
+			+ "  {\n"
+			+ "    \"op\": 30,\n"
+			+ "    \"system\": \"CIN-ABG\",\n"
+			+ "    \"qty\": 266.5234375,\n"
+			+ "    \"category\": \"WASTE\"\n"
+			+ "  },\n"
+			+ "  {\n"
+			+ "    \"op\": 30,\n"
+			+ "    \"system\": \"CIN-ABG\",\n"
+			+ "    \"qty\": 25521.25,\n"
+			+ "    \"category\": \"LABOR\"\n"
+			+ "  },\n"
+			+ "  {\n"
+			+ "    \"op\": 40,\n"
+			+ "    \"system\": \"CIN-SLITINSPECT\",\n"
+			+ "    \"qty\": 86.609375,\n"
+			+ "    \"category\": \"WASTE\"\n"
+			+ "  },\n"
+			+ "  {\n"
+			+ "    \"op\": 40,\n"
+			+ "    \"system\": \"CIN-SLITINSPECT\",\n"
+			+ "    \"qty\": 25521.25,\n"
+			+ "    \"category\": \"LABOR\"\n"
+			+ "  },\n"
+			+ "  {\n"
+			+ "    \"op\": 10,\n"
+			+ "    \"system\": \"CIN-STAGING\",\n"
+			+ "    \"qty\": 0.25,\n"
+			+ "    \"category\": \"LABOR\"\n"
+			+ "  }\n"
+			+ "]";
+		
+		final JSONArray a = new JSONArray ( new JSONTokener ( arrayData ) );
+
+		JsonUtil.sortArrayOfObjects ( a, "op" );
+
+		assertEquals ( 10, a.getJSONObject ( 0 ).getInt ( "op" ) );
 	}
 
 	@Test

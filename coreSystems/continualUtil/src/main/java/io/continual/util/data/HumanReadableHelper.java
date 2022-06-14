@@ -257,7 +257,17 @@ public class HumanReadableHelper
 
 	public static String elapsedTimeSince ( long epochMs, long smallestUnitInMillis, int maxLevels )
 	{
-		final long elapsedMs = Clock.now () - epochMs;
+		return elapsedTimeBetween ( Clock.now (), epochMs, smallestUnitInMillis, maxLevels );
+	}
+
+	public static String elapsedTimeBetween ( long startMs, long endMs )
+	{
+		return elapsedTimeBetween ( startMs, endMs, 1, 2 );
+	}
+	
+	public static String elapsedTimeBetween ( long startMs, long endMs, long smallestUnitInMillis, int maxLevels )
+	{
+		final long elapsedMs = startMs - endMs;
 		if ( elapsedMs < 0 )
 		{
 			final String amt = timeValue ( elapsedMs * -1, TimeUnit.MILLISECONDS, smallestUnitInMillis, maxLevels );

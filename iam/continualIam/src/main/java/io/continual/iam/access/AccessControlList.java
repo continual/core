@@ -61,6 +61,18 @@ public class AccessControlList
 	 * @return a new builder
 	 */
 	public static Builder builder () { return new Builder (); }
+
+	/**
+	 * Return an ACL that allows any user to perform any operation
+	 * @return an ACL
+	 */
+	public static AccessControlList createOpenAcl ()
+	{
+		return builder ()
+			.withEntry ( AccessControlEntry.builder ().permit ().forAllUsers ().forAnyOperation ().build () )
+			.build ()
+		;
+	}
 	
 	/**
 	 * Construct an empty ACL

@@ -231,6 +231,18 @@ public class JsonConfigReader implements ConfigReader
 		} );
 	}
 
+	public static Filter readFilter ( JSONObject fromJson, ConfigLoadContext clc, List<String> pkgs ) throws BuildFailure
+	{
+		return Builder.withBaseClass ( Filter.class )
+			.withClassNameInData ()
+			.searchingPath ( Any.class.getPackage ().getName () )
+			.searchingPaths ( pkgs )
+			.providingContext ( clc )	// FIXME: clc has search path for pkgs... why both?
+			.usingData ( fromJson )
+			.build ()
+		;
+	}
+	
 	public Pipeline readPipeline ( String pipelineName, JSONArray rules, ArrayList<String> pkgs, ConfigLoadContext clc ) throws ConfigReadException
 	{
 		try
@@ -251,14 +263,7 @@ public class JsonConfigReader implements ConfigReader
 						final JSONObject ifBlock = rule.optJSONObject ( "if" );
 						if ( ifBlock != null )
 						{
-							f = Builder.withBaseClass ( Filter.class )
-								.withClassNameInData ()
-								.searchingPath ( Any.class.getPackage ().getName () )
-								.searchingPaths ( pkgs )
-								.providingContext ( clc )
-								.usingData ( rule.getJSONObject ( "if" ) )
-								.build ()
-							;
+							f = readFilter ( rule.getJSONObject ( "if" ), clc, pkgs );
 						}
 						else
 						{

@@ -38,6 +38,11 @@ public class AccessControlEntry
 	public static final String kAnyUser = "*";
 
 	/**
+	 * Special setting "any operation"
+	 */
+	public static final String kAnyOperation = "*";
+
+	/**
 	 * Special user setting "owner"
 	 */
 	public static final String kOwner = "~owner~";
@@ -71,6 +76,7 @@ public class AccessControlEntry
 			return this;
 		}
 		public Builder operations ( Collection<String> ops ) { fOps.addAll ( ops ); return this; }
+		public Builder forAnyOperation () { return operation ( kAnyOperation ); }
 
 		public AccessControlEntry build () { return new AccessControlEntry ( this ); }
 
@@ -135,9 +141,9 @@ public class AccessControlEntry
 			( isOwner && (fWho.equals(kOwner) ) )				// the user is the ACL owner and this entry is for the owner
 		)
 		{
-			for ( String a : fOperations )
+			for ( String listedOp : fOperations )
 			{
-				if ( a.equalsIgnoreCase ( op ) )
+				if ( listedOp.equalsIgnoreCase ( op ) || listedOp.equals ( kAnyOperation ) )
 				{
 					return fPermission;
 				}

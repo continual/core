@@ -93,6 +93,11 @@ public class Message implements JsonSerialized
 		return JsonEval.evalToString ( fData, expression );
 	}
 
+	public boolean getBoolean ( String field, boolean def )
+	{
+		return fData.optBoolean ( field, def );
+	}
+
 	public int getInt ( String field, int i )
 	{
 		return fData.optInt ( field, i );

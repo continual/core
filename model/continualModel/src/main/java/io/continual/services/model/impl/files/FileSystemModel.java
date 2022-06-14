@@ -30,10 +30,13 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
+import io.continual.iam.access.AccessControlEntry;
+import io.continual.iam.access.AccessControlList;
 import io.continual.services.ServiceContainer;
 import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelObjectComparator;
 import io.continual.services.model.core.ModelObjectList;
+import io.continual.services.model.core.ModelOperation;
 import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRelation;
@@ -303,14 +306,27 @@ public class FileSystemModel extends CommonJsonDbModel
 			}
 			
 			// an older version of this system put data into a field called "Ⓤ"
-			final JSONObject inner = rawData.optJSONObject ( kOldDataTag);
-			if ( inner != null )
+			final JSONObject inner = rawData.optJSONObject ( kOldDataTag );
+			final boolean oldModel = ( inner != null );
+			if ( oldModel )
 			{
 				rawData.remove ( kOldDataTag );
 				rawData.put ( "data", inner );
 			}
 
-			return new CommonJsonDbObject ( objectPath.toString (), rawData );
+			final CommonJsonDbObject loadedObj = new CommonJsonDbObject ( objectPath.toString (), rawData );
+			if ( oldModel )
+			{
+				final AccessControlList acl = loadedObj.getAccessControlList ();
+				if ( acl.getEntries ().size () == 0 )
+				{
+					acl
+						.setOwner ( "_updated_" )
+						.permit ( AccessControlEntry.kAnyUser, ModelOperation.kAllOperations )
+					;
+				}
+			}
+			return loadedObj;
 		}
 		else if ( obj.isDirectory () )
 		{

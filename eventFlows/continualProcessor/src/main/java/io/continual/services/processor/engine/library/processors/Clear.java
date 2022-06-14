@@ -18,6 +18,7 @@ package io.continual.services.processor.engine.library.processors;
 
 import java.util.TreeSet;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
@@ -33,6 +34,11 @@ public class Clear implements Processor
 	{
 		fKeys = new TreeSet<> ();
 		fKeys.addAll ( JsonVisitor.arrayToList ( config.optJSONArray ( "keys" ) ) );
+	}
+
+	public Clear ( String field )
+	{
+		this ( new JSONObject().put ( "keys", new JSONArray().put ( field ) ) );
 	}
 
 	public Clear ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure

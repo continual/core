@@ -47,6 +47,15 @@ public class JsonObjectFileSource extends BasicSource
 		fSrc = null;
 	}
 
+	public JsonObjectFileSource ( final String filename ) throws BuildFailure
+	{
+		super ( );
+
+		fFilename = filename;
+		fEof = false;
+		fSrc = null;
+	}
+
 	@Override
 	public synchronized boolean isEof ()
 	{

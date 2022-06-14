@@ -24,6 +24,8 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.slf4j.LoggerFactory;
 
@@ -155,6 +157,28 @@ public class CHttpFormPostWrapper
 		return fIsMultipartFormData ?
 			fParsedValues.containsKey ( name ) :
 			fRequest.getParameterMap ().containsKey ( name );
+	}
+
+	/**
+	 * Get the form post parameters in a map from name to string value.
+	 * @return a map of post parameters
+	 * @throws ParseException 
+	 */
+	public Set<String> getKeys () throws ParseException 
+	{
+		final TreeSet<String> set = new TreeSet<>();
+
+		parseIfNeeded ();
+
+		if ( fIsMultipartFormData )
+		{
+			set.addAll ( fParsedValues.keySet () );
+		}
+		else
+		{
+			set.addAll ( fRequest.getParameterMap().keySet () );
+		}
+		return set;
 	}
 
 	/**

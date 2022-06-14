@@ -64,6 +64,11 @@ public class CmdLineParser
 		return registerOptionWithValue ( word, null, null, null );
 	}
 
+	public CmdLineParser registerOptionWithValue ( String word, String singleChar )
+	{
+		return registerOptionWithValue ( word, singleChar, null, null );
+	}
+
 	/**
 	 * register an option that takes a value
 	 * @param word the full word for this option, e.g. "verbose"

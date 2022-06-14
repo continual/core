@@ -1,0 +1,21 @@
+{
+	"name": "continual.io",
+
+	"driverOptions":
+	{
+		"browser": "chrome"
+	},
+
+	"steps":
+	[
+		{
+			"name":"Get main page",
+			"class": "BrowserGet",
+			"url":"https://continual.io",
+			"responseValidator":
+			[
+				{ "action":"title", "text":"continual.io" }
+			]
+		}
+	]
+}

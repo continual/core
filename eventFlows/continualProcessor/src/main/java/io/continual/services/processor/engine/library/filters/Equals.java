@@ -36,6 +36,12 @@ public class Equals implements Filter
 		fExprRight = config.get ( "right" );
 	}
 
+	public Equals ( String fieldKey, String fieldValue ) throws BuildFailure
+	{
+		fExprLeft = fieldKey;
+		fExprRight = fieldValue;
+	}
+
 	@Override
 	public JSONObject toJson ()
 	{

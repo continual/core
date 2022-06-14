@@ -53,7 +53,7 @@ public class SimpleEmailService extends SimpleService implements EmailService
 		fSenders = Executors.newFixedThreadPool ( config.optInt ( "threadCount", 1 ) );
 
 		final ExpressionEvaluator ee = sc.getExprEval ( config );
-		
+
 		fMailProps = new Properties ();
 		fMailProps.put ( "mail.smtp.host", ee.evaluateText ( config.optString ( kSetting_SmtpServer, "smtp.gmail.com" ) ) );
 		fMailProps.put ( "mail.smtp.port", "" + ee.evaluateTextToInt ( config.opt ( kSetting_SmtpServerPort ), 587 ) );
@@ -143,6 +143,12 @@ public class SimpleEmailService extends SimpleService implements EmailService
 			log.warn ( "SimpleEmailService shutdown took too long." );
 			Thread.currentThread ().interrupt ();
 		}
+	}
+
+	@Override
+	protected void onStopRequested ()
+	{
+		close ();
 	}
 
 	private final Properties fMailProps;
