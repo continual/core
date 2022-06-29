@@ -62,6 +62,11 @@ public class BasicAuthHelper
 		}
 
 		final String username = creds.substring ( 0, colon );
+		if ( username.isEmpty() )
+		{
+			IamAuthLog.info ( "username is empty" );
+			return null; 
+		}
 		final String password = creds.substring ( colon + 1 );
 		return new UsernamePasswordCredential ( username, password );
 	}

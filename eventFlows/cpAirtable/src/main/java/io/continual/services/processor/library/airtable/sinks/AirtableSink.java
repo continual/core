@@ -17,6 +17,7 @@
 package io.continual.services.processor.library.airtable.sinks;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 
 import org.json.JSONException;
@@ -39,9 +40,26 @@ import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.Sink;
 import io.continual.util.data.exprEval.ExpressionEvaluator;
+import io.continual.util.data.json.JsonVisitor;
+import io.continual.util.data.json.JsonVisitor.ObjectVisitor;
 
 public class AirtableSink implements Sink
 {
+	public enum FieldWriteStrategy
+	{
+		// always overwrite
+		OVERWRITE,
+
+		// overwrite the value if the target is empty
+		OVERWRITE_IF_TARGET_IS_EMPTY,
+
+		// overwrite the target value if the source has a value
+		OVERWRITE_IF_SOURCE_HAS_VALUE,
+
+		// append the source value to a target value
+		APPEND
+	}
+	
 	public AirtableSink ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
 		this ( sc.getServiceContainer (), config );
@@ -63,7 +81,28 @@ public class AirtableSink implements Sink
 				.withApiKey ( ee.evaluateText ( config.getString ( "apiKey" ) ) )
 				.build ()
 			;
-			
+
+			fFieldWriteStrategy = new HashMap<> ();
+			final JSONObject wsConfig = config.optJSONObject ( "writeStrategy" );
+			JsonVisitor.forEachElement ( wsConfig, new ObjectVisitor<String,BuildFailure> ()
+			{
+				@Override
+				public boolean visit ( String key, String val ) throws JSONException, BuildFailure
+				{
+					try
+					{
+						final FieldWriteStrategy fws = FieldWriteStrategy.valueOf ( val.toUpperCase () );
+						fFieldWriteStrategy.put ( key, fws );
+					}
+					catch ( IllegalArgumentException x )
+					{
+						throw new BuildFailure ( x );
+					}
+					return true;
+				}
+				
+			} );
+
 			log.info ( "Using Airtable base {}.", base );
 		}
 		catch ( JSONException x )
@@ -95,9 +134,11 @@ public class AirtableSink implements Sink
 		return fRecordCount;
 	}
 
-	@Override
+	@Override 
 	public synchronized void process ( MessageProcessingContext context )
 	{
+		String keyVal = "";
+
 		final MetricsCatalog mc = context.getStreamProcessingContext ().getMetrics ();
 		try ( PathPopper pp = mc.push ( "AirtableSink" ))
 		{
@@ -117,23 +158,26 @@ public class AirtableSink implements Sink
 
 			// is this an overwrite or a create?
 			String existingRecordId = null;
+			AirtableRecord existingRecord = null;
 			if ( fKey != null )
 			{
-				String keyVal = msg.getValueAsString ( fKey );
+				keyVal = msg.getValueAsString ( fKey );
 				if ( keyVal == null ) keyVal = "";
 
 				// search for value in the key field
-				final List<AirtableRecord> existing = fAirtable.listRecords ( fAirtable.createSelector ( fTable ).filterWith ( fKey + " ='" + keyVal + "'" ) );
+				final List<AirtableRecord> existing = fAirtable.listRecords ( fAirtable.createSelector ( fTable ).filterWith ( fKey + "='" + keyVal + "'" ) );
 				if ( existing.size () > 0 )
 				{
-					existingRecordId = existing.get ( 0 ).getId ();
+					existingRecord = existing.get ( 0 );
+					existingRecordId = existingRecord.getId ();
 				}
 			}
 
 			// update or create a record
-			if ( existingRecordId != null )
+			if ( existingRecord != null )
 			{
-				fAirtable.patchRecord ( fTable, existingRecordId, obj ); 
+				final JSONObject update = merge ( existingRecord, obj );
+				fAirtable.patchRecord ( fTable, existingRecordId, update ); 
 			}
 			else
 			{
@@ -143,11 +187,81 @@ public class AirtableSink implements Sink
 		}
 		catch ( IOException | AirtableRequestException | AirtableServiceException e )
 		{
-			context.warn ( "Unable to post record to Airtable: " + e.getMessage () );
+			context.warn ( "Unable to post record [" + keyVal + "] to Airtable: " + e.getMessage () );
 		}
 		finally
 		{
 		}
+	}
+
+	private JSONObject merge ( AirtableRecord existingRecord, JSONObject newData )
+	{
+		final JSONObject result = new JSONObject ();
+		JsonVisitor.forEachElement ( newData, new ObjectVisitor<Object,JSONException> ()
+		{
+			@Override
+			public boolean visit ( String key, Object newVal ) throws JSONException
+			{
+				FieldWriteStrategy fws = fFieldWriteStrategy.get ( key );
+				if ( fws == null )
+				{
+					fws = FieldWriteStrategy.OVERWRITE_IF_SOURCE_HAS_VALUE;
+				}
+
+				final Object existingValue = existingRecord.getRawValue ( key );
+
+				switch ( fws )
+				{
+					case APPEND:
+					{
+						// appending is tricky... if source 1 is sending "foo" and source 2 is sending "bar", they'll never have
+						// values equal to the stored value and we'd end up appending the values over and over again.  Instead,
+						// we'll try a case-insensitive "contains" to decide if we need an update.
+
+						final String existingStr = existingValue == null ? "" : existingValue.toString ().trim ();
+						final String newStr = newVal == null ? "" : newVal.toString ().trim();
+						if ( !existingStr.toLowerCase ().contains ( newStr.toLowerCase () ) )
+						{
+							result.put ( key, existingStr + "\n" + newStr );
+						}
+						else
+						{
+							result.put ( key, existingStr );
+						}
+					}
+					break;
+
+					case OVERWRITE:
+					{
+						result.put ( key, newVal );
+					}
+					break;
+
+					case OVERWRITE_IF_TARGET_IS_EMPTY:
+					{
+						final String existingStr = existingValue == null ? "" : existingValue.toString ();
+						if ( existingStr.length () == 0 )
+						{
+							result.put ( key, newVal );
+						}
+					}
+					break;
+
+					default:
+					case OVERWRITE_IF_SOURCE_HAS_VALUE:
+					{
+						final String newStr = newVal == null ? "" : newVal.toString ();
+						if ( newStr.length () > 0 )
+						{
+							result.put ( key, newVal );
+						}
+					}
+					break;
+				}
+				return true;
+			}
+		} );
+		return result;
 	}
 
 	private final AirtableClient fAirtable;
@@ -155,6 +269,7 @@ public class AirtableSink implements Sink
 	private final String fKey;
 	private final String fRecordBlock;
 	private long fRecordCount;
+	private final HashMap<String,FieldWriteStrategy> fFieldWriteStrategy;
 
 	private static final Logger log = LoggerFactory.getLogger ( AirtableSink.class );
 }
