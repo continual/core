@@ -91,6 +91,18 @@ public class AccessControlEntry
 	 */
 	public static Builder builder() { return new Builder (); }
 
+	public AccessControlEntry ( AccessControlEntry that )
+	{
+		fWho = that.fWho;
+		fPermission = that.fPermission;
+
+		fOperations = new TreeSet<String> ();
+		for ( String op : that.fOperations )
+		{
+			fOperations.add ( op );
+		}
+	}
+
 	public AccessControlEntry ( String userOrGroupId, Access p, String operation )
 	{
 		this ( userOrGroupId, p, new String [] { operation } );

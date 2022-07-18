@@ -85,19 +85,19 @@ public class S3Model extends CommonJsonDbModel
 		try
 		{
 			final ExpressionEvaluator evaluator = sc.getExprEval ( config );
-			final JSONObject aws = config.getJSONObject ( "aws" );
+			final JSONObject evaledConfig = evaluator.evaluateJsonObject ( config );
 
 			fS3 = AmazonS3ClientBuilder
 				.standard ()
-				.withRegion ( Regions.US_WEST_2 )
+				.withRegion ( Regions.fromName ( evaledConfig.optString ( "region", Regions.US_WEST_2.getName () ) ) )
 				.withCredentials ( new S3Creds (
-					evaluator.evaluateText ( aws.getString ( "accessKey" ) ),
-					evaluator.evaluateText ( aws.getString ( "secretKey" ) )
+					evaledConfig.getString ( "accessKey" ),
+					evaledConfig.getString ( "secretKey" )
 				) )
 				.build ()
 			;
-			fBucketId = config.getString ( "bucket" );
-			fPrefix = config.optString ( "prefix", "" );
+			fBucketId = evaledConfig.getString ( "bucket" );
+			fPrefix = evaledConfig.optString ( "prefix", "" );
 		}
 		catch ( JSONException e )
 		{
@@ -230,7 +230,13 @@ public class S3Model extends CommonJsonDbModel
 		{
 			throw new IllegalArgumentException ( "The key [ " + s3Key + "] is not from this bucket." );
 		}
-		return Path.fromString ( s3Key.substring ( fPrefix.length () ) );
+
+		final String withoutPrefix = s3Key.substring ( fPrefix.length () );
+
+		Path asPath = Path.fromString ( withoutPrefix );
+		asPath = asPath.makePathWithinParent ( Path.fromString ( "/" + getAcctId() ) );
+		asPath = asPath.makePathWithinParent ( Path.fromString ( "/" + getId() ) );
+		return asPath;
 	}
 
 	private String pathToS3Path ( Path path )

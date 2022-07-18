@@ -47,7 +47,7 @@ public class LoggerPublisher extends SimpleService implements ContinualMessagePu
 			{
 				for ( ContinualMessage msg : msgs )
 				{
-					log.info ( topic + " (" + stream.getName () + "): " + msg.getMessagePayload ().toString () );
+					log.info ( topic + " (" + stream.getName () + "): " + msg.toJson ().toString () ); // msg.getMessagePayload ().toString () );
 				}
 			}
 		};

@@ -74,6 +74,20 @@ public class ContinualMessage implements JsonSerialized
 		}
 
 		/**
+		 * Add the message source system to this message
+		 * @param systemName the source system
+		 * @return this builder
+		 */
+		public Builder sentFromSource ( String systemName )
+		{
+			return this
+				.withMetaDataSection ( kStdMetadata )
+				.set ( kStdMetata_SentFrom, systemName )
+				.close ()
+			;
+		}
+
+		/**
 		 * Add message data to the message
 		 * @param data message payload
 		 * @return this builder
@@ -128,7 +142,14 @@ public class ContinualMessage implements JsonSerialized
 	 * Construct a builder for a message 
 	 * @return a message builder
 	 */
-	public static Builder builder () { return new Builder(); }
+	public static Builder builder ()
+	{
+		return new Builder ()
+			.withMetaDataSection ( kStdMetadata )
+			.set ( kStdMetata_Version, kPayloadVersion )
+			.close ()
+		;
+	}
 
 	/**
 	 * Instantiate a message from a serialized string (normally from toString())
@@ -209,8 +230,12 @@ public class ContinualMessage implements JsonSerialized
 
 	private final JSONObject fMessageData;
 
+	private static final String kPayloadVersion = "1";
+	
 	private static final String kMetadataKey = "∞ⓜⓔⓣⓐ∞";
-	private static final String kStdMetadata = "standard";
-	private static final String kStdMetata_CreateTime = "createTimeMs";
-	private static final String kStdMetata_CreatedBy = "createdBy";
+	private static final String kStdMetadata = "base";
+	private static final String kStdMetata_CreateTime = "msgCreateTimeMs";
+	private static final String kStdMetata_CreatedBy = "msgCreatedBy";
+	private static final String kStdMetata_SentFrom = "msgSource";
+	private static final String kStdMetata_Version = "msgFormatVersion";
 }

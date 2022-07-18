@@ -83,6 +83,20 @@ public class AccessControlList
 	}
 
 	/**
+	 * Construct an empty ACL
+	 */
+	public AccessControlList ( AccessControlList that )
+	{
+		fOwner = that.fOwner;
+		fEntries = new LinkedList<AccessControlEntry> ();
+		for ( AccessControlEntry e : that.fEntries )
+		{
+			fEntries.add ( new AccessControlEntry ( e ) );
+		}
+		fListener = null;
+	}
+
+	/**
 	 * Construct an ACL with the given update listener
 	 * @param listener a listener, which may be null
 	 */

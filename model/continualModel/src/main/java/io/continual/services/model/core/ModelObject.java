@@ -46,7 +46,7 @@ public interface ModelObject extends ProtectedResource, JsonSerialized
 	void putData ( JSONObject data );
 	
 	/**
-	 * Path the data in this object with the given data.
+	 * Patch the data in this object with the given data.
 	 * @param data
 	 */
 	void patchData ( JSONObject data );
