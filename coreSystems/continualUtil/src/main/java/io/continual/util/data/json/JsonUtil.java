@@ -27,6 +27,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.TreeSet;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -127,12 +128,17 @@ public class JsonUtil
 			final Object currVal = target.opt ( overlayKeyStr );
 			final Object newVal = overlay.get ( overlayKeyStr );
 
-			// one special case -- if the current value is an object and 
+			// if the current value is an object and 
 			// the overlay value is also an object, then we'll merge the two
 			// values into the target.
 			if ( currVal instanceof JSONObject && newVal instanceof JSONObject )
 			{
 				overlay ( (JSONObject) currVal, (JSONObject) newVal );
+			}
+			else if ( newVal == JSONObject.NULL )
+			{
+				// remove the key
+				target.remove ( overlayKeyStr );
 			}
 			else
 			{
@@ -484,5 +490,126 @@ public class JsonUtil
 	{
 		// we have to use a predictable key order
 		return writeConsistently ( o ).hashCode ();
+	}
+
+	/**
+	 * Write a JSON document while respecting explicit key ordering... even though such a thing makes no sense.
+	 * @param o
+	 * @return a JSON string
+	 */
+	public static String writeWithKeyOrder ( Object o ) { return writeWithKeyOrder ( o, 0 ); }
+
+	private static String writeWithKeyOrder ( Object o, int currentIndent )
+	{
+		if ( o instanceof JSONObject )
+		{
+			return writeWithKeyOrder ( (JSONObject) o, currentIndent );
+		}
+		else if ( o instanceof JSONArray )
+		{
+			return writeWithKeyOrder ( (JSONArray) o, currentIndent );
+		}
+		else
+		{
+			return JSONObject.valueToString ( o );
+		}
+	}
+
+	/**
+	 * Write a JSON document while respecting explicit key ordering... even though such a thing makes no sense.
+	 * @param a
+	 * @return a JSON string
+	 */
+	public static String writeWithKeyOrder ( JSONArray a ) { return writeWithKeyOrder ( a, 0 ); }
+
+	private static String writeWithKeyOrder ( JSONArray a, int currentIndent )
+	{
+		final StringBuilder sb = new StringBuilder ();
+		sb.append ( "[\n" );
+		boolean doneOne = false;
+		for ( int i=0; i<a.length(); i++ )
+		{
+			if ( doneOne )
+			{
+				sb.append ( ",\n" );
+			}
+			doneOne = true;
+
+			for ( int tab=0; tab<currentIndent+1; tab++ ) sb.append ( kTab );
+			sb.append ( writeWithKeyOrder ( a.opt ( i ), currentIndent+1 ) );
+		}
+		sb.append ( "\n" );
+		for ( int tab=0; tab<currentIndent; tab++ ) sb.append ( kTab );
+		sb.append ( "]" );
+
+		return sb.toString();
+	}
+
+	public static final String skKeyOrderArray = "__keyOrder";
+	private static final String kTab = "    ";
+
+	/**
+	 * Write a JSON document while respecting explicit key ordering... even though such a thing makes no sense.
+	 * For JSON objects, we look for an embedded key list and use that. Any keys present that are not in the list
+	 * are written after those in the list, and in alpha order.
+	 * @param o
+	 * @return a JSON string
+	 */
+	public static String writeWithKeyOrder ( JSONObject o ) { return writeWithKeyOrder ( o, 0 ); }
+
+	private static String writeWithKeyOrder ( JSONObject o, int currentIndent )
+	{
+		// build the ordered key list
+
+		JSONArray keyOrder = o.optJSONArray ( skKeyOrderArray );
+		if ( keyOrder == null ) keyOrder = new JSONArray ();
+
+		final TreeSet<String> unwrittenKeys = new TreeSet<> ();
+		unwrittenKeys.addAll ( o.keySet () );
+		unwrittenKeys.remove ( skKeyOrderArray );
+
+		final ArrayList<String> keysToWrite = new ArrayList<> ();
+		for ( int i=0; i<keyOrder.length (); i++ )
+		{
+			final String key = keyOrder.getString ( i );
+			keysToWrite.add ( key );
+			unwrittenKeys.remove ( key );
+		}
+
+		final ArrayList<String> remainingKeys = new ArrayList<> ();
+		remainingKeys.addAll ( unwrittenKeys );
+		Collections.sort ( remainingKeys );
+		keysToWrite.addAll ( remainingKeys );
+
+		
+		// iterate the key list to write the object
+		final StringBuilder sb = new StringBuilder ();
+		sb.append ( "{\n" );
+		for ( int tab=0; tab<currentIndent; tab++ ) sb.append ( kTab );
+		boolean doneOne = false;
+		for ( String key : keysToWrite )
+		{
+			// a bad field name in the key order array...
+			if ( !o.has ( key ) ) continue;
+			
+			if ( doneOne )
+			{
+				sb.append ( ",\n" );
+				for ( int tab=0; tab<currentIndent; tab++ ) sb.append ( kTab );
+			}
+			doneOne = true;
+
+			sb
+				.append ( kTab )
+				.append ( JSONObject.quote ( key ) )
+				.append ( ": " )
+				.append ( writeWithKeyOrder ( o.get ( key ), currentIndent+1 ) );
+			;
+		}
+		sb.append ( "\n" );
+		for ( int tab=0; tab<currentIndent; tab++ ) sb.append ( kTab );
+		sb.append ( "}" );
+
+		return sb.toString ();
 	}
 }

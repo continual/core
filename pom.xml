@@ -8,7 +8,7 @@
 
 	<!-- When changing version, also change parent version number in sub-pom files -->
 	<!-- You can run versionUpdate.sh in this directory to do this. -->
-	<version>0.2.33</version>
+	<version>0.2.34</version>
 	<packaging>pom</packaging>
 
 	<name>ContinualIO</name>
@@ -161,7 +161,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>2.9.1</version>
+				<version>3.1.1</version>
 				<executions>
 					<execution>
 						<id>attach-javadocs</id>

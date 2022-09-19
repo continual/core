@@ -23,7 +23,9 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.Date;
+import java.util.TimeZone;
 
 import io.continual.util.data.base64.Base64InputStream;
 import io.continual.util.data.base64.Base64OutputStream;
@@ -248,16 +250,17 @@ public class TypeConvertor
 		}
 	}
 
-	private static final SimpleDateFormat[] parsers = 
+	private static final String[] parsers = 
 	{
-		new SimpleDateFormat ( "MM/dd/yyyy H:mm:ss" ),
-		new SimpleDateFormat ( "MM/dd/yyyy" )
+		"MM/dd/yyyy H:mm:ss",
+		"MM/dd/yyyy"
 	};
-	
+
 	public static Date convertToDate ( String s )
 	{
-		for ( SimpleDateFormat sdf : parsers )
+		for ( String fmt : parsers )
 		{
+			final SimpleDateFormat sdf = new SimpleDateFormat ( fmt );
 			try
 			{
 				return sdf.parse ( s );
@@ -268,6 +271,36 @@ public class TypeConvertor
 			}
 		}
 		return null;
+	}
+
+	public static String dateToIso8601 ( Date d )
+	{
+		return dateToIso8601 ( d.getTime () );
+	}
+
+	public static String dateToIso8601 ( long ms )
+	{
+		return Instant.ofEpochMilli ( ms ).toString ();
+	}
+
+	public static long iso8601ToEpochMs ( String dt ) throws ParseException
+	{
+		final TimeZone utc = TimeZone.getTimeZone ( "UTC" );
+		for ( String format : new String [] { "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" } )
+		{
+			try
+			{
+				final SimpleDateFormat sdf = new SimpleDateFormat ( format );
+				sdf.setTimeZone ( utc );
+				final Date d = sdf.parse ( dt );
+				return d.getTime ();
+			}
+			catch ( ParseException e )
+			{
+				// ignore
+			}
+		}
+		throw new ParseException ( "Unrecognized 8601 format.", 0 );
 	}
 
 	public static byte[] convert ( int[] bytes ) throws conversionError

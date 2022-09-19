@@ -70,7 +70,7 @@ public abstract class BasicSource implements Source
 				if ( fRequeued.size () > 0 ) return fRequeued.remove ( 0 );
 
 				// is the source stream EOF?
-				if ( fEof ) return null;
+				if ( isEof() ) return null;
 
 				// go to the stream
 				final MessageAndRouting mr = internalGetNextMessage ( spc );

@@ -16,6 +16,7 @@
 
 package io.continual.util.data.json;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -90,6 +91,29 @@ public class JsonVisitor
 			}
 		}
 		return map;
+	}
+
+	public interface ObjectFilter
+	{
+		boolean matches ( JSONObject item );
+	}
+	
+	public static List<JSONObject> findMatchingObjects ( JSONArray a, ObjectFilter of )
+	{
+		final LinkedList<JSONObject> result = new LinkedList<> ();
+		forEachObjectIn ( a, new ArrayOfObjectVisitor ()
+		{
+			@Override
+			public boolean visit ( JSONObject item ) throws JSONException
+			{
+				if ( of.matches ( item ) )
+				{
+					result.add ( item );
+				}
+				return true;
+			}
+		} );
+		return result;
 	}
 
 	public static boolean listContains ( JSONArray a, String t )
@@ -188,7 +212,12 @@ public class JsonVisitor
 			return t;
 		}
 	}
-	
+
+	public static <T> JSONArray listToArray ( String[] list )
+	{
+		return listToArray ( Arrays.asList ( list ) );
+	}
+
 	public static <T> JSONArray listToArray ( Collection<T> list )
 	{
 		return listToArray ( list, new StdItemRenderer<T> () );
@@ -249,15 +278,28 @@ public class JsonVisitor
 		boolean visit ( String key, T t ) throws JSONException, E;
 	}
 
-	@SuppressWarnings("unchecked")
 	public static <T,E extends Exception> void forEachElement ( JSONObject object, ObjectVisitor<T,E> v ) throws JSONException, E
+	{
+		forEachElement ( object, v, false );
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <T,E extends Exception> void forEachElement ( JSONObject object, ObjectVisitor<T,E> v, boolean allowNulls ) throws JSONException, E
 	{
 		if ( object == null ) return;
 		for ( Object keyObj : object.keySet () )
 		{
 			final String key = keyObj.toString ();
 			final Object val = object.get ( key );
-			if ( ! ( v.visit ( key, (T)(val) ) ) )
+
+			if ( val == JSONObject.NULL && allowNulls )
+			{
+				if ( ! ( v.visit ( key, null ) ) )
+				{
+					break;
+				}
+			}
+			else if ( ! ( v.visit ( key, (T)(val) ) ) )
 			{
 				break;
 			}
