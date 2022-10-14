@@ -61,7 +61,14 @@ public class Log implements Processor
 			context.getMessage ().toLine () :
 			context.evalExpression ( fEval )
 		;
-		fLog.info ( fFormat, line );
+		if ( fFormat != null )
+		{
+			fLog.info ( fFormat, line );
+		}
+		else
+		{
+			fLog.info ( line );
+		}
 	}
 
 	private final Logger fLog;

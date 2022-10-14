@@ -14,16 +14,20 @@ import java.util.Map;
 import javax.servlet.ServletInputStream;
 import javax.servlet.ServletOutputStream;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.continual.http.service.framework.context.CHttpRequest;
 import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.http.service.framework.inspection.CHttpObserver;
 import io.continual.http.service.framework.inspection.CHttpObserverMgr;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.util.data.TypeConvertor;
+import io.continual.util.data.json.JsonVisitor;
+import io.continual.util.data.json.JsonVisitor.ArrayVisitor;
 import io.continual.util.time.Clock;
 
 public class CHttpTrxObserver extends SimpleService implements CHttpObserverMgr
@@ -36,6 +40,35 @@ public class CHttpTrxObserver extends SimpleService implements CHttpObserverMgr
 	public CHttpTrxObserver ( ServiceContainer sc, JSONObject config )
 	{
 		fBaseDir = new File ( config.optString ( "baseDir", "./logs" ) );
+
+		JsonVisitor.forEachElement ( config.optJSONArray ( "filters" ), new ArrayVisitor<JSONObject,JSONException> ()
+		{
+			@Override
+			public boolean visit ( JSONObject filter ) throws JSONException
+			{
+				final String logName = filter.getString ( "logName" );
+				final String method = filter.optString ( "method", ".*" );
+				final String path = filter.optString ( "path", ".*" );
+
+				addFilter ( new Filter ()
+				{
+					@Override
+					public String logName () { return logName; }
+
+					@Override
+					public boolean matches ( CHttpRequestContext ctx )
+					{
+						final CHttpRequest req = ctx.request ();
+						final String reqMethod = req.getMethod ();
+						final String reqPath = req.getPathInContext ();
+
+						return ( reqMethod.matches ( method ) && reqPath.matches ( path ) );
+					}
+					
+				} );
+				return true;
+			}
+		});
 	}
 
 	public interface Filter

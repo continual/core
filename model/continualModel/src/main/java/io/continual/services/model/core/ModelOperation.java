@@ -18,6 +18,9 @@ package io.continual.services.model.core;
 
 import io.continual.iam.access.AccessControlList;
 
+/**
+ * An operation over a model or model object.
+ */
 public class ModelOperation
 {
 	/**
@@ -46,9 +49,21 @@ public class ModelOperation
 	public static final ModelOperation ACL_UPDATE = new ModelOperation ( "acl_update" );
 
 	/**
+	 * The array of all operations
+	 */
+	public static ModelOperation[] kAllOperations = new ModelOperation[]
+	{
+		CREATE,
+		READ,
+		UPDATE,
+		DELETE,
+		ACL_UPDATE
+	};
+	
+	/**
 	 * The set of all operations as strings
 	 */
-	public static String[] kAllOperations = new String[]
+	public static String[] kAllOperationStrings = new String[]
 	{
 		CREATE.toString (),
 		READ.toString (),
@@ -56,7 +71,7 @@ public class ModelOperation
 		DELETE.toString (),
 		ACL_UPDATE.toString ()
 	};
-	
+
 	/**
 	 * Get the string value for the selected operation.
 	 * @return the value as a string

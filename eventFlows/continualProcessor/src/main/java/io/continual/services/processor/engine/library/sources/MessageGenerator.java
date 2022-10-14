@@ -44,7 +44,8 @@ public class MessageGenerator extends QueuingSource
 
 		try
 		{
-			fMessage = config.optJSONObject ( "message" );
+			final JSONObject given = config.optJSONObject ( "message" );
+			fMessage = given == null ? new JSONObject () : given;
 			fPauseMs = config.optLong ( "everyMs", 1000 );
 	
 			fNextMs = Clock.now () + fPauseMs;

@@ -16,7 +16,9 @@
 
 package io.continual.services.model.core;
 
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * A list of model objects. This list could be thousands of entries long and is therefore
@@ -24,21 +26,28 @@ import java.util.Iterator;
  */
 public interface ModelObjectList extends Iterable<ModelObject>
 {
+	/**
+	 * Construct an empty object list
+	 * @return an empty list
+	 */
 	static ModelObjectList emptyList ()
 	{
+		return simpleList ();
+	}
+
+	/**
+	 * Convenience method for creating a small list of objects.
+	 * @return a list of objects
+	 */
+	static ModelObjectList simpleList ( ModelObject... modelObjects )
+	{
+		final List<ModelObject> list = Arrays.asList ( modelObjects );
 		return new ModelObjectList ()
 		{
 			@Override
 			public Iterator<ModelObject> iterator ()
 			{
-				return new Iterator<ModelObject> ()
-				{
-					@Override
-					public boolean hasNext () { return false; }
-
-					@Override
-					public ModelObject next () { return null; }
-				};
+				return list.iterator ();
 			}
 		};
 	}

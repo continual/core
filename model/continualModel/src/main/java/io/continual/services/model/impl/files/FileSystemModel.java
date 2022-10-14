@@ -322,7 +322,7 @@ public class FileSystemModel extends CommonJsonDbModel
 				{
 					acl
 						.setOwner ( "_updated_" )
-						.permit ( AccessControlEntry.kAnyUser, ModelOperation.kAllOperations )
+						.permit ( AccessControlEntry.kAnyUser, ModelOperation.kAllOperationStrings )
 					;
 				}
 			}

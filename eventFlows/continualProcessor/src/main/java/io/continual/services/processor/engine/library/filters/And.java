@@ -53,6 +53,15 @@ public class And implements Filter
 		} );
 	}
 
+	public And ( Filter... filters )
+	{
+		fFilters = new LinkedList<> ();
+		for ( Filter f : filters )
+		{
+			fFilters.add ( f );
+		}
+	}
+
 	@Override
 	public JSONObject toJson ()
 	{

@@ -220,7 +220,7 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 		final CommonJsonDbObject result = new CommonJsonDbObject ();
 		result.getAccessControlList ()
 			.setOwner ( id.getId () )
-			.permit ( AccessControlEntry.kOwner, ModelOperation.kAllOperations )
+			.permit ( AccessControlEntry.kOwner, ModelOperation.kAllOperationStrings )
 		;
 		return result;
 	}

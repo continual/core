@@ -17,10 +17,10 @@ package io.continual.util.legal;
 
 public interface StdCopyrightInfo
 {
-	public static final String kHolder = "Continual.io";
+	public static final String kHolder = "Continual.io Corporation";
 	public static final int kStartYear = 2004;
 
 	// this must be updated each year, but it prevents the need for tracking
 	// the date in every project.
-	public static final int kBuildYear = 2021;
+	public static final int kBuildYear = 2022;
 }

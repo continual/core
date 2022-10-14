@@ -69,7 +69,7 @@ public class Server<T extends ServiceContainer> extends DaemonConsole
 	protected Looper init ( NvReadable p, CmdLinePrefs clp ) throws MissingReqdSettingException, InvalidSettingValueException, StartupFailureException 
 	{
 		super.quietStartup ();
-		for ( String line : kGreeting1 )
+		for ( String line : getPreCopyrightGreeting() )
 		{
 			log.info ( line.replaceAll ( "PROGNAME", getProgramName () ) );
 		}
@@ -80,7 +80,7 @@ public class Server<T extends ServiceContainer> extends DaemonConsole
 				log.info ( notice );
 			}
 		}
-		for ( String line : kGreeting2 )
+		for ( String line : getPostCopyrightGreeting() )
 		{
 			log.info ( line.replaceAll ( "PROGNAME", getProgramName () ) );
 		}
@@ -191,6 +191,9 @@ public class Server<T extends ServiceContainer> extends DaemonConsole
 
 	private static final Logger log = LoggerFactory.getLogger ( Server.class );
 
+	protected String[] getPreCopyrightGreeting () { return kGreeting1; }
+	protected String[] getPostCopyrightGreeting () { return kGreeting2; }
+	
 	private static final String[] kGreeting1 =
 		new String[]
 		{

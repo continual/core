@@ -375,4 +375,14 @@ public class StringUtils
 			new SpecialFnsDataSource ()
 		);
 	}
+
+	public static String limitLengthTo ( String s, int maxlen )
+	{
+		final int len = s.length ();
+		if ( len > maxlen )
+		{
+			return s.substring ( 0, maxlen );
+		}
+		return s;
+	}
 }
