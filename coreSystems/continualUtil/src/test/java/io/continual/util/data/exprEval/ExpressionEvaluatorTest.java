@@ -22,4 +22,38 @@ public class ExpressionEvaluatorTest extends TestCase
 		assertEquals ( "13", out.getString ( "a" ) );
 		assertEquals ( "element 1", out.getJSONArray ( "d" ).get ( 1 ) );
 	}
+
+	@Test
+	public void testEvalWithDefaults ()
+	{
+		assertEquals ( "32", new ExpressionEvaluator().evaluateText ( "${foo|32}" ) );
+
+		assertEquals ( "64", new ExpressionEvaluator (
+			new JsonDataSource (
+				new JSONObject().put ( "foo", 64 )
+			)
+		).evaluateText ( "${foo|32}" ) );
+	}
+
+	@Test
+	public void testEvalWithDefaultsAndSpaceInEvalText ()
+	{
+		assertEquals ( "32", new ExpressionEvaluator().evaluateText ( "${foo | 32 }" ) );
+
+		assertEquals ( "64", new ExpressionEvaluator (
+			new JsonDataSource (
+				new JSONObject().put ( "foo", 64 )
+			)
+		).evaluateText ( "${ foo| 32}" ) );
+	}
+
+	@Test
+	public void testEvalWithSpaceInEvalText ()
+	{
+		assertEquals ( "64", new ExpressionEvaluator (
+			new JsonDataSource (
+				new JSONObject().put ( "foo", 64 )
+			)
+		).evaluateText ( "${ foo }" ) );
+	}
 }

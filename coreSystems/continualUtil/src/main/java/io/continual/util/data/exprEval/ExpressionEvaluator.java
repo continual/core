@@ -117,8 +117,32 @@ public class ExpressionEvaluator
 				else
 				{
 					sb.append ( sourceString.substring ( 0, open ) );
-					final String key = sourceString.substring ( open+2, closer );
-					final Object symval = evaluateSymbol ( key, srcs );
+					String key = sourceString.substring ( open+2, closer ).trim ();
+					String defval = null;
+
+					// allow a default value in the key expression via vertical bar separator
+					final int vertBar = key.indexOf ( '|' );
+					if ( vertBar > -1 )
+					{
+						defval = key.substring ( vertBar + 1 ).trim ();
+						key = key.substring ( 0, vertBar ).trim ();
+					}
+
+					ExprDataSource[] allSrcs = srcs;
+					if ( defval != null )
+					{
+						final String finalDefVal = defval;
+
+						allSrcs = new ExprDataSource [ srcs.length + 1 ];
+						System.arraycopy ( srcs, 0, allSrcs, 0, srcs.length );
+						allSrcs [ srcs.length ] = new ExprDataSource ()
+						{
+							@Override
+							public Object eval ( String label ) { return finalDefVal; }
+						};
+					}
+
+					final Object symval = evaluateSymbol ( key, allSrcs );
 					sb.append ( symval == null ? "" : symval.toString () );
 					sourceString = sourceString.substring ( closer + 1 );
 				}
