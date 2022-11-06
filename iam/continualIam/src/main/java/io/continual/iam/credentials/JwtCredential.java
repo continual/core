@@ -113,11 +113,11 @@ public class JwtCredential
 				fAudience.add ( payload.getString ( "aud" ) );
 			}
 
-			final long expiresSec = payload.getLong ( "exp" );
+			fExpiresSec = payload.getLong ( "exp" );
 			final long nowSec = Clock.now () / 1000L;
-			if ( checkExpired && expiresSec < nowSec )
+			if ( checkExpired && fExpiresSec < nowSec )
 			{
-				log.info ( "Expired token. exp=" + expiresSec + "; currently " + nowSec );
+				log.info ( "Expired token. exp=" + fExpiresSec + "; currently " + nowSec );
 				throw new InvalidJwtToken ();
 			}
 
@@ -175,10 +175,14 @@ public class JwtCredential
 		return fAlgo;
 	}
 	
+	public long getExpiration () { return fExpiresSec; }
+	public boolean isExpired () { return getExpiration() < ( Clock.now() / 1000L ); }
+	
 	private final String fOrigToken;
 	private final String fSubject;
 	private final String fIssuer;
 	private final TreeSet<String> fAudience;
+	private final long fExpiresSec;
 	private final String fSignedContent;
 	private final String fSignature;
 	private final String fAlgo;

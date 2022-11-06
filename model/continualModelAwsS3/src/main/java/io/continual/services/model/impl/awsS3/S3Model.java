@@ -167,7 +167,7 @@ public class S3Model extends CommonJsonDbModel
 		};
 	}
 
-	private class S3ModelQuery extends SimpleModelQuery implements ModelQuery
+	private class S3ModelQuery extends SimpleModelQuery
 	{
 		@Override
 		public ModelObjectList execute ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException

@@ -18,14 +18,13 @@ package io.continual.builder.sources;
 
 import java.util.prefs.Preferences;
 
-import io.continual.builder.BuilderDataSource;
 import io.continual.builder.common.CommonDataSource;
 import io.continual.util.nv.NvReadable;
 
 /**
  * A builder data source backed by a settings instance.
  */
-public class BuilderReadableDataSource extends CommonDataSource implements BuilderDataSource
+public class BuilderReadableDataSource extends CommonDataSource
 {
 	public BuilderReadableDataSource ( NvReadable data )
 	{

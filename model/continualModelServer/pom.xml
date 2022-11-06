@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.2.36</version>
+		<version>0.2.37</version>
 		<artifactId>continualModelSystems</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -42,13 +42,13 @@
 			<artifactId>continualEmail</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-
+<!--
 		<dependency>
 			<groupId>io.continual</groupId>
 			<artifactId>continualIamS3</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-
+-->
 		<dependency>
 			<groupId>io.continual</groupId>
 			<artifactId>continualJsonHttpClient</artifactId>
@@ -66,5 +66,27 @@
 		</dependency>
 
 	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<descriptors>
+						<descriptor>src/assembly/dep.xml</descriptor>
+					</descriptors>
+				</configuration>
+				<executions>
+					<execution>
+						<id>make-assembly</id> <!-- this is used for inheritance merges -->
+						<phase>package</phase> <!-- bind to the packaging phase -->
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
 
 </project>

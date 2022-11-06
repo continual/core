@@ -16,14 +16,13 @@
 
 package io.continual.builder.sources;
 
-import io.continual.builder.BuilderDataSource;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.builder.common.CommonDataSource;
 
 /**
  * A builder data source backed by the json.org JSON object implementation.
  */
-public class BuilderStringDataSource extends CommonDataSource implements BuilderDataSource
+public class BuilderStringDataSource extends CommonDataSource
 {
 	public BuilderStringDataSource ( String data )
 	{

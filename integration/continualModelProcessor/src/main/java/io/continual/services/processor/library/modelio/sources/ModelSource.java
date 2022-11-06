@@ -36,12 +36,11 @@ import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.library.sources.BasicSource;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageAndRouting;
-import io.continual.services.processor.engine.model.Source;
 import io.continual.services.processor.engine.model.StreamProcessingContext;
 import io.continual.services.processor.library.modelio.services.ModelService;
 import io.continual.util.data.exprEval.ExpressionEvaluator;
 
-public class ModelSource extends BasicSource implements Source
+public class ModelSource extends BasicSource
 {
 	public ModelSource ( ConfigLoadContext clc, JSONObject config ) throws BuildFailure
 	{

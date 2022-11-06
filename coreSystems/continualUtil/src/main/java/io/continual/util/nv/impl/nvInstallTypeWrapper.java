@@ -29,7 +29,7 @@ import io.continual.util.nv.NvReadable;
  * provides the ability to make settings specific to an "installation type" (e.g.
  * debug, test, production).
  */
-public class nvInstallTypeWrapper extends nvBaseReadable implements NvReadable
+public class nvInstallTypeWrapper extends nvBaseReadable
 {
 	public nvInstallTypeWrapper ( NvReadable actual )
 	{

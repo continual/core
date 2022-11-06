@@ -21,15 +21,13 @@ import java.io.Reader;
 
 import org.json.JSONObject;
 
-import io.continual.util.data.json.CommentedJsonTokener;
-
-import io.continual.builder.BuilderDataSource;
 import io.continual.builder.common.CommonDataSource;
+import io.continual.util.data.json.CommentedJsonTokener;
 
 /**
  * A builder data source backed by the json.org JSON object implementation.
  */
-public class BuilderJsonDataSource extends CommonDataSource implements BuilderDataSource
+public class BuilderJsonDataSource extends CommonDataSource
 {
 	public BuilderJsonDataSource ( JSONObject data )
 	{

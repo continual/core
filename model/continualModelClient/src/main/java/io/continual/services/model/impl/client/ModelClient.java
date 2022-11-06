@@ -107,7 +107,7 @@ public class ModelClient extends CommonJsonDbModel
 		};
 	}
 
-	private class RemoteModelQuery extends SimpleModelQuery implements ModelQuery
+	private class RemoteModelQuery extends SimpleModelQuery
 	{
 		@Override
 		public ModelObjectList execute ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException

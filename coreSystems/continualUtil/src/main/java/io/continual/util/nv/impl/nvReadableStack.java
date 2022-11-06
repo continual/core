@@ -23,7 +23,7 @@ import java.util.TreeSet;
 
 import io.continual.util.nv.NvReadable;
 
-public class nvReadableStack extends nvBaseReadable implements NvReadable
+public class nvReadableStack extends nvBaseReadable
 {
 	public nvReadableStack ()
 	{

@@ -36,14 +36,13 @@ import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.library.sources.BasicSource;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageAndRouting;
-import io.continual.services.processor.engine.model.Source;
 import io.continual.services.processor.engine.model.StreamProcessingContext;
 import io.continual.util.data.exprEval.ExpressionEvaluator;
 import io.continual.util.data.json.CommentedJsonTokener;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.data.json.JsonVisitor.ArrayVisitor;
 
-public class OnapMrSource extends BasicSource implements Source
+public class OnapMrSource extends BasicSource 
 {
 	public OnapMrSource ( ConfigLoadContext clc, JSONObject config ) throws BuildFailure
 	{

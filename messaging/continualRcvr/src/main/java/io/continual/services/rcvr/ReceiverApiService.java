@@ -14,12 +14,11 @@ import io.continual.resources.ResourceLoader;
 import io.continual.restHttp.BaseApiServiceRouter;
 import io.continual.restHttp.HttpService;
 import io.continual.restHttp.HttpServlet;
-import io.continual.services.Service;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.util.nv.NvReadable;
 
-public class ReceiverApiService<I extends Identity> extends SimpleService implements Service
+public class ReceiverApiService<I extends Identity> extends SimpleService
 {
 	public ReceiverApiService ( ServiceContainer sc, JSONObject config ) throws BuildFailure
 	{

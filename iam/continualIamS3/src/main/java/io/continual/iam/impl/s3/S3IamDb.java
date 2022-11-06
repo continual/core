@@ -48,6 +48,9 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
+import io.continual.builder.Builder.BuildFailure;
+import io.continual.iam.access.AccessControlList;
+import io.continual.iam.access.AclUpdateListener;
 import io.continual.iam.exceptions.IamBadRequestException;
 import io.continual.iam.exceptions.IamIdentityDoesNotExist;
 import io.continual.iam.exceptions.IamSvcException;
@@ -66,6 +69,47 @@ import io.continual.util.time.Clock;
 
 public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 {
+	public static S3IamDb fromJson ( JSONObject config ) throws IamSvcException, BuildFailure
+	{
+		final String sysAdminGroup = config.optString ( "sysAdminGroup", "sysadmin" );
+
+		Builder b = new Builder ()
+			.withAccessKey ( config.getString ( "accessKey" ) )
+			.withSecretKey ( config.getString ( "secretKey" ) )
+			.withBucket ( config.getString ( "bucketId" ) )
+			.withPathPrefix ( config.optString ( "pathPrefix", "" ) )
+			.usingAclFactory ( new AclFactory ()
+			{
+				@Override
+				public AccessControlList createDefaultAcl ( AclUpdateListener acll )
+				{
+					final AccessControlList acl = new AccessControlList ( acll );
+					acl
+						.permit ( sysAdminGroup, AccessControlList.READ )
+						.permit ( sysAdminGroup, AccessControlList.UPDATE )
+						.permit ( sysAdminGroup, AccessControlList.CREATE )
+						.permit ( sysAdminGroup, AccessControlList.DELETE )
+					;
+					return acl;
+				}
+			} )
+		;
+		final JSONObject jwt = config.optJSONObject ( "jwt" );
+		if ( jwt != null )
+		{
+			final String jwtIssuer = jwt.optString ( "issuer", null );
+			final String jwtSecret = jwt.optString ( "sha256Key", null );
+			if ( jwtIssuer != null && jwtSecret != null )
+			{
+				b = b.withJwtProducer ( new JwtProducer.Builder ()
+					.withIssuerName ( jwtIssuer )
+					.usingSigningKey ( jwtSecret )
+					.build () );
+			}
+		}
+		return b.build ();
+	}
+	
 	public static class Builder
 	{
 		public Builder withAccessKey ( String key )

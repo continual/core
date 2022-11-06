@@ -29,9 +29,7 @@ import java.util.Properties;
 import java.util.TreeSet;
 import java.util.logging.Logger;
 
-import io.continual.util.nv.NvReadable;
-
-public class nvPropertiesFile extends nvBaseReadable implements NvReadable
+public class nvPropertiesFile extends nvBaseReadable
 {
 	/**
 	 * A reusable stream fetcher

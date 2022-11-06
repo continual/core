@@ -18,13 +18,12 @@ package io.continual.builder.sources;
 
 import java.util.prefs.Preferences;
 
-import io.continual.builder.BuilderDataSource;
 import io.continual.builder.common.CommonDataSource;
 
 /**
  * A builder data source backed by a Preferences instance.
  */
-public class BuilderPrefsDataSource extends CommonDataSource implements BuilderDataSource
+public class BuilderPrefsDataSource extends CommonDataSource
 {
 	public BuilderPrefsDataSource ( Preferences data )
 	{

@@ -18,6 +18,7 @@ package io.continual.services.model.api.endpoints;
 
 import java.io.IOException;
 
+import io.continual.iam.IamService;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -54,7 +55,7 @@ public class ModelApiContextHelper extends ApiContextHelper<Identity>
 
 		UserContext<?> getUserContext ();
 
-		IamServiceManager<?,?> getAccountService ();
+		IamService<?,?> getAccountService ();
 
 		ModelService getModelService ();
 
@@ -130,7 +131,7 @@ public class ModelApiContextHelper extends ApiContextHelper<Identity>
 				public UserContext<?> getUserContext () { return userContext; }
 
 				@Override
-				public IamServiceManager<?, ?> getAccountService () { return as; }
+				public IamService<?, ?> getAccountService () { return as; }
 
 				@Override
 				public ModelService getModelService () { return fModelService; }

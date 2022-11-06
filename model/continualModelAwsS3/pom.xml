@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.2.36</version>
+		<version>0.2.37</version>
 		<artifactId>continualModelSystems</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -35,16 +35,8 @@
 		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-s3</artifactId>
-			<version>1.11.467</version>
 		</dependency>
 
-		<!-- https://central.sonatype.dev/artifact/software.amazon.awssdk/s3/2.17.286 -->
-<!-- 		<dependency>
-			<groupId>software.amazon.awssdk</groupId>
-			<artifactId>s3</artifactId>
-			<version>2.17.286</version>
-		</dependency>
- -->
 	</dependencies>
 
 </project>

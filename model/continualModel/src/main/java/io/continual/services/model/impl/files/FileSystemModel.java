@@ -38,7 +38,6 @@ import io.continual.services.model.core.ModelObjectComparator;
 import io.continual.services.model.core.ModelObjectList;
 import io.continual.services.model.core.ModelOperation;
 import io.continual.services.model.core.ModelPathList;
-import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
@@ -143,7 +142,7 @@ public class FileSystemModel extends CommonJsonDbModel
 		};
 	}
 
-	private class FsModelQuery extends SimpleModelQuery implements ModelQuery
+	private class FsModelQuery extends SimpleModelQuery
 	{
 		private List<Path> collectObjectsUnder ( File dir, Path pathPrefix )
 		{

@@ -32,7 +32,6 @@ import io.continual.metrics.MetricsCatalog.PathPopper;
 import io.continual.metrics.impl.StdMetricsCatalog;
 import io.continual.metrics.metricTypes.Meter;
 import io.continual.metrics.metricTypes.Timer;
-import io.continual.services.Service;
 import io.continual.services.SimpleService;
 import io.continual.services.processor.engine.library.util.SimpleMessageProcessingContext;
 import io.continual.services.processor.engine.library.util.SimpleStreamProcessingContext;
@@ -50,7 +49,7 @@ import io.continual.util.data.exprEval.SpecialFnsDataSource;
 /**
  * An engine for message stream processing.
  */
-public class Engine extends SimpleService implements Service
+public class Engine extends SimpleService
 {
 	public Engine ( Program p )
 	{

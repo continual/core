@@ -16,7 +16,6 @@ import io.continual.iam.identity.IdentityManager;
 import io.continual.iam.tags.TagManager;
 import io.continual.metrics.MetricsCatalog;
 import io.continual.metrics.MetricsSupplier;
-import io.continual.services.Service;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 
@@ -26,7 +25,7 @@ import io.continual.services.SimpleService;
  * @param <I> an identity class
  * @param <G> a group class
  */
-public class BasicIamServiceWrapper<I extends Identity, G extends Group> extends SimpleService implements IamServiceManager<I,G>, Service, MetricsSupplier
+public class BasicIamServiceWrapper<I extends Identity, G extends Group> extends SimpleService implements IamServiceManager<I,G>, MetricsSupplier
 {
 	@SuppressWarnings("unchecked")
 	public BasicIamServiceWrapper ( ServiceContainer sc, JSONObject config ) throws IamSvcException, BuildFailure

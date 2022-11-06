@@ -19,13 +19,10 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import io.continual.util.nv.NvReadable;
-
 import java.util.Properties;
 import java.util.TreeSet;
 
-public class nvReadableTable extends nvBaseReadable implements NvReadable
+public class nvReadableTable extends nvBaseReadable
 {
 	public nvReadableTable ()
 	{

@@ -324,6 +324,11 @@ public class Builder<T>
 				log.trace ( "Builder looking for " + className + " as " + fBase.getName () );
 				return Class.forName ( className ).asSubclass ( fBase );
 			}
+			catch ( java.lang.ClassCastException x )
+			{
+				log.warn ( "{} does not implement {}.", className, fBase.getName () );
+				throw x;
+			}
 			catch ( ClassNotFoundException x1 )
 			{
 				// if the class wasn't found as-is, and we don't have a search path, throw
@@ -350,7 +355,11 @@ public class Builder<T>
 			{
 				return Class.forName ( newClassName ).asSubclass ( fBase );
 			}
-			catch ( ClassNotFoundException | ClassCastException x2 )
+			catch ( java.lang.ClassCastException x )
+			{
+				log.warn ( "{} does not implement {}.", className, fBase.getName () );
+			}
+			catch ( ClassNotFoundException x2 )
 			{
 				// ignore
 				log.trace ( "Didn't find " + newClassName + " (or it's not a " + fBase.getName () + ")." );

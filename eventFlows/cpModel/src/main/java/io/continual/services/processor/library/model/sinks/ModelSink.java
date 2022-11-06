@@ -1,8 +1,6 @@
 package io.continual.services.processor.library.model.sinks;
 
 import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.iam.access.AccessControlList;
@@ -83,6 +81,4 @@ public class ModelSink extends ModelConnector implements Sink
 			context.warn ( "Couldn't store object: " + e.getMessage () );
 		}
 	}
-
-	private static final Logger log = LoggerFactory.getLogger ( ModelSink.class );
 }

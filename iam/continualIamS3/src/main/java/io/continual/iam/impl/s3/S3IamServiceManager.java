@@ -34,14 +34,13 @@ import io.continual.iam.impl.common.CommonJsonIdentity;
 import io.continual.iam.impl.common.jwt.JwtProducer;
 import io.continual.iam.impl.common.jwt.SimpleJwtValidator;
 import io.continual.iam.tags.TagManager;
-import io.continual.services.Service;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.util.data.exprEval.ExpressionEvaluator;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.data.json.JsonVisitor.ArrayVisitor;
 
-public class S3IamServiceManager extends SimpleService implements IamServiceManager<CommonJsonIdentity,CommonJsonGroup>, Service
+public class S3IamServiceManager extends SimpleService implements IamServiceManager<CommonJsonIdentity,CommonJsonGroup>
 {
 	public S3IamServiceManager ( ServiceContainer sc, JSONObject settings ) throws IamSvcException, BuildFailure
 	{

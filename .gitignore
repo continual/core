@@ -7,5 +7,6 @@ target/
 **/*.iml
 **/logs/
 **/dependency-reduced-pom.xml
+.idea/
 
 uisystems
