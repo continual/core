@@ -59,8 +59,10 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 
 	static final String kSetting_ConfigTransfer = "configTransfer";
 
-	public K8sController ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public K8sController ( ServiceContainer sc, JSONObject rawConfig ) throws BuildFailure
 	{
+		final JSONObject config = sc.getExprEval ().evaluateJsonObject ( rawConfig );
+
 		fConfigTransfer = sc.get ( config.optString ( kSetting_ConfigTransfer, "configTransfer" ), ConfigTransferService.class );
 		if ( fConfigTransfer == null ) throw new BuildFailure ( "No configTransfer service" );
 
