@@ -76,7 +76,7 @@ public class OneOf implements Filter
 	@Override
 	public boolean passes ( MessageProcessingContext ctx )
 	{
-		final String val = ctx.getMessage ().getValueAsString ( fKey );
+		final String val = fKey instanceof String ? ctx.evalExpression ( fKey.toString () ) : fKey.toString ();
 		return val != null && fValues.contains ( val );
 	}
 

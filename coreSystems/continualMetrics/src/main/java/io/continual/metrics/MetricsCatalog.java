@@ -6,14 +6,13 @@ import io.continual.metrics.metricTypes.Gauge;
 import io.continual.metrics.metricTypes.Histogram;
 import io.continual.metrics.metricTypes.Meter;
 import io.continual.metrics.metricTypes.Timer;
-import io.continual.util.data.json.JsonSerialized;
 import io.continual.util.naming.Name;
 import io.continual.util.naming.Path;
 
 /**
  * A facade for the actual metrics registry, but with scoped naming.
  */
-public interface MetricsCatalog extends JsonSerialized
+public interface MetricsCatalog
 {
 	/**
 	 * Get a sub-catalog with the given name. Metrics added here are placed in the base catalog
@@ -51,8 +50,7 @@ public interface MetricsCatalog extends JsonSerialized
 	{
 		return removeSubCatalog ( Name.fromString ( name ) );
 	}
-	
-	
+
 	/**
 	 * Pops a path on close
 	 */
@@ -86,7 +84,19 @@ public interface MetricsCatalog extends JsonSerialized
 	 *            the name of the metric
 	 * @return a new or pre-existing {@link Counter}
 	 */
-	Counter counter ( Path name );
+	default Counter counter ( Path name ) { return counter ( name, kNoHelpProvided ); }
+
+	/**
+	 * Return the {@link Counter} registered under this name; or create and
+	 * register a new {@link Counter} if none is registered.
+	 *
+	 * @param name
+	 *            the name of the metric
+	 * @param helpText
+	 * 			help text for the metric
+	 * @return a new or pre-existing {@link Counter}
+	 */
+	Counter counter ( Path name, String helpText );
 
 	/**
 	 * Return a counter with the given name
@@ -100,7 +110,17 @@ public interface MetricsCatalog extends JsonSerialized
 	 * @param name
 	 * @return a meter
 	 */
-	Meter meter ( Path name );
+	default Meter meter ( Path name ) { return meter ( name, kNoHelpProvided ); };
+
+	/**
+	 * Return a meter at the given path
+	 * @param name
+	 *            the name of the metric
+	 * @param helpText
+	 * 			help text for the metric
+	 * @return a meter
+	 */
+	Meter meter ( Path name, String helpText );
 
 	/**
 	 * Return a meter at the given path
@@ -122,9 +142,23 @@ public interface MetricsCatalog extends JsonSerialized
 	 * Return a gauge at the given path
 	 * @param <T>
 	 * @param name
+	 *            the name of the metric
 	 * @return a gauge
 	 */
-	<T> Gauge<T> gauge ( Path name, GaugeFactory<T> factory );
+	default <T> Gauge<T> gauge ( Path name, GaugeFactory<T> factory ) { return gauge ( name, kNoHelpProvided, factory ); }
+
+	/**
+	 * Return a gauge at the given path
+	 * @param <T>
+	 * @param name
+	 *            the name of the metric
+	 * @param helpText
+	 * 			help text for the metric
+	 * @param factory
+	 * 			a factory for the data type
+	 * @return a gauge
+	 */
+	<T> Gauge<T> gauge ( Path name, String helpText, GaugeFactory<T> factory );
 
 	/**
 	 * Return a gauge at the given path
@@ -136,9 +170,20 @@ public interface MetricsCatalog extends JsonSerialized
 	/**
 	 * Return a histogram at the given path
 	 * @param name
+	 *            the name of the metric
 	 * @return a histogram
 	 */
-	Histogram histogram ( Path name );
+	default Histogram histogram ( Path name ) { return histogram ( name, kNoHelpProvided ); }
+
+	/**
+	 * Return a histogram at the given path
+	 * @param name
+	 *            the name of the metric
+	 * @param helpText
+	 * 			help text for the metric
+	 * @return a histogram
+	 */
+	Histogram histogram ( Path name, String helpText );
 
 	/**
 	 * Return a histogram at the given path
@@ -152,7 +197,17 @@ public interface MetricsCatalog extends JsonSerialized
 	 * @param name
 	 * @return a timer
 	 */
-	Timer timer ( Path name );
+	default Timer timer ( Path name ) { return timer ( name, kNoHelpProvided ); }
+
+	/**
+	 * Return a timer at the given path
+	 * @param name
+	 *            the name of the metric
+	 * @param helpText
+	 * 			help text for the metric
+	 * @return a timer
+	 */
+	Timer timer ( Path name, String helpText );
 
 	/**
 	 * Return a timer at the given path
@@ -160,4 +215,6 @@ public interface MetricsCatalog extends JsonSerialized
 	 * @return a timer
 	 */
 	default Timer timer ( String name ) { return timer ( Path.getRootPath ().makeChildItem ( Name.fromString ( name ) ) ); }
+
+	static final String kNoHelpProvided = "(no description)";
 }

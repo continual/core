@@ -123,6 +123,16 @@ public class JsonEvalTest extends TestCase
 	}
 
 	@Test
+	public void testArrayOfArray ()
+	{
+		final JSONObject start = new JSONObject ();
+		JsonEval.setValue ( start, "foo.bar.bee", new JSONArray () );
+		JsonEval.setValue ( start, "foo.bar.bee.bug", 5, true );
+
+		assertEquals ( 5, JsonEval.eval ( start, "foo.bar.bee[0].bug" ) );
+	}
+
+	@Test
 	public void testGetContainer ()
 	{
 		final JSONObject o = new JSONObject ()

@@ -277,6 +277,28 @@ public class ExpressionEvaluator
 	}
 
 	/**
+	 * Interpret the given value as an integer. If the value is a string, evaluateSymbol is called and the result
+	 * manipulated into an integer. If the value is an integer, the result is used directly. If processing fails, for
+	 * any reason, the default value is returned.
+	 * @param value
+	 * @param defaultValue
+	 * @param srcs
+	 * @return an integer 
+	 */
+	public static double evaluateTextToDouble ( Object value, double defaultValue, ExprDataSource... srcs )
+	{
+		if ( value == null ) return defaultValue;
+
+		if ( value instanceof Double ) return (Double) value;
+		if ( value instanceof Float ) return ((Float) value).doubleValue ();
+
+		final Object evalVal = evaluateText ( value.toString (), srcs );
+		if ( evalVal == null ) return defaultValue;
+
+		return TypeConvertor.convertToDouble ( evalVal.toString (), defaultValue ); 
+	}
+
+	/**
 	 * Interpret the given value as a boolean. If the value is a string, evaluateSymbol is called and the result
 	 * manipulated into a boolean. If the value is a boolean, the result is used directly. If processing fails, for
 	 * any reason, the default value is returned.

@@ -3,8 +3,8 @@
 	{
 		"aws":
 		{
-			"accessKey": "AKIA5JEQHRDUI3EOR3K4",
-			"secretKey": "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"
+			"accessKey": "${AWS_KEY}",
+			"secretKey": "${AWS_SECRET}"
 		}
 	},
 

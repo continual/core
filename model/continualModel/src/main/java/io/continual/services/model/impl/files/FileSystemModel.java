@@ -59,6 +59,11 @@ public class FileSystemModel extends CommonJsonDbModel
 		super ( acctId, modelId );
 
 		fBaseDir = new File ( baseDir );
+		if ( !fBaseDir.exists () && !fBaseDir.mkdir () )
+		{
+			throw new BuildFailure ( "Failed to create " + fBaseDir.toString () );
+		}
+
 		fRelnMgr = new FileSysRelnMgr ( new File ( fBaseDir, kRelnsDir ) );
 	}
 

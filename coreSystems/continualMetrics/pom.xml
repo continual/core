@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.2.38</version>
+		<version>0.2.39</version>
 		<artifactId>continualCoreSystems</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -21,15 +21,8 @@
 			<groupId>io.continual</groupId>
 			<artifactId>continualAssembly</artifactId>
 			<version>${project.version}</version>
-			<scope>provided</scope>	<!-- so it's not included in shaded jar -->
 		</dependency>
 
-		<dependency>
-			<groupId>io.dropwizard.metrics</groupId>
-			<artifactId>metrics-graphite</artifactId>
-			<version>4.1.2</version>
-		</dependency>
- 
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
@@ -37,36 +30,6 @@
 		</dependency>
 
 	</dependencies>
-
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-shade-plugin</artifactId>
-				<version>3.2.4</version>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>shade</goal>
-						</goals>
-						<configuration>
-							<relocations>
-								<relocation>
-									<pattern>com.codahale</pattern>
-									<shadedPattern>io.continual.shaded.com.codahale</shadedPattern>
-								</relocation>
-								<relocation>
-									<pattern>com.rabbitmq</pattern>
-									<shadedPattern>io.continual.shaded.com.rabbitmq</shadedPattern>
-								</relocation>
-							</relocations>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-		</plugins>
-	</build>
 
 </project>
 

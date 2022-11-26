@@ -18,10 +18,10 @@ public class StdMetricsCatalogTest extends TestCase
 		final StdMetricsCatalog cat = new StdMetricsCatalog ( reg );
 		cat.counter ( "foo" );
 
-		final MetricsCatalog subcat = cat.getSubCatalog ( "sub" );
+		final StdMetricsCatalog subcat = cat.getSubCatalog ( "sub" );
 		subcat.counter ( "bar" );
 
-		final MetricsCatalog subcat2 = subcat.getSubCatalog ( "sub" );
+		final StdMetricsCatalog subcat2 = subcat.getSubCatalog ( "sub" );
 		subcat2.counter ( "baz" );
 
 		final JSONObject top = cat.toJson ();

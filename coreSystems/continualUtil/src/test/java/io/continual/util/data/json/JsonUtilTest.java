@@ -16,6 +16,9 @@
 
 package io.continual.util.data.json;
 
+import java.time.LocalDate;
+import java.time.Month;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -190,5 +193,19 @@ public class JsonUtilTest extends TestCase
 		JsonUtil.overlay ( updated, overlay3 );
 
 		assertEquals ( 4, updated.getJSONObject ( "foo" ).getJSONObject ( "monkey" ).getInt ( "bars" ) );
+	}
+
+	@Test
+	public void testDateUtil ()
+	{
+		final Date d = new Date ( 1669151673000L );
+		final JSONObject obj = new JSONObject ();
+		JsonUtil.writeDate ( obj, "date", d );
+		assertEquals ( "2022-11-22", obj.getString ( "date" ) );
+
+		final LocalDate e = JsonUtil.readDate ( obj, "date" );
+		assertEquals ( 2022, e.getYear () );
+		assertEquals ( Month.NOVEMBER, e.getMonth () );
+		assertEquals ( 22, e.getDayOfMonth () );
 	}
 }

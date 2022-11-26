@@ -1,28 +1,25 @@
 package io.continual.metrics.impl;
 
-import java.time.Duration;
 import java.util.LinkedList;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 import org.json.JSONObject;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.MetricRegistry.MetricSupplier;
 
+import io.continual.metrics.DropWizardMetricsService;
 import io.continual.metrics.MetricsCatalog;
-import io.continual.metrics.MetricsService;
 import io.continual.metrics.metricTypes.Counter;
 import io.continual.metrics.metricTypes.Gauge;
 import io.continual.metrics.metricTypes.Histogram;
 import io.continual.metrics.metricTypes.Meter;
 import io.continual.metrics.metricTypes.Timer;
+import io.continual.util.data.json.JsonSerialized;
 import io.continual.util.naming.Name;
 import io.continual.util.naming.Path;
 
-public class StdMetricsCatalog implements MetricsCatalog
+public class StdMetricsCatalog implements MetricsCatalog, JsonSerialized
 {
 	public static class Builder
 	{
@@ -92,7 +89,7 @@ public class StdMetricsCatalog implements MetricsCatalog
 
 		return this;
 	}
-	
+
 	@Override
 	public PathPopper push ( String name )
 	{
@@ -129,7 +126,7 @@ public class StdMetricsCatalog implements MetricsCatalog
 	}
 
 	@Override
-	public Counter counter ( Path name )
+	public Counter counter ( Path name, String helpText )
 	{
 		final Path fullPath = getCurrentBase().makeChildPath ( name );
 		final com.codahale.metrics.Counter codaCounter = fReg.counter ( convertPath ( fullPath ) );
@@ -145,7 +142,7 @@ public class StdMetricsCatalog implements MetricsCatalog
 	}
 
 	@Override
-	public Meter meter ( Path name )
+	public Meter meter ( Path name, String helpText )
 	{
 		final Path fullPath = getCurrentBase().makeChildPath ( name );
 		final com.codahale.metrics.Meter codaMeter = fReg.meter ( convertPath ( fullPath ) );
@@ -174,7 +171,7 @@ public class StdMetricsCatalog implements MetricsCatalog
 
 	@Override
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public <T> Gauge<T> gauge ( Path name, GaugeFactory<T> factory )
+	public <T> Gauge<T> gauge ( Path name, String helpText, GaugeFactory<T> factory )
 	{
 		final Path fullPath = getCurrentBase().makeChildPath ( name );
 		final com.codahale.metrics.Gauge<T> codeGauge = fReg.gauge ( convertPath ( fullPath ), new MetricSupplier<com.codahale.metrics.Gauge> ()
@@ -204,7 +201,7 @@ public class StdMetricsCatalog implements MetricsCatalog
 	}
 
 	@Override
-	public Histogram histogram ( Path name )
+	public Histogram histogram ( Path name, String helpText )
 	{
 		final Path fullPath = getCurrentBase().makeChildPath ( name );
 		final com.codahale.metrics.Histogram codaHistogram = fReg.histogram ( convertPath ( fullPath ) );
@@ -220,28 +217,13 @@ public class StdMetricsCatalog implements MetricsCatalog
 	}
 
 	@Override
-	public Timer timer ( Path name )
+	public Timer timer ( Path name, String helpText )
 	{
 		final Path fullPath = getCurrentBase().makeChildPath ( name );
 		final com.codahale.metrics.Timer codaTimer = fReg.timer ( convertPath ( fullPath ) );
 
 		return new Timer ()
 		{
-			@Override
-			public void update ( long duration, TimeUnit unit ) { codaTimer.update ( duration, unit ); }
-
-			@Override
-			public void update ( Duration duration ) { codaTimer.update ( duration ); }
-
-			@Override
-			public <T> T time ( Callable<T> event ) throws Exception { return codaTimer.time ( event ); }
-
-			@Override
-			public <T> T timeSupplier ( Supplier<T> event ) { return codaTimer.timeSupplier ( event ); }
-
-			@Override
-			public void time ( Runnable event ) { codaTimer.time ( event ); }
-
 			@Override
 			public Context time ()
 			{
@@ -259,9 +241,15 @@ public class StdMetricsCatalog implements MetricsCatalog
 	}
 
 	@Override
+	public String toString ()
+	{
+		return toJson().toString ();
+	}
+
+	@Override
 	public JSONObject toJson ()
 	{
-		JSONObject metrics = MetricsService.toJson ( fReg );
+		JSONObject metrics = DropWizardMetricsService.toJson ( fReg );
 		for ( Name name : getCurrentBase().getSegments () )
 		{
 			metrics = metrics.optJSONObject ( name.toString () );

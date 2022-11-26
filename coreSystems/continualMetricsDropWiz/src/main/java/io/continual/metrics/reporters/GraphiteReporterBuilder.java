@@ -10,13 +10,13 @@ import com.codahale.metrics.ScheduledReporter;
 import com.codahale.metrics.graphite.Graphite;
 import com.codahale.metrics.graphite.GraphiteReporter;
 
-import io.continual.metrics.MetricsService;
+import io.continual.metrics.DropWizardMetricsService;
 import io.continual.metrics.ReporterBuilder;
 
 public class GraphiteReporterBuilder implements ReporterBuilder
 {
 	@SuppressWarnings("deprecation")
-	public GraphiteReporterBuilder ( MetricsService svc, JSONObject graphiteConfig )
+	public GraphiteReporterBuilder ( DropWizardMetricsService svc, JSONObject graphiteConfig )
 	{
 		final Graphite graphite = new Graphite (
 			new InetSocketAddress (

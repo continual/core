@@ -1,7 +1,5 @@
 package io.continual.metrics.impl.noop;
 
-import org.json.JSONObject;
-
 import io.continual.metrics.MetricsCatalog;
 import io.continual.metrics.metricTypes.Counter;
 import io.continual.metrics.metricTypes.Gauge;
@@ -35,39 +33,33 @@ public class NoopMetricsCatalog implements MetricsCatalog
 	}
 
 	@Override
-	public Counter counter ( Path name )
+	public Counter counter ( Path name, String helpText )
 	{
 		return new NoopCounter ();
 	}
 
 	@Override
-	public Meter meter ( Path name )
+	public Meter meter ( Path name, String helpText )
 	{
 		return new NoopMeter ();
 	}
 
 	@Override
-	public <T> Gauge<T> gauge ( Path name, GaugeFactory<T> factory )
+	public <T> Gauge<T> gauge ( Path name, String helpText, GaugeFactory<T> factory )
 	{
  		return new NoopGauge<T> ();
 	}
 
 	@Override
-	public Histogram histogram ( Path name )
+	public Histogram histogram ( Path name, String helpText )
 	{
 		return new NoopHistogram ();
 	}
 
 	@Override
-	public Timer timer ( Path name )
+	public Timer timer ( Path name, String helpText )
 	{
 		return new NoopTimer ();
-	}
-
-	@Override
-	public JSONObject toJson ()
-	{
-		return new JSONObject ();
 	}
 
 	@Override

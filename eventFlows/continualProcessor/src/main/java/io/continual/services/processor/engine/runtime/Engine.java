@@ -268,7 +268,7 @@ public class Engine extends SimpleService
 				{
 					Thread.sleep ( fPeriodMs );
 
-					final String text = fEngineMetrics.toJson ().toString ();
+					final String text = fEngineMetrics.toString ();
 					metricsLog.info ( text );
 
 					running = false;

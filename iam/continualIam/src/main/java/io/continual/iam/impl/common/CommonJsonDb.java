@@ -466,6 +466,10 @@ public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends Common
 		if ( acl == null ) return true;
 
 		final Identity user = loadUserOrAlias ( id );
+		if ( user == null )
+		{
+			throw new IamSvcException ( "User " + id + " was not loaded from this database." );
+		}
 		return acl.canUser ( id, user.getGroupIds (), operation );
 	}
 

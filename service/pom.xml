@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.2.38</version>
+		<version>0.2.39</version>
 		<artifactId>continual</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -18,6 +18,7 @@
 	<modules>
 		<module>continualHttp</module>
 		<module>continualRestHttp</module>
+		<module>continualMetricsProm</module>
 	</modules>
 
 </project>

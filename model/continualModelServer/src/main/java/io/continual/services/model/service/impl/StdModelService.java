@@ -7,6 +7,7 @@ import org.json.JSONObject;
 
 import io.continual.builder.Builder;
 import io.continual.builder.Builder.BuildFailure;
+import io.continual.iam.IamServiceManager;
 import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.Identity;
 import io.continual.iam.impl.common.CommonJsonIdentity;
@@ -35,6 +36,12 @@ public class StdModelService extends SimpleService implements ModelService
 {
 	public StdModelService ( ServiceContainer sc, JSONObject config ) throws BuildFailure
 	{
+		fAccts = sc.get ( config.optString ( "accounts", "accounts" ), IamServiceManager.class );
+		if ( fAccts == null )
+		{
+			throw new BuildFailure ( "An accounts service is required. Set to 'accounts' the object name or use the default 'accounts'." );
+		}
+
 		fSettingsModel = sc.get ( config.optString ( "settings", "settingsModel" ), Model.class );
 		if ( fSettingsModel == null )
 		{
@@ -43,9 +50,21 @@ public class StdModelService extends SimpleService implements ModelService
 
 		try
 		{
-			final ModelRequestContext mrc = fSettingsModel.getRequestContextBuilder ().build ();
-			final ModelObject globalMounts = fSettingsModel.load ( mrc, Path.fromString ( "/globalMounts" ) );
-	
+			final String systemUser = config.optString ( "systemUser", "system" );
+			
+			final ModelRequestContext mrc = fSettingsModel.getRequestContextBuilder ()
+				.forUser ( new CommonJsonIdentity ( systemUser, CommonJsonIdentity.initializeIdentity (), null ) )	// fake user acct
+				.build ()
+			;
+
+			final Path gmPath = Path.fromString ( "/globalMounts" );
+			if ( !fSettingsModel.exists ( mrc, gmPath ) )
+			{
+				fSettingsModel.store ( mrc, gmPath, new JSONObject () );
+			}
+
+			final ModelObject globalMounts = fSettingsModel.load ( mrc, gmPath );
+
 			fGlobalMounts = new LinkedList<> ();
 			JsonVisitor.forEachElement ( globalMounts.getData ().optJSONArray ( "globalMounts" ), new ArrayVisitor<JSONObject,BuildFailure> ()
 			{
@@ -200,6 +219,7 @@ public class StdModelService extends SimpleService implements ModelService
 		private final DelegatingModel fModel;
 	}
 
+	private final IamServiceManager<?,?> fAccts;
 	private final Model fSettingsModel;
 	private final LinkedList<JSONObject> fGlobalMounts;
 	private final BuiltinSchemaReg fGlobalSchemas;

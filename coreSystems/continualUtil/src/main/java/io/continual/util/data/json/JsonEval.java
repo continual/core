@@ -235,16 +235,8 @@ public class JsonEval
 		final List<String> partList = new LinkedList<String> ( Arrays.asList ( parts ) );
 
 		final String lastPart = partList.remove ( partList.size () - 1 );
-		final JSONObject container = getContainer ( root, partList, true );
-		
-		if ( appendArray && container.has ( lastPart ) && container.get(lastPart) instanceof JSONArray )
-		{
-			container.getJSONArray ( lastPart ).put ( data );
-		}
-		else
-		{
-			container.put ( lastPart, data );
-		}
+		final AbstractJsonContainer container = getAbstractContainer ( new ObjectContainer ( root ), partList, true, appendArray );
+		container.put ( lastPart, data, appendArray );
 	}
 
 	public static List<String> splitPath ( String key )
@@ -283,30 +275,28 @@ public class JsonEval
 
 	public static JSONObject getContainer ( JSONObject root, List<String> parts, boolean withCreate )
 	{
-		JSONObject current = root;
+		final AbstractJsonContainer ac = getAbstractContainer ( new ObjectContainer ( root ), parts, withCreate, true );
+		if ( ac instanceof ObjectContainer )
+		{
+			return ((ObjectContainer) ac).getObject ();
+		}
+		return null;
+	}
+
+	public interface AbstractJsonContainer
+	{
+		AbstractJsonContainer getInnerContainer ( String thisPart, boolean withCreate, boolean appendArray );
+
+		void put ( String key, Object val, boolean appendArray );
+	}
+
+	public static AbstractJsonContainer getAbstractContainer ( AbstractJsonContainer root, List<String> parts, boolean withCreate, boolean appendArray )
+	{
+		AbstractJsonContainer current = root;
 		for ( String thisPart : parts )
 		{
-			final Object nextContainer = current.opt ( thisPart );
-			if ( nextContainer == null )
-			{
-				if ( withCreate )
-				{
-					// no such thing. create it as an object.
-					final JSONObject newObj = new JSONObject ();
-					current.put ( thisPart, newObj );
-					current = newObj;
-				}
-				else
-				{
-					return null;
-				}
-			}
-			else if ( nextContainer instanceof JSONObject )
-			{
-				// normal case
-				current = (JSONObject) nextContainer;
-			}
-			else
+			current = current.getInnerContainer ( thisPart, withCreate, appendArray );
+			if ( current == null )
 			{
 				// not a container we can support
 				throw new IllegalArgumentException ( "Intermediate part " + thisPart + " is not an object." );
@@ -373,5 +363,112 @@ public class JsonEval
 			return root.optJSONObject ( term );
 		}
 		return null;
+	}
+
+	private static class ObjectContainer implements AbstractJsonContainer
+	{
+		public ObjectContainer ( JSONObject obj )
+		{
+			fObject = obj;
+		}
+		public JSONObject getObject () { return fObject; }
+
+		public AbstractJsonContainer getInnerContainer ( String thisPart, boolean withCreate, boolean appendArray )
+		{
+			final Object next = fObject.opt ( thisPart );
+			if ( next == null )
+			{
+				if ( withCreate )
+				{
+					// no such thing. create it as an object.
+					final JSONObject newObj = new JSONObject ();
+					fObject.put ( thisPart, newObj );
+					return new ObjectContainer ( newObj );
+				}
+			}
+			else if ( next instanceof JSONObject )
+			{
+				return new ObjectContainer ( (JSONObject) next );
+			}
+			else if ( next instanceof JSONArray )
+			{
+				return new ArrayContainer ( (JSONArray) next );
+			}
+			return null;
+		}
+
+		@Override
+		public void put ( String key, Object val, boolean appendArray )
+		{
+			final Object existing = fObject.opt ( key );
+			if ( existing instanceof JSONArray && appendArray )
+			{
+				((JSONArray)existing).put ( val );
+			}
+			else
+			{
+				fObject.put ( key, val );
+			}
+		}
+
+		private final JSONObject fObject;
+	}
+	
+	private static class ArrayContainer implements AbstractJsonContainer
+	{
+		public ArrayContainer ( JSONArray a )
+		{
+			fArray = a;
+		}
+		public AbstractJsonContainer getInnerContainer ( String thisPart, boolean withCreate, boolean appendArray )
+		{
+			// when treating an array as a container, we want the last element if it's an object. if it's not, and
+			// we're creating, we add an object.
+
+			final int len = fArray.length ();
+			if ( len > 0 )
+			{
+				Object obj = fArray.get ( len-1 );
+				if ( obj instanceof JSONObject )
+				{
+					final ObjectContainer wrapper = new ObjectContainer ( (JSONObject) obj );
+					return wrapper.getInnerContainer ( thisPart, withCreate, appendArray );
+				}
+			}
+
+			if ( withCreate && appendArray )
+			{
+				final JSONObject newObj = new JSONObject ();
+				fArray.put ( newObj );
+				return new ObjectContainer ( (JSONObject) newObj );
+			}
+
+			return null;
+		}
+		@Override
+		public void put ( String key, Object val, boolean appendArray )
+		{
+			// get the last object in the array, or append an object if allowed
+			final int len = fArray.length ();
+			if ( len > 0 )
+			{
+				Object obj = fArray.get ( len-1 );
+				if ( obj instanceof JSONObject )
+				{
+					((JSONObject)obj).put ( key, val );
+					return;
+				}
+			}
+
+			if ( appendArray )
+			{
+				final JSONObject newObj = new JSONObject ();
+				fArray.put ( newObj );
+				newObj.put ( key, val );
+				return;
+			}
+		}
+
+		private final JSONArray fArray;
 	}
 }

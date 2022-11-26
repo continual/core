@@ -26,8 +26,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map.Entry;
+import java.util.LinkedList;
 
 import org.apache.catalina.Context;
 import org.apache.catalina.LifecycleException;
@@ -125,7 +124,7 @@ public class HttpService implements Service
 			fSettings = settings;
 			fRunning = false;
 	
-			fServlets = new HashMap<String,HttpRouter> ();
+			fServlets = new LinkedList<HttpRouter> ();
 	
 			System.setProperty (
 				"org.apache.tomcat.util.buf.UDecoder.ALLOW_ENCODED_SLASH",
@@ -255,7 +254,7 @@ public class HttpService implements Service
 
 	public HttpService addRouter ( String servletName, HttpRouter s )
 	{
-		fServlets.put ( servletName, s );
+		fServlets.add ( s );
 		return this;
 	}
 
@@ -274,9 +273,9 @@ public class HttpService implements Service
 					fMetrics,
 					fInspector
 				);
-				for ( Entry<String, HttpRouter> s : fServlets.entrySet () )
+				for ( HttpRouter router : fServlets )
 				{
-					hs.addRouter ( s.getValue () );
+					hs.addRouter ( router );
 				}
 	
 				final String servletName = "httpService";
@@ -336,7 +335,7 @@ public class HttpService implements Service
 	private final JSONObject fSettings;
 	private final Tomcat fTomcat;
 	private boolean fRunning;
-	private final HashMap<String,HttpRouter> fServlets;
+	private final LinkedList<HttpRouter> fServlets;
 	private final File fWorkDir;
 
 	private static final Logger log = LoggerFactory.getLogger ( HttpService.class );

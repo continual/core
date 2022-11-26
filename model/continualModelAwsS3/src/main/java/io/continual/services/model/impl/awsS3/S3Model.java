@@ -42,6 +42,13 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 import io.continual.builder.Builder.BuildFailure;
+import io.continual.metrics.MetricsCatalog;
+import io.continual.metrics.MetricsService;
+import io.continual.metrics.MetricsSupplier;
+import io.continual.metrics.impl.noop.NoopMeter;
+import io.continual.metrics.impl.noop.NoopTimer;
+import io.continual.metrics.metricTypes.Meter;
+import io.continual.metrics.metricTypes.Timer;
 import io.continual.services.ServiceContainer;
 import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelObjectComparator;
@@ -57,12 +64,13 @@ import io.continual.services.model.impl.common.BasicModelRequestContextBuilder;
 import io.continual.services.model.impl.common.SimpleModelQuery;
 import io.continual.services.model.impl.json.CommonJsonDbModel;
 import io.continual.services.model.impl.json.CommonJsonDbObject;
+import io.continual.util.collections.ShardedExpiringCache;
 import io.continual.util.data.exprEval.ExpressionEvaluator;
 import io.continual.util.data.json.CommentedJsonTokener;
 import io.continual.util.naming.Name;
 import io.continual.util.naming.Path;
 
-public class S3Model extends CommonJsonDbModel
+public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 {
 	public S3Model ( String acctId, String modelId, String accessKey, String secretKey, String bucketId, String prefix ) throws BuildFailure
 	{
@@ -76,6 +84,15 @@ public class S3Model extends CommonJsonDbModel
 		;
 		fBucketId = bucketId;
 		fPrefix = prefix == null ? "" : prefix;
+
+		fCache = new ShardedExpiringCache.Builder<String,ModelObject> ()
+			.named ( "object cache" )
+			.build ()
+		;
+		fNotFoundCache = new ShardedExpiringCache.Builder<String,Boolean> ()
+			.named ( "not found cache" )
+			.build ()
+		;
 	}
 
 	public S3Model ( ServiceContainer sc, JSONObject config ) throws BuildFailure
@@ -98,11 +115,38 @@ public class S3Model extends CommonJsonDbModel
 			;
 			fBucketId = evaledConfig.getString ( "bucket" );
 			fPrefix = evaledConfig.optString ( "prefix", "" );
+
+			fCache = new ShardedExpiringCache.Builder<String,ModelObject> ()
+				.named ( "object cache" )
+				.build ()
+			;
+			fNotFoundCache = new ShardedExpiringCache.Builder<String,Boolean> ()
+				.named ( "not found cache" )
+				.build ()
+			;
+
+			// optionally report metrics
+			final MetricsService ms = sc.get ( "metrics", MetricsService.class );
+			if ( ms != null )
+			{
+				populateMetrics ( ms.getCatalog ( "S3Model " + config.optString ( "name", "anonymous" ) ) );
+			}
 		}
 		catch ( JSONException e )
 		{
 			throw new BuildFailure ( e );
 		}
+	}
+
+	@Override
+	public void populateMetrics ( MetricsCatalog metrics )
+	{
+		fCacheHitCounter = metrics.meter ( "cacheHits" );
+		fCacheMissCounter = metrics.meter ( "cacheMisses" );
+		fReadTimer = metrics.timer ( "readTimer" );
+		fS3ReadTimer = metrics.timer ( "s3ReadTimer" );
+		fWriteTimer = metrics.timer ( "writeTimer" );
+		fRemoveTimer = metrics.timer ( "removeTimer" );
 	}
 
 	@Override
@@ -259,6 +303,13 @@ public class S3Model extends CommonJsonDbModel
 	{
 		try
 		{
+			final String s3Path = pathToS3Path ( objectPath );
+			final ModelObject mo = fCache.read ( s3Path );
+			if ( mo != null ) return true;
+
+			final Boolean notFound = fNotFoundCache.read ( s3Path );
+			if ( notFound != null ) return false;
+
 			return fS3.doesObjectExist ( fBucketId, pathToS3Path ( objectPath ) );
 		}
 		catch ( SdkClientException x )
@@ -270,30 +321,58 @@ public class S3Model extends CommonJsonDbModel
 	@Override
 	protected ModelObject loadObject ( ModelRequestContext context, final Path objectPath ) throws ModelServiceException, ModelRequestException
 	{
-		try
+		final String s3Path = pathToS3Path ( objectPath );
+
+		try ( Timer.Context timingContext = fReadTimer.time () )
 		{
-			final S3Object o = fS3.getObject ( fBucketId, pathToS3Path ( objectPath ) );
-
-			final JSONObject rawData;
-			try ( InputStream is = o.getObjectContent () )
+			ModelObject result = fCache.read ( s3Path );
+			if ( result != null )
 			{
-				 rawData = new JSONObject ( new CommentedJsonTokener ( is ) );
-			}
-			catch ( JSONException x )
-			{
-				throw new ModelRequestException ( "The object data is corrupt." );
-			}
-			catch ( IOException x )
-			{
-				throw new ModelServiceException ( x );
+				fCacheHitCounter.mark ();
+				return result;
 			}
 
-			return new CommonJsonDbObject ( objectPath.toString (), rawData );
+			// is it known not-found?
+			final Boolean notFound = fNotFoundCache.read ( s3Path );
+			if ( notFound != null ) return null;
+			
+			// otherwise, load from S3
+
+			fCacheMissCounter.mark ();
+
+			try ( Timer.Context s3TimingContext = fS3ReadTimer.time () )
+			{
+				final S3Object o = fS3.getObject ( fBucketId, s3Path );
+	
+				final JSONObject rawData;
+				try ( InputStream is = o.getObjectContent () )
+				{
+					 rawData = new JSONObject ( new CommentedJsonTokener ( is ) );
+				}
+				catch ( JSONException x )
+				{
+					throw new ModelRequestException ( "The object data is corrupt." );
+				}
+				catch ( IOException x )
+				{
+					throw new ModelServiceException ( x );
+				}
+
+				result = new CommonJsonDbObject ( objectPath.toString (), rawData );
+				fCache.write ( s3Path, result );
+
+				return result;
+			}
+			finally
+			{
+				// 
+			}
 		}
 		catch ( AmazonS3Exception x ) 
 		{
 			if ( x.getErrorCode ().equals ( "NoSuchKey" ) )
 			{
+				fNotFoundCache.write ( s3Path, true );
 				throw new ModelItemDoesNotExistException ( objectPath );
 			}
 			throw new ModelRequestException ( x );
@@ -307,9 +386,15 @@ public class S3Model extends CommonJsonDbModel
 	@Override
 	protected void internalStore ( ModelRequestContext context, Path objectPath, ModelObject o ) throws ModelRequestException, ModelServiceException
 	{
-		try ( final ByteArrayInputStream bais = new ByteArrayInputStream ( o.toJson ().toString ( 4 ).getBytes ( kUtf8 ) ) )
+		try (
+			final Timer.Context timingContext = fWriteTimer.time ();
+			final ByteArrayInputStream bais = new ByteArrayInputStream ( o.toJson ().toString ( 4 ).getBytes ( kUtf8 ) )
+		)
 		{
-			fS3.putObject ( fBucketId, pathToS3Path ( objectPath ), bais, new ObjectMetadata () );
+			final String s3Path = pathToS3Path ( objectPath );
+			fS3.putObject ( fBucketId, s3Path, bais, new ObjectMetadata () );
+			fCache.write ( s3Path, o );
+			fNotFoundCache.remove ( s3Path );
 		}
 		catch ( JSONException x )
 		{
@@ -324,14 +409,30 @@ public class S3Model extends CommonJsonDbModel
 	@Override
 	protected boolean internalRemove ( ModelRequestContext context, Path objectPath ) throws ModelRequestException, ModelServiceException
 	{
-		final boolean existed = exists ( context, objectPath );
-		fS3.deleteObject ( fBucketId, pathToS3Path ( objectPath ) );
-		return existed;
+		try ( final Timer.Context timingContext = fRemoveTimer.time () )
+		{
+			final boolean existed = exists ( context, objectPath );
+			final String s3Path = pathToS3Path ( objectPath );
+			fS3.deleteObject ( fBucketId, s3Path );
+			fCache.remove ( s3Path );
+			fNotFoundCache.write ( s3Path, true );
+			return existed;
+		}
 	}
 
 	private final AmazonS3 fS3;
 	private final String fBucketId;
 	private final String fPrefix;
+
+	private final ShardedExpiringCache<String,ModelObject> fCache;
+	private final ShardedExpiringCache<String,Boolean> fNotFoundCache;	// because null means not-found :-(
+
+	private Meter fCacheHitCounter = new NoopMeter ();
+	private Meter fCacheMissCounter = new NoopMeter ();
+	private Timer fReadTimer = new NoopTimer ();
+	private Timer fS3ReadTimer = new NoopTimer ();
+	private Timer fWriteTimer = new NoopTimer ();
+	private Timer fRemoveTimer = new NoopTimer ();
 
 	private static final Charset kUtf8 = Charset.forName ( "UTF8" );
 
@@ -373,45 +474,31 @@ public class S3Model extends CommonJsonDbModel
 	}
 
 	@Override
-	public boolean unrelate ( ModelRequestContext context, ModelRelation reln )
-		throws ModelServiceException,
-			ModelRequestException
+	public boolean unrelate ( ModelRequestContext context, ModelRelation reln ) throws ModelServiceException
 	{
 		throw new ModelServiceException ( "not implemented" );
 	}
 
 	@Override
-	public List<ModelRelation> getInboundRelations (
-		ModelRequestContext context, Path forObject )
-		throws ModelServiceException,
-			ModelRequestException
+	public List<ModelRelation> getInboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException
 	{
 		throw new ModelServiceException ( "not implemented" );
 	}
 
 	@Override
-	public List<ModelRelation> getOutboundRelations (
-		ModelRequestContext context, Path forObject )
-		throws ModelServiceException,
-			ModelRequestException
+	public List<ModelRelation> getOutboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException
 	{
 		throw new ModelServiceException ( "not implemented" );
 	}
 
 	@Override
-	public List<ModelRelation> getInboundRelationsNamed (
-		ModelRequestContext context, Path forObject, String named )
-		throws ModelServiceException,
-			ModelRequestException
+	public List<ModelRelation> getInboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException
 	{
 		throw new ModelServiceException ( "not implemented" );
 	}
 
 	@Override
-	public List<ModelRelation> getOutboundRelationsNamed (
-		ModelRequestContext context, Path forObject, String named )
-		throws ModelServiceException,
-			ModelRequestException
+	public List<ModelRelation> getOutboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException
 	{
 		throw new ModelServiceException ( "not implemented" );
 	}

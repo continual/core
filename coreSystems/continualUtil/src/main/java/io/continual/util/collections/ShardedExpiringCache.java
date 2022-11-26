@@ -101,6 +101,27 @@ public class ShardedExpiringCache<K,V>
 	}
 
 	/**
+	 * Does the cache contain the given key?
+	 * @param key
+	 * @return true if the cache contains the key, per read(key)
+	 */
+	public boolean containsKey ( K key )
+	{
+		return read ( key ) != null;
+	}
+	
+	/**
+	 * Does the cache contain the given key?
+	 * @param key
+	 * @param validator
+	 * @return true if the cache contains the key, per read(key,validator)
+	 */
+	public boolean containsKey ( K key, Validator<V> validator )
+	{
+		return read ( key, validator ) != null;
+	}
+
+	/**
 	 * Read a value by key, without additional validation or fetch.
 	 * @param key
 	 * @return a value, if available

@@ -20,6 +20,13 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -213,24 +220,68 @@ public class JsonUtil
 		return false;
 	}
 
-	public static Date readDate ( JSONObject base, String key ) throws JSONException
+	public static void writeDate ( JSONObject base, String key, Date d ) throws JSONException
+	{
+		final ZonedDateTime zdt = d.toInstant ().atZone ( kLocalZone );
+		base.put ( key, zdt.format ( DateTimeFormatter.ISO_LOCAL_DATE ) );
+	}
+
+	public static void writeDateTime ( JSONObject base, String key, Date d ) throws JSONException
+	{
+		base.put ( key, writeDate ( d ) );
+	}
+
+	public static String writeDate ( Date d ) throws JSONException
+	{
+		final ZonedDateTime zdt = d.toInstant ().atZone ( kLocalZone );
+		return zdt.format ( DateTimeFormatter.ISO_LOCAL_DATE );
+	}
+
+	public static String writeDate ( LocalDate d ) throws JSONException
+	{
+		return d.format ( DateTimeFormatter.ISO_LOCAL_DATE );
+	}
+
+	public static LocalDate readDate ( JSONObject base, String key ) throws JSONException
 	{
 		final Object o = base.opt ( key );
 		if ( o == null ) return null;
 
 		if ( o instanceof Long )
 		{
-			return new Date ( (Long) o );
+			final Instant i = Instant.ofEpochMilli ( (Long)o );
+			return i.atZone ( kLocalZone ).toLocalDate ();	
 		}
 
 		if ( o instanceof String )
 		{
+			// try basic ISO types
+			try
+			{
+				final LocalDateTime ldt = LocalDateTime.parse ( (String)o );
+				return ldt.toLocalDate ();
+			}
+			catch ( DateTimeParseException x )
+			{
+				// no good; ignore
+			}
+			try
+			{
+				return LocalDate.parse ( (String)o );
+			}
+			catch ( DateTimeParseException x )
+			{
+				// no good; ignore
+			}
+
+			// then other formats
 			for ( String format : dateFormats )
 			{
 				try
 				{
 					final SimpleDateFormat sdf = new SimpleDateFormat ( format );
-					return sdf.parse ( (String) o );
+					final Date d = sdf.parse ( (String) o );
+					d.toInstant ().atZone ( kLocalZone ).toLocalDate ();
 				}
 				catch ( ParseException e )
 				{
@@ -241,6 +292,9 @@ public class JsonUtil
 
 		throw new JSONException ( "Unrecognized format for Date read." );
 	}
+
+	// EST best guess for USA
+	private static final ZoneId kLocalZone = ZoneId.of ( "America/New_York" );
 
 	private static String[] dateFormats =
 	{
