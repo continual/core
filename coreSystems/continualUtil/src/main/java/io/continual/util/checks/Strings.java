@@ -2,6 +2,9 @@ package io.continual.util.checks;
 
 public class Strings
 {
+	private Strings(){
+	}
+	
 	public static void throwIfEmpty ( String s, String msg )
 	{
 		if ( s == null || s.length () == 0 )
