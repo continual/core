@@ -57,6 +57,17 @@ class FileSysRelnMgr
 		return out || in;
 	}
 
+	public void removeAllRelations ( Path forObject ) throws ModelServiceException, ModelRequestException
+	{
+		final LinkedList<ModelRelation> relns = new LinkedList<> ();
+		relns.addAll ( getInboundRelations ( forObject ) );
+		relns.addAll ( getOutboundRelations ( forObject ) );
+		for ( ModelRelation mr : relns )
+		{
+			unrelate ( mr );
+		}
+	}
+	
 	public List<ModelRelation> getInboundRelations ( Path forObject ) throws ModelServiceException, ModelRequestException
 	{
 		final LinkedList<ModelRelation> result = new LinkedList<> ();

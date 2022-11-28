@@ -397,6 +397,8 @@ public class FileSystemModel extends CommonJsonDbModel
 		{
 			throw new ModelRequestException ( objectPath.toString () + " exists as a container." );
 		}
+
+		fRelnMgr.removeAllRelations ( objectPath );
 		return obj.delete ();
 	}
 

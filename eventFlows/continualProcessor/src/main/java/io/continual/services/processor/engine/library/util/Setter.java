@@ -7,6 +7,7 @@ import org.json.JSONObject;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.util.data.exprEval.ExprDataSource;
+import io.continual.util.data.json.CommentedJsonTokener;
 import io.continual.util.data.json.JsonEval;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.data.json.JsonVisitor.ArrayVisitor;
@@ -68,8 +69,42 @@ public class Setter
 		else if ( t instanceof String )
 		{
 			final String key = t.toString ();
-			final String val = mpc.evalExpression ( key, addlSrcs );
-			return val == null ? "" : val;
+			if ( key.startsWith ( "json:${" ) )
+			{
+				final String val = mpc.evalExpression ( key.substring ( 5 ), addlSrcs );
+				if ( val == null ) return new JSONObject ();
+				if ( val.startsWith ( "{" ) )
+				{
+					try
+					{
+						return new JSONObject ( new CommentedJsonTokener ( val ) );
+					}
+					catch ( JSONException x )
+					{
+						return val;
+					}
+				}
+				else if ( val.startsWith ( "[" ) )
+				{
+					try
+					{
+						return new JSONArray ( new CommentedJsonTokener ( val ) );
+					}
+					catch ( JSONException x )
+					{
+						return val;
+					}
+				}
+				else
+				{
+					return val;
+				}
+			}
+			else
+			{
+				final String val = mpc.evalExpression ( key, addlSrcs );
+				return val == null ? "" : val;
+			}
 		}
 		return t;
 	}

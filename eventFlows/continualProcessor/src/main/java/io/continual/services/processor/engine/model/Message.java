@@ -143,6 +143,11 @@ public class Message implements JsonSerialized
 		return this;
 	}
 
+	public Object getRawValue ( String key ) 
+	{
+		return fData.opt ( key );
+	}
+	
 	public Message clearValue ( String key )
 	{
 		fData.remove ( key );

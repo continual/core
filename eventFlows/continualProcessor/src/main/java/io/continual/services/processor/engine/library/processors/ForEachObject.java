@@ -44,6 +44,7 @@ public class ForEachObject implements Processor
 			fPipeline = new JsonConfigReader ()
 				.readPipeline ( "internal", config.optJSONArray ( "processing" ), new ArrayList<String>(), clc )
 			;
+			fVarName = config.optString ( "varName", "_item" );
 		}
 		catch ( JSONException | ConfigReadException e )
 		{
@@ -63,14 +64,17 @@ public class ForEachObject implements Processor
 				@Override
 				public boolean visit ( JSONObject itemElement ) throws JSONException
 				{
+					final Object valWas = context.getMessage ().getRawValue ( fVarName );
+
 					context.getMessage ()
-						.putRawValue ( "_item", itemElement )
+						.putRawValue ( fVarName, itemElement )
 					;
 
 					fPipeline.process ( context );
 
 					context.getMessage ()
-						.clearValue ( "_item" )
+						.clearValue ( fVarName )
+						.putRawValue ( fVarName, valWas )
 					;
 					return true;
 				}
@@ -109,4 +113,5 @@ public class ForEachObject implements Processor
 
 	private final String fSet;
 	private final Pipeline fPipeline;
+	private final String fVarName;
 }
