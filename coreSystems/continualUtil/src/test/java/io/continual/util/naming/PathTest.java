@@ -55,6 +55,56 @@ public class PathTest extends TestCase
 		}
 	}
 
+	@Test
+	public void testMakeChildPath()
+	{
+		final Path current = Path.fromString( "/foo" );
+		final Path child = Path.fromString( "/bar" );
+		final Path expect = Path.fromString( "/foo/bar" ); 
+
+		final Path result = current.makeChildPath(child);
+		assertEquals( expect, result );
+	}
+
+	@Test
+	public void testDepth()
+	{
+		final Path path = Path.fromString( "/foo/bar" );
+		final int expect = 3;
+
+		final int result = path.depth();
+		assertEquals( expect, result );
+	}
+
+	@Test
+	public void testMakeChildItem()
+	{
+		final Path path = Path.fromString ( "/foo/bar" );
+		final Name name = new Name( "bee" );
+		final Path expect = Path.fromString( "/foo/bar/bee" );
+
+		final Path result = path.makeChildItem(name);
+		assertEquals( expect, result );
+	}
+
+	@Test
+	public void testObjectUtils()
+	{
+		final Path path = Path.fromString ( "/foo/bar" );
+
+		assertTrue( path.equals( path ) );
+		assertFalse( path.equals( null ) );
+		assertFalse( path.equals( "bee" ) );
+
+		assertEquals( path.hashCode(), Path.fromString( "/foo/bar" ).hashCode() );
+
+		assertNotNull( path.getItemName() );
+
+		assertNotNull( path.getId() );
+
+		assertTrue( path.startsWith( "/foo" ) );
+	}
+
 	private static class SimpleTest
 	{
 		public static SimpleTest validPath ( String input )

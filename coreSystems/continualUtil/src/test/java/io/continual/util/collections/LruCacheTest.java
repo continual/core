@@ -19,6 +19,8 @@ import junit.framework.TestCase;
 
 import org.junit.Test;
 
+import io.continual.util.collections.LruCache.ExpulsionListener;
+
 public class LruCacheTest extends TestCase
 {
 	@Test
@@ -63,5 +65,63 @@ public class LruCacheTest extends TestCase
 
 		c.store ( "k1", "1" );
 		assertNull ( c.lookup ( "k1" ) );
+	}
+
+	@Test
+	public void testClearExpulsions()
+	{
+		final int maxSize = 10;
+		final LruCache<String,String> cache = new LruCache<String,String> ( maxSize );
+		for( int index = 0; index < maxSize; index++) {
+			cache.store ( "k" + index, "" + index, new TestExpulsionListener () );
+		}
+
+		assertFalse( cache.isEmpty() );
+		assertTrue( cache.containsKey( "k0") );
+		assertEquals( "0", cache.get( "k0" ) );
+		assertNotNull( cache.keys() );
+
+		assertNull( cache.remove( "k"+(maxSize+1) ) );
+		cache.clear(true);
+
+		assertTrue( cache.isEmpty() );
+		assertFalse( cache.containsKey( "k0") );
+	}
+
+	@Test
+	public void testEnsureCapacity()
+	{
+		final LruCache<String,String> cache = new LruCache<String,String> ( 2 );
+		cache.store ( "k0", "0", new TestExpulsionListener () );
+		cache.put ( "k1", "1" );
+		cache.store ( "k2", "2", new TestExpulsionListener () );
+
+		assertEquals( "2", cache.get( "k2" ) );
+	}
+
+	@Test
+	public void testLookup()
+	{
+		final int maxSize = 10;
+		final LruCache<String,String> cache = new LruCache<String,String> ( maxSize );
+		for( int index=0; index<maxSize; index++ )
+		{
+			cache.store ( "k"+index, ""+index, new TestExpulsionListener () );
+		}
+
+		assertNotNull( cache.get( "k"+(maxSize-1) , 10000 ) );		// age < maxAgeMs
+
+		try {
+			Thread.sleep(100);
+		} catch( InterruptedException ie) {}
+		assertNull( cache.get( "k0" , 0 ) );		// age > maxAgeMs
+	}
+
+	private class TestExpulsionListener implements ExpulsionListener<String, String>
+	{
+		public void onExpelled( String key , String value )
+		{
+			// Empty Implementation
+		}
 	}
 }

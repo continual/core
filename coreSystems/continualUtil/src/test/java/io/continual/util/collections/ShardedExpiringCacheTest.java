@@ -26,6 +26,8 @@ import org.slf4j.LoggerFactory;
 
 import io.continual.util.collections.ShardedExpiringCache.Fetcher;
 import io.continual.util.collections.ShardedExpiringCache.Fetcher.FetchException;
+import io.continual.util.collections.ShardedExpiringCache.Monitor;
+import io.continual.util.collections.ShardedExpiringCache.Validator;
 import junit.framework.TestCase;
 
 public class ShardedExpiringCacheTest extends TestCase
@@ -92,6 +94,53 @@ public class ShardedExpiringCacheTest extends TestCase
 		assertTrue ( execs.awaitTermination ( 30, TimeUnit.SECONDS ) );
 	}
 
+	@Test
+	public void testBuilder()
+	{
+		final ShardedExpiringCache<String,String> secCachingFor = new ShardedExpiringCache.Builder<String,String> ()
+				.cachingFor ( 12 , TimeUnit.SECONDS )
+				.build ()
+			;
+		final ShardedExpiringCache<String,String> secNamed = new ShardedExpiringCache.Builder<String,String> ()
+				.named ( "named" )
+				.build ()
+			;
+		final ShardedExpiringCache<String,String> secNotifyTo = new ShardedExpiringCache.Builder<String,String> ()
+				.notificationsTo ( new TestMonitor () )
+				.build ()
+			;
+
+		secCachingFor.write ( "fooCF" , "barCF" );
+		secNamed.write ( "fooN" , "barN" );
+		secNotifyTo.write ( "fooNT" , "barNT" );
+		secNotifyTo.write ( "fooNT2" , "invalid" );
+
+		assertTrue( secCachingFor.containsKey( "fooCF" ) );
+		assertTrue( secNamed.containsKey( "fooN" , null ) );
+		assertFalse( secNamed.containsKey( "fooWrong" , null ) );
+		assertTrue( secNotifyTo.containsKey( "fooNT" , new TestValidator () ) );
+		assertNull( secNotifyTo.read( "fooNT2" , new TestValidator () ) );
+
+		secCachingFor.remove( "fooCF" );
+		secNamed.empty();
+		assertFalse( secNamed.containsKey( "fooN" ) );
+	}
+
+	@Test
+	public void testShardCleanUpCache ()
+	{
+		final ShardedExpiringCache<String,String> secCachingFor = new ShardedExpiringCache.Builder<String,String> ()
+				.cachingFor ( 12 , TimeUnit.SECONDS )
+				.build ()
+			;
+		secCachingFor.write ( "fooCFtimer" , "barCFtimer", 1L );	// Timer
+
+		try {
+			Thread.sleep(10);
+		} catch(InterruptedException ie) {}
+		assertFalse( secCachingFor.containsKey( "fooCFtimer" ) );	// Timer Expires
+	}
+
 	private static final String kMagicValue = "fetched value";
 	private static final Logger log = LoggerFactory.getLogger ( ShardedExpiringCacheTest.class );
 	
@@ -123,5 +172,18 @@ public class ShardedExpiringCacheTest extends TestCase
 		}
 
 		private final AtomicBoolean fFlag;
+	}
+
+	private static class TestMonitor implements Monitor
+	{
+		// Empty Class Implementation
+	}
+
+	private static class TestValidator implements Validator<String>
+	{
+		public boolean isValid( String value )
+		{
+			return "invalid".equals(value) ? false : true;	// Dummy Method Implementation
+		}
 	}
 }
