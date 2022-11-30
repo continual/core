@@ -5,7 +5,7 @@ import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class PathTest
+public class PathTest2
 {
 	
 	@Test(expected = IllegalArgumentException.class)

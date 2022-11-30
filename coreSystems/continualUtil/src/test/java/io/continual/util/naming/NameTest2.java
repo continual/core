@@ -3,7 +3,7 @@ package io.continual.util.naming;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class NameTest {
+public class NameTest2 {
 	
 	@Test
     public void staticInit(){
