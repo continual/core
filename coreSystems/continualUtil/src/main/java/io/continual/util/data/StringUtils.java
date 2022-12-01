@@ -385,4 +385,7 @@ public class StringUtils
 		}
 		return s;
 	}
+	
+	private StringUtils() {
+	}
 }
