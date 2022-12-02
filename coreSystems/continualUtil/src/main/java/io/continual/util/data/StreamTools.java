@@ -23,6 +23,9 @@ import java.io.OutputStream;
 
 public class StreamTools
 {
+	private StreamTools() {
+	}
+	
 	public static class StreamCopier
 	{
 		public StreamCopier from ( InputStream is )
