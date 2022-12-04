@@ -26,6 +26,10 @@ import io.continual.util.time.Clock;
 
 public class HumanReadableHelper
 {
+	
+	private HumanReadableHelper() {
+	}
+	
 	private static final long kMultiplier = 1000;
 	private static final long kKilobyte = kMultiplier;
 	private static final long kMegabyte = kMultiplier * kKilobyte;
