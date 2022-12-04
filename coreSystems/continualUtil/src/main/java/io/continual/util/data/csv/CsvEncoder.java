@@ -23,6 +23,9 @@ import java.util.TimeZone;
 
 public class CsvEncoder
 {
+	private CsvEncoder() {
+	}
+	
 	public static final char kDefaultQuoteChar = '"';
 	public static final char kDefaultFieldSeparatorChar = ',';
 
