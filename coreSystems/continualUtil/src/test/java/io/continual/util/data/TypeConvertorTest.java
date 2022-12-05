@@ -4,6 +4,8 @@ import java.sql.Timestamp;
 import java.text.ParseException;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Date;
 
 import org.junit.Assert;
@@ -246,10 +248,12 @@ public class TypeConvertorTest {
     }
 	
 	@Test
-    public void dateToIso8601() {
-		Date expected = Timestamp.valueOf(LocalDateTime.of(2022, 12, 31, 0, 0, 0));
-		Assert.assertEquals("2022-12-30T21:00:00Z", TypeConvertor.dateToIso8601(expected));
-    }
+	public void dateToIso8601 ()
+	{
+		final ZonedDateTime zdt = ZonedDateTime.of ( 2022, 12, 31, 0, 0, 0, 0, ZoneId.of ( "UTC" ) );
+		final Date d = Date.from ( zdt.toInstant () );
+		Assert.assertEquals ( "2022-12-31T00:00:00Z", TypeConvertor.dateToIso8601 ( d ) );
+	}
 	
 	@Test
     public void dateToIso8601_long() {

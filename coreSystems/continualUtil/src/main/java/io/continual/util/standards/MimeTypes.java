@@ -50,7 +50,7 @@ public class MimeTypes
 	public static final String kImageJpg = "image/jpg";
 	public static final String kImageIco = "image/vnd.microsoft.icon";
 	
-	private MimeTypes() {
+	protected MimeTypes()
+	{
 	}
-	
 }

@@ -83,6 +83,7 @@ public class HttpStatusCodes
 		return isClientFailure ( code ) || isServerFailure ( code );
 	}
 	
-	private HttpStatusCodes() {
+	protected HttpStatusCodes()
+	{
 	}
 }

@@ -18,6 +18,7 @@ package io.continual.util.data;
 
 import java.text.ParseException;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -116,8 +117,13 @@ public class HumanReadableHelperTest extends TestCase
 		assertEquals(10000L, HumanReadableHelper.parseTypicalDates("10").getTime());
 	}
 	
-	public void testParseTypicalDates_format() throws ParseException {
-		assertEquals(1672434000000L, HumanReadableHelper.parseTypicalDates("2022-12-31").getTime());
+	public void testParseTypicalDates_format () throws ParseException
+	{
+		// this returns a date that's midnight local time, so we can't predict a specific
+		// epoch time without specifying a timezone. In this case, we don't provide a TZ
+		// so UTC is assumed.
+		final Date d = HumanReadableHelper.parseTypicalDates ( "2022-12-31" );
+		assertEquals ( 1672444800000L, d.getTime () );
 	}
 	
 	public void testParseDuration_wrongFormat() {
@@ -139,27 +145,27 @@ public class HumanReadableHelperTest extends TestCase
 	
 	// TODO: Open below tests after bug fix! they will pass
 	public void testParseDuration3() {
-//		assertEquals(3600000, HumanReadableHelper.parseDuration("1h"));
+		assertEquals(3600000, HumanReadableHelper.parseDuration("1h"));
 	}
 	
 	public void testParseDuration4() {
-//		assertEquals(3600000, HumanReadableHelper.parseDuration("1hr"));
+		assertEquals(3600000, HumanReadableHelper.parseDuration("1hr"));
 	}
 	
 	public void testParseDuration5() {
-//		assertEquals(3600000, HumanReadableHelper.parseDuration("1hrs"));
+		assertEquals(3600000, HumanReadableHelper.parseDuration("1hrs"));
 	}
 	
 	public void testParseDuration6() {
-//		assertEquals(60000, HumanReadableHelper.parseDuration("1m"));
+		assertEquals(60000, HumanReadableHelper.parseDuration("1m"));
 	}
 	
 	public void testParseDuration7() {
-//		assertEquals(60000, HumanReadableHelper.parseDuration("1min"));
+		assertEquals(60000, HumanReadableHelper.parseDuration("1min"));
 	}
 	
 	public void testParseDuration8() {
-//		assertEquals(60000, HumanReadableHelper.parseDuration("1mins"));
+		assertEquals(60000, HumanReadableHelper.parseDuration("1mins"));
 	}
 	
 	public void testElapsedTimeBetween() {
@@ -177,47 +183,54 @@ public class HumanReadableHelperTest extends TestCase
 	public void testElapsedTimeBetween_start_end() {
 		assertEquals("1 ms in the future", HumanReadableHelper.elapsedTimeBetween(6, 7));
 	}
-	
-	public void testElapsedTimeSince() {
-		int yearDiff = LocalDate.now().getYear() - LocalDate.of(2001, 9, 9).getYear();
-		assertEquals(yearDiff + " yrs ago", HumanReadableHelper.elapsedTimeSince(new Date(1000000000000L), 1, 1));
+
+	public void testElapsedTimeSince ()
+	{
+		final TestClock tc = TestClock.useNewTestClock ();
+		tc.set ( 1670204158000L );	// Mon, 05 Dec 2022 01:35:58 GMT
+
+		final LocalDate then = LocalDate.of ( 2001, 9, 9 );
+		final int yearDiff = LocalDate.now ().getYear () - then.getYear ();
+		final Date thenDate = Date.from ( then.atStartOfDay ( ZoneId.systemDefault () ).toInstant () );
+		assertEquals ( yearDiff + " yrs ago", HumanReadableHelper.elapsedTimeSince ( thenDate, 1, 1 ) );
 	}
 	
-	public void testElapsedTimeSince2() {
-		int yearDiff = LocalDate.now().getYear() - LocalDate.of(2001, 9, 9).getYear();
-		assertTrue(HumanReadableHelper.elapsedTimeSince(1000000000000L, 6).startsWith(yearDiff + " yrs"));
+	public void testElapsedTimeSince2 ()
+	{
+		final TestClock tc = TestClock.useNewTestClock ();
+		tc.set ( 1670204158000L );	// Mon, 05 Dec 2022 01:35:58 GMT
+
+		final LocalDate then = LocalDate.of ( 2001, 9, 9 );
+		final Date thenDate = Date.from ( then.atStartOfDay ( ZoneId.systemDefault () ).toInstant () );
+		
+		final String elapsed = HumanReadableHelper.elapsedTimeSince ( thenDate.getTime (), 6 );
+		assertTrue ( elapsed.startsWith ( "21 yrs, 3 months, 1 day, 21 hrs" ) );
 	}
-	
-	public void testElapsedTimeSince3() {
-		assertEquals("", HumanReadableHelper.elapsedTimeSince(null, 1));
+
+	public void testElapsedTimeSince3 ()
+	{
+		assertEquals ( "", HumanReadableHelper.elapsedTimeSince ( null, 1 ) );
 	}
-	
-	public void testElapsedTimeSince4() {
-		int yearDiff = LocalDate.now().getYear() - LocalDate.of(2001, 9, 9).getYear();
-		assertTrue(HumanReadableHelper.elapsedTimeSince(1000000000000L, 2).startsWith(yearDiff + " yrs"));
+
+	public void testElapsedTimeSince4 ()
+	{
+		final TestClock tc = TestClock.useNewTestClock ();
+		tc.set ( 1670204158000L );	// Mon, 05 Dec 2022 01:35:58 GMT
+
+		final String diff = HumanReadableHelper.elapsedTimeSince ( 1000000000000L, 2 );
+		assertEquals ( "21 yrs, 3 months, 1 day, 23 hrs, 49 m, 18 s ago", diff );
 	}
-	
-	public void testElapsedTimeSince5() {
-		int yearDiff = LocalDate.now().getYear() - LocalDate.of(2001, 9, 9).getYear();
-		assertTrue(HumanReadableHelper.elapsedTimeSince(1000000000000L).startsWith(yearDiff + " yrs"));
+
+	public void testElapsedTimeSince6 ()
+	{
+		assertEquals ( "", HumanReadableHelper.elapsedTimeSince ( null ) );
 	}
-	
-	public void testElapsedTimeSince6() {
-		assertEquals("", HumanReadableHelper.elapsedTimeSince(null));
-	}
-	
-	public void testElapsedTimeSince7() {
-		int yearDiff = LocalDate.now().getYear() - LocalDate.of(2001, 9, 9).getYear();
-		assertTrue(HumanReadableHelper.elapsedTimeSince(new Date(1000000000000L)).startsWith(yearDiff + " yrs"));
-	}
-	
-	public void testElapsedTimeSince8() {
-		int yearDiff = LocalDate.now().getYear() - LocalDate.of(2001, 9, 9).getYear();
-		assertTrue(HumanReadableHelper.elapsedTimeSince(new Date(1000000000000L),1L).startsWith(yearDiff + " yrs"));
-	}
-	
-	public void testDateValue() {
-		assertEquals("2001.09.09 04:46:40 TRST", HumanReadableHelper.dateValue(new Date(1000000000000L)));
+
+	public void testDateValue()
+	{
+		final Date d = new Date ( 1000000000000L );
+		final String dstr = HumanReadableHelper.dateValue ( d );
+		assertEquals("2001.09.09 01:46:40 UTC", dstr );
 	}
 	
 	public void testPctValue() {
@@ -260,6 +273,7 @@ public class HumanReadableHelperTest extends TestCase
 		assertEquals("16     .", result.get(1));
 	}
 	
+	@Deprecated
 	public void testMemoryValue() {
 		assertEquals("100 bytes", HumanReadableHelper.memoryValue(100L));
 	}

@@ -7,5 +7,5 @@ package io.continual.http.util.http.standards;
 @Deprecated
 public class MimeTypes extends io.continual.util.standards.MimeTypes
 {
-
+	private MimeTypes () { super (); }
 }

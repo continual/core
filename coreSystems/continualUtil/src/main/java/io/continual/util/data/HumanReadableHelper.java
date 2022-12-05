@@ -20,6 +20,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
 import io.continual.util.time.Clock;
@@ -227,9 +228,15 @@ public class HumanReadableHelper
 
 	public static String dateValue ( Date d )
 	{
+		return dateValue ( d, TimeZone.getTimeZone ( "UTC" ) );
+	}
+
+	public static String dateValue ( Date d, TimeZone tz )
+	{
+		final SimpleDateFormat sdf = new SimpleDateFormat ( "yyyy.MM.dd HH:mm:ss z" );
+		sdf.setTimeZone ( tz );
 		return sdf.format ( d );
 	}
-	private static final SimpleDateFormat sdf = new SimpleDateFormat ( "yyyy.MM.dd HH:mm:ss z" );
 
 	public static String elapsedTimeSince ( Date d )
 	{
@@ -312,14 +319,14 @@ public class HumanReadableHelper
 		}
 		else if ( duration.endsWith ( "h" ) || duration.endsWith ( "hr" ) || duration.endsWith ( "hrs" ) )
 		{
-			final String valueStr = duration.substring ( 0, duration.indexOf ( "d" ) );
+			final String valueStr = duration.substring ( 0, duration.indexOf ( "h" ) );
 			final double value = Double.parseDouble ( valueStr );
 			final double asMs = value * (60.0 * 60.0 * 1000.0);
 			return Math.round ( asMs );
 		}
 		else if ( duration.endsWith ( "m" ) || duration.endsWith ( "min" ) || duration.endsWith ( "mins" ) )
 		{
-			final String valueStr = duration.substring ( 0, duration.indexOf ( "d" ) );
+			final String valueStr = duration.substring ( 0, duration.indexOf ( "m" ) );
 			final double value = Double.parseDouble ( valueStr );
 			final double asMs = value * (60.0 * 1000.0);
 			return Math.round ( asMs );
@@ -338,6 +345,19 @@ public class HumanReadableHelper
 	 * @throws ParseException if the date's format is unrecognizable 
 	 */
 	public static Date parseTypicalDates ( String d ) throws ParseException
+	{
+		return parseTypicalDates ( d, TimeZone.getTimeZone ( "UTC" ) );
+	}
+
+	/**
+	 * Parse date strings as they're typically seen in configuration or input. Note that this isn't tuned to be
+	 * especially fast -- use it for occasional interpretation, not high volume transactions.
+	 * @param d a date string 
+	 * @param tz a timezone for the date
+	 * @return a date
+	 * @throws ParseException if the date's format is unrecognizable 
+	 */
+	public static Date parseTypicalDates ( String d, TimeZone tz ) throws ParseException
 	{
 		if ( d.equalsIgnoreCase ( "today" ) || d.equalsIgnoreCase ( "now" ) )
 		{
@@ -361,10 +381,12 @@ public class HumanReadableHelper
 			// ignore
 		}
 		
-		for ( SimpleDateFormat sdf : kDateFormats )
+		for ( String sdfFmt : kDateFormats )
 		{
 			try
 			{
+				final SimpleDateFormat sdf = new SimpleDateFormat ( sdfFmt );
+				sdf.setTimeZone ( tz );
 				return sdf.parse ( d );
 			}
 			catch ( ParseException x )
@@ -375,10 +397,10 @@ public class HumanReadableHelper
 		throw new ParseException ( "Unrecognized date [" + d +  "].", 0 );
 	}
 
-	private static SimpleDateFormat[] kDateFormats =
+	private static String[] kDateFormats =
 	{
-		new SimpleDateFormat ( "yyyy-MM-dd" ),
-		new SimpleDateFormat ( "MM/dd/yyyy" ),
+		"yyyy-MM-dd",
+		"MM/dd/yyyy",
 	};
 	private static final long kMsThreshold = ( System.currentTimeMillis () / 100L );
 
