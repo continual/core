@@ -21,4 +21,5 @@ package io.continual.http.util.http.standards;
 @Deprecated
 public class HttpStatusCodes extends io.continual.util.standards.HttpStatusCodes
 {
+	private HttpStatusCodes () {}
 }

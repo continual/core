@@ -25,6 +25,9 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class Sha1HmacSigner
 {
+	private Sha1HmacSigner() {
+	}
+	
 	private static final String kHmacSha1Algo = "HmacSHA1";
 
 	public static String sign ( String message, String key )
@@ -51,15 +54,15 @@ public class Sha1HmacSigner
 		}
 	}
 
-	static public void main ( String args[] )
-	{
-		if ( args.length != 2 )
-		{
-			System.err.println ( "usage: Sha1HmacSigner <message> <key>" );
-		}
-		else if ( args.length == 2 )
-		{
-			System.out.println ( sign ( args[0], args[1] ) );
-		}
-	}
+//	static public void main ( String args[] )
+//	{
+//		if ( args.length != 2 )
+//		{
+//			System.err.println ( "usage: Sha1HmacSigner <message> <key>" );
+//		}
+//		else if ( args.length == 2 )
+//		{
+//			System.out.println ( sign ( args[0], args[1] ) );
+//		}
+//	}
 }

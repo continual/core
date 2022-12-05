@@ -49,4 +49,8 @@ public class MimeTypes
 	public static final String kImageGif = "image/gif";
 	public static final String kImageJpg = "image/jpg";
 	public static final String kImageIco = "image/vnd.microsoft.icon";
+	
+	protected MimeTypes()
+	{
+	}
 }

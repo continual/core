@@ -33,6 +33,10 @@ import io.continual.util.data.csv.CsvEncoder;
 
 public class TypeConvertor
 {
+	
+	private TypeConvertor() {
+	}
+	
 	public static class conversionError extends Exception
 	{
 		public conversionError ( String msg ) { super ( msg ); }
