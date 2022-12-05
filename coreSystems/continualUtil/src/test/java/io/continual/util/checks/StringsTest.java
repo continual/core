@@ -1,22 +1,21 @@
 package io.continual.util.checks;
 
-import junit.framework.TestCase;
-
 import org.junit.Test;
 
-public class StringsTest extends TestCase
-{
-    @Test
-    public void testThrowOnEmpty ()
-    {
-        try
-        {
+public class StringsTest {
+	
+	@Test(expected = IllegalArgumentException.class)
+    public void testThrowOnEmpty(){
             Strings.throwIfEmpty ( "", "string is empty" );
-            fail ( "Empty string, should have thrown." );
-        }
-        catch ( IllegalArgumentException x )
-        {
-            // expected
-        }
+    }
+	
+	@Test(expected = IllegalArgumentException.class)
+    public void testThrowOnEmptyNull(){
+            Strings.throwIfEmpty ( null, "string is empty" );
+    }
+	
+	@Test(expected = org.junit.Test.None.class)
+    public void testThrowOnEmptyNotNull(){
+            Strings.throwIfEmpty ( "data", "string is empty" );
     }
 }

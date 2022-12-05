@@ -24,6 +24,9 @@ import java.util.UUID;
  */
 public class UniqueStringGenerator
 {
+	private UniqueStringGenerator() {
+	}
+	
 	public static String create ( String nonsense )
 	{
 		final byte[] val = createValue ( nonsense );

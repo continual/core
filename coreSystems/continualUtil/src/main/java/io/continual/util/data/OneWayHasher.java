@@ -28,6 +28,9 @@ import javax.crypto.spec.PBEKeySpec;
  */
 public class OneWayHasher
 {
+	private OneWayHasher() {
+	}
+	
 	/**
 	 * Create a digest of a message string.
 	 * @param input the string to digest
@@ -93,19 +96,19 @@ public class OneWayHasher
 	 * Run this utility as a program.
 	 * @param args the command line arguments
 	 */
-	static public void main ( String args[] )
-	{
-		if ( args.length != 1 && args.length != 2 )
-		{
-			System.err.println ( "usage: OneWayHasher <input> [<extraSalt>]" );
-		}
-		else if ( args.length == 1 )
-		{
-			System.out.println ( pbkdf2HashToString ( args[0], "" ) );
-		}
-		else if ( args.length == 2 )
-		{
-			System.out.println ( pbkdf2HashToString ( args[0], args[1] ) );
-		}
-	}
+//	static public void main ( String args[] )
+//	{
+//		if ( args.length != 1 && args.length != 2 )
+//		{
+//			System.err.println ( "usage: OneWayHasher <input> [<extraSalt>]" );
+//		}
+//		else if ( args.length == 1 )
+//		{
+//			System.out.println ( pbkdf2HashToString ( args[0], "" ) );
+//		}
+//		else if ( args.length == 2 )
+//		{
+//			System.out.println ( pbkdf2HashToString ( args[0], args[1] ) );
+//		}
+//	}
 }
