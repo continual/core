@@ -179,6 +179,7 @@ public class nvCopyOnWriteTable extends nvBaseReadable implements NvWriteable
 		{
 			if ( one ) sb.append ( "," );
 			sb.append ( value );
+			one = true;
 		}
 		set ( key, sb.toString () );
 	}
