@@ -11,7 +11,7 @@ import org.junit.runners.MethodSorters;
 import io.continual.util.time.Clock.TestClock;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class ClockTest {
+public class ClockTest2 {
 	
 	@Before
     public void setTheClock(){
