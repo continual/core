@@ -5,6 +5,7 @@
 target/
 .DS_Store
 **/*.iml
+**/.obsidian
 **/logs/
 **/dependency-reduced-pom.xml
 .idea/
