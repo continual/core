@@ -90,9 +90,9 @@ public class JsonObjectMap implements Map<String,String>
 	@Override
 	public void clear ()
 	{
-		for ( Object key : fObject.keySet () )
+		while (fObject.keySet().iterator().hasNext())
 		{
-			fObject.remove ( key.toString () );
+			fObject.remove(fObject.keySet().iterator().next());
 		}
 	}
 

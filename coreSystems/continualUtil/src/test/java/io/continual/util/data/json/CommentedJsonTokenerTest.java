@@ -16,12 +16,19 @@
 
 package io.continual.util.data.json;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.Reader;
+import java.io.StringReader;
+
 import org.json.JSONObject;
 import org.junit.Test;
 
-import junit.framework.TestCase;
-
-public class CommentedJsonTokenerTest extends TestCase
+public class CommentedJsonTokenerTest
 {
 	@Test
 	public void testStripper ()
@@ -49,4 +56,73 @@ public class CommentedJsonTokenerTest extends TestCase
 		assertEquals ( "bar", o.getString ( "foo" ) );
 		assertEquals ( "baz", o.getString ( "bee" ) );
 	}
+	
+	@Test
+	public void createWithInputStream (){
+		InputStream input = new ByteArrayInputStream("{'id':12, 'name':'arzu' }".getBytes());
+		final JSONObject o = new JSONObject ( new CommentedJsonTokener ( input ) );
+		assertNotNull ( o );
+		assertEquals ( 12, o.getInt("id") );
+		assertEquals ( "arzu", o.getString ( "name" ) );
+	}
+	
+	@Test
+	public void createWithReader (){
+		Reader input = new StringReader("{'id':12, 'name':'arzu' }");
+		final JSONObject o = new JSONObject ( new CommentedJsonTokener ( input ) );
+		assertNotNull ( o );
+		assertEquals ( 12, o.getInt("id") );
+		assertEquals ( "arzu", o.getString ( "name" ) );
+	}
+	
+	@Test
+	public void complexExample (){
+		final JSONObject o = new JSONObject ( new CommentedJsonTokener ( "{\"id\":'er\\'d', \'name':\"ar\\\"zu\" }" ) );
+		assertNotNull ( o );
+		assertTrue ( o.has ( "id" ) );
+		assertEquals ( "er'd", o.getString ( "id" ) );
+		assertTrue ( o.has ( "name" ) );
+		assertEquals ( "ar\"zu", o.getString ( "name" ) );
+	}
+	
+	@Test
+	public void complexExample2 (){
+		final JSONObject o = new JSONObject ( new CommentedJsonTokener ( "{\"id\":'test' //comment\n  }" ) );
+		assertNotNull ( o );
+		assertTrue ( o.has ( "id" ) );
+		assertEquals ( "test", o.getString ( "id" ) );
+	}
+	
+//	@Test
+	public void complexExample3 (){
+		final JSONObject o = new JSONObject ( new CommentedJsonTokener ( "{\"id\":'test' /comment\n  }" ) );
+		assertNotNull ( o );
+		assertTrue ( o.has ( "id" ) );
+		assertEquals ( "test", o.getString ( "id" ) );
+	}
+	
+//	@Test
+	public void complexExample4 (){
+		final JSONObject o = new JSONObject ( new CommentedJsonTokener ( "{\"id\":'test'  /*comment*\n  }" ) );
+		assertNotNull ( o );
+		assertTrue ( o.has ( "id" ) );
+		assertEquals ( "test", o.getString ( "id" ) );
+	}
+	
+//	@Test
+	public void complexExample5 (){
+		final JSONObject o = new JSONObject ( new CommentedJsonTokener ( "{\"id\":'test'  /*comment*p\n  }" ) );
+		assertNotNull ( o );
+		assertTrue ( o.has ( "id" ) );
+		assertEquals ( "test", o.getString ( "id" ) );
+	}
+	
+	@Test
+	public void complexExample_EOF (){
+		final JSONObject o = new JSONObject ( new CommentedJsonTokener ( "{\"id\":\"test\" \n  }" ) );
+		assertNotNull ( o );
+		assertTrue ( o.has ( "id" ) );
+		assertEquals ( "test", o.getString ( "id" ) );
+	}
+	
 }

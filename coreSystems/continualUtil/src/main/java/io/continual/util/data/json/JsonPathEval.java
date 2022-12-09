@@ -32,6 +32,9 @@ import com.jayway.jsonpath.spi.mapper.MappingProvider;
 
 public class JsonPathEval
 {
+	private JsonPathEval() {
+	}
+	
 	public static List<String> evaluateJsonPath ( JSONObject root, String jsonPath )
 	{
 		return JsonPath
