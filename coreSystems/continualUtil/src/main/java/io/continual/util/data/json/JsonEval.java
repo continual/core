@@ -29,6 +29,9 @@ import io.continual.util.data.exprEval.JsonDataSource;
 
 public class JsonEval
 {
+	private JsonEval() {
+	}
+	
 	/**
 	 * Evaluate an expression against a JSON structure. If the expression refers to a non-existent
 	 * node, null is returned.

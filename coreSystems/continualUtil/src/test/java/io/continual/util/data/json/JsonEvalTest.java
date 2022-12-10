@@ -16,14 +16,34 @@
 
 package io.continual.util.data.json;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
 
-import junit.framework.TestCase;
-
-public class JsonEvalTest extends TestCase
+public class JsonEvalTest
 {
+	
+    private JSONObject generateJSONObject(String fieldValue) {
+    	JSONObject object = new JSONObject();
+    	object.put("id", fieldValue);
+    	object.put("name", "testField");
+    	object.put("isEmployee", true);
+    	object.put("age", 40);
+    	object.put("timestamp", 999999L);
+    	object.put("salary", 100.32d);
+    	
+    	JSONObject innerObject = new JSONObject();
+    	innerObject.put("street", "12 st");
+    	object.put("address", innerObject);
+    	return object;
+    }
+    
 	@Test
 	public void testSimpleEval ()
 	{
@@ -149,4 +169,182 @@ public class JsonEvalTest extends TestCase
 		final JSONObject container2 = JsonEval.getContainerOf ( o, "a.b.c" );
 		assertEquals ( 123, container2.getInt ( "c" ));
 	}
+	
+	@Test
+	public void eval_null(){
+		JSONObject jsonObject = generateJSONObject("500");
+		assertNull(JsonEval.eval( jsonObject, "text"));
+	}
+	
+	@Test
+	public void eval_default_value_negative(){
+		JSONObject jsonObject = generateJSONObject("500");
+		assertEquals("-1", JsonEval.eval( jsonObject, "text", "-1"));
+	}
+	
+	@Test
+	public void eval_default_value(){
+		JSONObject jsonObject = generateJSONObject("500");
+		assertEquals("500", JsonEval.eval( jsonObject, "id", "-1"));
+	}
+	
+	@Test
+	public void evalToString(){
+		JSONObject jsonObject = generateJSONObject("500");
+		assertEquals("500", JsonEval.evalToString( jsonObject, "id"));
+	}
+	
+	@Test
+	public void evalToString_negative(){
+		JSONObject jsonObject = generateJSONObject("500");
+		assertEquals("", JsonEval.evalToString( jsonObject, "xx"));
+	}
+	
+	@Test
+	public void evalToBoolean(){
+		JSONObject jsonObject = generateJSONObject("");
+		assertEquals(true, JsonEval.evalToBoolean( jsonObject, "isEmployee"));
+	}
+	
+	@Test
+	public void evalToBoolean_stringValue(){
+		JSONObject jsonObject = generateJSONObject("yes");
+		assertEquals(true, JsonEval.evalToBoolean( jsonObject, "id"));
+	}
+	
+	@Test
+	public void evalToBoolean_negative(){
+		JSONObject jsonObject = generateJSONObject("yes");
+		assertEquals(false, JsonEval.evalToBoolean( jsonObject, "xx"));
+	}
+	
+	@Test
+	public void evalToInt(){
+		JSONObject jsonObject = generateJSONObject("test");
+		assertEquals(40, JsonEval.evalToInt( jsonObject, "age", -1));
+	}
+	
+	@Test
+	public void evalToInt_stringValue(){
+		JSONObject jsonObject = generateJSONObject("15");
+		assertEquals(15, JsonEval.evalToInt( jsonObject, "id", -1));
+	}
+	
+	@Test
+	public void evalToInt_negative(){
+		JSONObject jsonObject = generateJSONObject("15");
+		assertEquals(-1, JsonEval.evalToInt( jsonObject, "xx", -1));
+	}
+	
+	@Test
+	public void evalToLong(){
+		JSONObject jsonObject = generateJSONObject("test");
+		assertEquals(999999, JsonEval.evalToLong( jsonObject, "timestamp", -1));
+	}
+	
+	@Test
+	public void evalToLong_stringValue(){
+		JSONObject jsonObject = generateJSONObject("777");
+		assertEquals(777, JsonEval.evalToLong( jsonObject, "id", -1));
+	}
+	
+	@Test
+	public void evalToLong_negative(){
+		JSONObject jsonObject = generateJSONObject("15");
+		assertEquals(-1, JsonEval.evalToLong( jsonObject, "xx", -1));
+	}
+	
+	@Test
+	public void evalToDouble(){
+		JSONObject jsonObject = generateJSONObject("test");
+		assertEquals(100.32, JsonEval.evalToDouble( jsonObject, "salary", -1) ,0);
+	}
+	
+	@Test
+	public void evalToDouble_stringValue(){
+		JSONObject jsonObject = generateJSONObject("43.99");
+		assertEquals(43.99, JsonEval.evalToDouble( jsonObject, "id", -1), 0);
+	}
+	
+	@Test
+	public void evalToDouble_negative(){
+		JSONObject jsonObject = generateJSONObject("15");
+		assertEquals(-1, JsonEval.evalToDouble( jsonObject, "xx", -1), 0);
+	}
+	
+	@Test
+	public void evalToObject(){
+		JSONObject jsonObject = generateJSONObject("test");
+		assertEquals("{\"street\":\"12 st\"}", JsonEval.evalToObject( jsonObject, "address").toString());
+	}
+	
+	@Test
+	public void evalToObject_negative(){
+		JSONObject jsonObject = generateJSONObject("15");
+		assertNotNull(JsonEval.evalToObject( jsonObject, "xx"));
+		assertEquals("{}", JsonEval.evalToObject( jsonObject, "xx").toString());
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void evalToObject_exception(){
+		JSONObject jsonObject = generateJSONObject("15");
+		jsonObject.put("tmp", new JSONArray());
+		JsonEval.evalToObject( jsonObject, "tmp");
+	}
+	
+	@Test
+	public void evalToArray(){
+		JSONObject jsonObject = generateJSONObject("test");
+		JSONArray list = new JSONArray();
+		list.put("arr-1");
+		jsonObject.put("list", list );
+		assertEquals("[\"arr-1\"]", JsonEval.evalToArray( jsonObject, "list").toString());
+	}
+	
+	@Test
+	public void evalToArray_negative(){
+		JSONObject jsonObject = generateJSONObject("15");
+		assertNotNull(JsonEval.evalToArray( jsonObject, "xx"));
+		assertEquals("[]", JsonEval.evalToArray( jsonObject, "xx").toString());
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void evalToArray_exception(){
+		JSONObject jsonObject = generateJSONObject("test");
+		JsonEval.evalToArray( jsonObject, "address");
+	}
+	
+	@Test
+	public void substitute(){
+		JSONObject jsonObject = generateJSONObject("15");
+		assertEquals("id", JsonEval.substitute( "id", jsonObject));
+	}
+	
+	@Test
+	public void hasKey(){
+		JSONObject jsonObject = generateJSONObject("15");
+		assertEquals(true, JsonEval.hasKey( jsonObject,  "id"));
+	}
+	
+	@Test
+	public void eval_dots(){
+		JSONObject jsonObject = generateJSONObject("500");
+		assertNull(JsonEval.eval( jsonObject, "address[0].street"));
+	}
+	
+	@Test
+	public void eval_wrong_array_index(){
+		JSONObject jsonObject = generateJSONObject("500");
+		jsonObject.put("array", new JSONArray().put("test"));
+		assertNull(JsonEval.eval( jsonObject, "array[0z].field"));
+	}
+	
+	@Test
+	public void eval_wrong_format(){
+		JSONObject jsonObject = generateJSONObject("500");
+		jsonObject.put("array", new JSONArray().put("test"));
+		assertNull(JsonEval.eval( jsonObject, "foo[0[1]]"));
+	}
+	
+	
 }

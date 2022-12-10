@@ -50,4 +50,7 @@ public class Base64Constants
 			b64ToNibbles[nibblesToB64[i]] = (byte) i;
 		}
 	}
+	
+	protected Base64Constants() {
+	}
 }

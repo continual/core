@@ -29,6 +29,9 @@ import org.json.JSONObject;
 
 public class JsonVisitor
 {
+	private JsonVisitor() {
+	}
+	
 	public interface ArrayVisitor<T,E extends Exception>
 	{
 		/**

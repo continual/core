@@ -45,6 +45,9 @@ import io.continual.util.data.json.JsonVisitor.ArrayOfStringVisitor;
 
 public class JsonUtil
 {
+	private JsonUtil() {
+	}
+	
 	public static JSONObject readJsonObject ( InputStream is )
 	{
 		return new JSONObject ( new CommentedJsonTokener( is ) );

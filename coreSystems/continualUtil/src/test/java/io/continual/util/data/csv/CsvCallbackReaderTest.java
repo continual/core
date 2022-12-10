@@ -16,17 +16,19 @@
 
 package io.continual.util.data.csv;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Map;
 
 import org.junit.Test;
 
 import io.continual.util.data.csv.CsvCallbackReader.RecordHandler;
-import junit.framework.TestCase;
 
-public class CsvCallbackReaderTest extends TestCase
+public class CsvCallbackReaderTest
 {
 	@Test
 	public void testBrokenLine () throws Exception
@@ -94,5 +96,69 @@ public class CsvCallbackReaderTest extends TestCase
 		{ "\"test1\",test2,test3", "test1" },
 		{ "\"test1\na\",test2,test3", "test1\na" },
 		{ "\"test1\"\"\",test2,test3", "test1\"" },
+		{ ",test2", "" },
+		{ " \",test2\"", " \"" },
 	};
+	
+	private RecordHandler<Exception> myRecordHandler = new RecordHandler<Exception> ()
+	{
+		@Override
+		public boolean handler ( Map<String, String> fields )
+		{
+			String field = fields.get ( "FieldA" );
+			return field==null ? true : false;
+		}
+	};
+	
+	@Test(expected = IOException.class)
+	public void readException () throws Exception {
+		CsvCallbackReader<Exception> reader = new CsvCallbackReader<Exception> ( true );
+		reader.read((InputStream)null, null);
+	}
+	
+	@Test
+	public void read () throws Exception {
+		CsvCallbackReader<Exception> reader = new CsvCallbackReader<Exception> ( true );
+		InputStreamReader inputStream = new InputStreamReader ( new ByteArrayInputStream ( "header\ntest2".getBytes () ) );
+		reader.read(inputStream, myRecordHandler);
+		assertEquals ( true, reader.hasHeader());
+		assertEquals (1, reader.getLinesParsed());
+		assertEquals ("header", reader.getColumnNames().get(0));
+	}
+	
+	@Test
+	public void reset () throws Exception {
+		CsvCallbackReader<Exception> reader = new CsvCallbackReader<Exception> ( true );
+		InputStreamReader inputStream = new InputStreamReader ( new ByteArrayInputStream ( "header \n first \n second \n third".getBytes () ) );
+		reader.read(inputStream, myRecordHandler);
+		assertEquals (3, reader.getLinesParsed());
+		reader.reset();
+		assertEquals (0, reader.getLinesParsed());
+	}
+	
+	@Test
+	public void resad_header_with_number_sign () throws Exception {
+		CsvCallbackReader<Exception> reader = new CsvCallbackReader<Exception> ( true );
+		InputStreamReader inputStream = new InputStreamReader ( new ByteArrayInputStream ( "#header \n first line \n second \n third".getBytes () ) );
+		reader.read(inputStream, myRecordHandler);
+		assertEquals (2, reader.getLinesParsed());
+		assertEquals ("first line", reader.getColumnNames().get(0));
+	}
+	
+	@Test
+	public void read_empty_header () throws Exception {
+		CsvCallbackReader<Exception> reader = new CsvCallbackReader<Exception> ( true );
+		InputStreamReader inputStream = new InputStreamReader ( new ByteArrayInputStream ( "\n first line \n second \n third".getBytes () ) );
+		reader.read(inputStream, myRecordHandler);
+		assertEquals (2, reader.getLinesParsed());
+		assertEquals ("first line", reader.getColumnNames().get(0));
+	}
+	
+	@Test
+	public void read_no_header() throws Exception {
+		CsvCallbackReader<Exception> reader = new CsvCallbackReader<Exception> ( false );
+		InputStreamReader inputStream = new InputStreamReader ( new ByteArrayInputStream ( "1st line\n 2nd line,other".getBytes () ) );
+		reader.read(inputStream, myRecordHandler);
+		assertEquals (2, reader.getLinesParsed());
+	}
 }
