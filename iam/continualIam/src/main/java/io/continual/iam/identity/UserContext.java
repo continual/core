@@ -36,6 +36,12 @@ public class UserContext<I extends Identity> implements JsonSerialized
 	};
 
 	/**
+	 * Create a builder for an UserContext
+	 * @return a new builder
+	 */
+	public static Builder<Identity> builder () { return new Builder<Identity> (); }
+
+	/**
 	 * Get the identity for the user that this transaction is being "executed as".
 	 * @return an identity
 	 */
