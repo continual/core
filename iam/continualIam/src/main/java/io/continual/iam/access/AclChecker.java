@@ -84,9 +84,8 @@ public class AclChecker
 	 * Check the user's access. If not allowed, AccessException is thrown. 
 	 * @throws AccessException thrown if user is not permitted
 	 * @throws IamSvcException thrown on a processing error in the IAM subsystem
-	 * @return true if the user can perform the given operation
 	 */
-	public boolean check () throws AccessException, IamSvcException
+	public void check () throws AccessException, IamSvcException
 	{
 		final String userId = fUser == null ? "anonymous" : fUser.getId ();
 
@@ -97,8 +96,6 @@ public class AclChecker
 		{
 			throw new AccessException ( userId + " may not " + fOp.toLowerCase () + " " + fResource );
 		}
-
-		return true;
 	}
 
 	private AccessControlList fAcl;
