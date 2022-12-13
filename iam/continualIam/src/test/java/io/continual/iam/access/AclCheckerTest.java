@@ -48,7 +48,7 @@ public class AclCheckerTest
 		aclc.reading ();
 		final AclChecker result = aclc.controlledByAcl( acl );
 		try {
-			Assert.assertTrue( result.check () );
+			result.check ();
 		} catch (AccessException | IamSvcException e) {
 			Assert.fail ( "Expected to execute. " + e.getMessage() );
 		}
@@ -66,7 +66,7 @@ public class AclCheckerTest
 		aclc.updating ();
 		final AclChecker result = aclc.controlledByAcl( acl );
 		try {
-			Assert.assertTrue( result.check () );
+			result.check ();
 		} catch (AccessException | IamSvcException e) {
 			Assert.fail ( "Expected to execute. " + e.getMessage() );
 		}
@@ -84,7 +84,7 @@ public class AclCheckerTest
 		aclc.creating ();
 		final AclChecker result = aclc.controlledByAcl( acl );
 		try {
-			Assert.assertTrue( result.check () );
+			result.check ();
 		} catch (AccessException | IamSvcException e) {
 			Assert.fail ( "Expected to execute. " + e.getMessage() );
 		}
@@ -102,7 +102,7 @@ public class AclCheckerTest
 		aclc.deleting ();
 		final AclChecker result = aclc.controlledByAcl( acl );
 		try {
-			Assert.assertTrue( result.check () );
+			result.check ();
 		} catch (AccessException | IamSvcException e) {
 			Assert.fail ( "Expected to execute. " + e.getMessage() );
 		}

@@ -4,6 +4,8 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import io.continual.iam.credentials.JwtCredential.InvalidJwtToken;
+import io.continual.util.time.Clock;
+import io.continual.util.time.Clock.TestClock;
 
 public class JwtCredentialTest
 {
@@ -81,6 +83,9 @@ public class JwtCredentialTest
 	@Test( expected = InvalidJwtToken.class )
 	public void testConstructorExpired () throws InvalidJwtToken
 	{
+		// setup a test clock because this test relies on time comparisons 
+		Clock.useNewTestClock ().set ( 1670885435000L );
+
 		new JwtCredential ( expiredJwtToken );
 	}
 
@@ -108,6 +113,7 @@ public class JwtCredentialTest
 	{
 		new JwtCredential ( invalidJsonJwtToken );
 	}
+
 	@Test
 	public void testGetSignedContent ()
 	{
