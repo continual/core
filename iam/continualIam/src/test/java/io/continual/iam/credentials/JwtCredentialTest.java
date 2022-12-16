@@ -1,32 +1,45 @@
 package io.continual.iam.credentials;
 
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.continual.iam.credentials.JwtCredential.InvalidJwtToken;
 import io.continual.util.time.Clock;
-import io.continual.util.time.Clock.TestClock;
 
 public class JwtCredentialTest
 {
+	private final long expTime = 1670936933000L;
+	private final long offsetTime = (24 * 60 * 60);		// 1 day
 	// Header - {"alg": "HS256","typ": "JWT"}
-	// Payload - {"iss": "continual","sub": "continual","aud": "continual","iat": 1670770128,"exp": 96707707280}
+	// Payload - {"iss": "continual","sub": "continual","aud": "continual","iat": 1670936333,"exp": 1670936933}
 	// Key Base64 - 12345678901234567890123456789012345678901234567890
 	private final String validJwtToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9." +
-				"eyJpc3MiOiJjb250aW51YWwiLCJzdWIiOiJjb250aW51YWwiLCJhdWQiOiJjb250aW51YWwiLCJpYXQiOjE2NzA3NzAxMjgsImV4cCI6OTY3MDc3MDcyODB9." +
-				"I_fkxgSPyfMY1F5dCoO20qQYQgB8v5Fkm9KWMxx67qI";
-	// "aud": "{continual1,continual2}"
-	private final String arrAudJwtToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjb250aW51YWwiLCJzdWIiOiJjb250aW51YWwiLCJhdWQiOlsiY29udGludWFsMSIsImNvbnRpbnVhbDIiXSwiaWF0IjoxNjcwNzcwMTI4LCJleHAiOjk2NzA3NzA3MjgwfQ.DT1MGe5XMePpkupdpw1LJvUkHZ-7WMPr8u3C6Y51bqQ";
+				"eyJpc3MiOiJjb250aW51YWwiLCJzdWIiOiJjb250aW51YWwiLCJhdWQiOiJjb250aW51YWwiLCJpYXQiOjE2NzA5MzYzMzMsImV4cCI6MTY3MDkzNjkzM30." +
+				"1VBwqpRd1UoRsbcabSzMROxa6xucSRghirmQMVHDYRQ";
+	// "aud": ["continual1","continual2"]
+	private final String arrAudJwtToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjb250aW51YWwiLCJzdWIiOiJjb250aW51YWwiLCJhdWQiOlsiY29udGludWFsMSIsImNvbnRpbnVhbDIiXSwiaWF0IjoxNjcwOTM2MzMzLCJleHAiOjE2NzA5MzY5MzN9.9vLpOjc6N3QegrEFYhahAEc-2VB_Sr4cOMofUF0iG2Q";
 
-	// InvalidJwtToken
-	// "exp": 1670770129
-	private final String expiredJwtToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjb250aW51YWwiLCJzdWIiOiJjb250aW51YWwiLCJhdWQiOiJjb250aW51YWwiLCJpYXQiOjE2NzA3NzAxMjgsImV4cCI6MTY3MDc3MDEyOX0.dKEI7IpDu1FmxF2WjJXuLl-PI9M1tjGb_HH_1255GQw";
+	// InvalidJwtTokens
 	// "typ": "ABC"
-	private final String invalidTypeJwtToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkFCQyJ9.eyJpc3MiOiJjb250aW51YWwiLCJzdWIiOiJjb250aW51YWwiLCJhdWQiOiJjb250aW51YWwiLCJpYXQiOjE2NzA3NzAxMjgsImV4cCI6OTY3MDc3MDcyODB9.tWM9WzsNVutguAWYFojlPPEOxEUArG5WuUIAVoEEP5k";
+	private final String invalidTypJwtToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkFCQyJ9.eyJpc3MiOiJjb250aW51YWwiLCJzdWIiOiJjb250aW51YWwiLCJhdWQiOiJjb250aW51YWwiLCJpYXQiOjE2NzA5MzYzMzMsImV4cCI6MTY3MDkzNjkzM30.xpwXEnKFznVLo9nNkVFOOzRGW1fno-BRzwFXHFi19p8";
+	// "alg": "HS384"
+	private final String invalidAlgJwtToken = "eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjb250aW51YWwiLCJzdWIiOiJjb250aW51YWwiLCJhdWQiOiJjb250aW51YWwiLCJpYXQiOjE2NzA5MzYzMzMsImV4cCI6MTY3MDkzNjkzM30.pgSE4_A79iNGYAKru67xHp1OpWBuD7KfFIBU3XbECcjFsRfpO5rxVt9IyBf8kVQo";
+	// {"alg": "HS384","typ": "ABC"}
+	private final String invalidAlgTypJwtToken = "eyJhbGciOiJIUzM4NCIsInR5cCI6IkFCQyJ9.eyJpc3MiOiJjb250aW51YWwiLCJzdWIiOiJjb250aW51YWwiLCJhdWQiOiJjb250aW51YWwiLCJpYXQiOjE2NzA5MzYzMzMsImV4cCI6MTY3MDkzNjkzM30.iSIcvhEJxxPNsFfxWfLAHZK_iohTpqROHJH5WQIMJiAO_zJgWxmqUD3jLddeLUtD";
 	// "sub": ""
-	private final String noSubJwtToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjb250aW51YWwiLCJzdWIiOiIiLCJhdWQiOiJjb250aW51YWwiLCJpYXQiOjE2NzA3NzAxMjgsImV4cCI6OTY3MDc3MDcyODB9.Ne12lDTuewVIwD4WlsMnaNi_bA07C7xx8-Bmq1-r8tU";
+	private final String noSubJwtToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjb250aW51YWwiLCJzdWIiOiIiLCJhdWQiOiJjb250aW51YWwiLCJpYXQiOjE2NzA5MzYzMzMsImV4cCI6MTY3MDkzNjkzM30.vjjcXtNMVKkVA0_65kcahsnmJWfcQ8RuEU3YpzNHVSg";
 	// no typ
-	private final String invalidJsonJwtToken = "eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJjb250aW51YWwiLCJzdWIiOiJjb250aW51YWwiLCJhdWQiOiJjb250aW51YWwiLCJpYXQiOjE2NzA3NzAxMjgsImV4cCI6OTY3MDc3MDcyODB9.y3WN_qCCnm9SwFPz2xwtuLmqwvUbP2kabJL6QI4Sefk";
+	private final String invalidJsonJwtToken = "eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJjb250aW51YWwiLCJzdWIiOiJjb250aW51YWwiLCJhdWQiOiJjb250aW51YWwiLCJpYXQiOjE2NzA5MzYzMzMsImV4cCI6MTY3MDkzNjkzM30.2YvAJpzJiGllA_2vf4yHPba73tN2w0U-QBs5DOtrYEg";
+
+	@Before
+	public void setUp ()
+	{
+		// setup a test clock because this test relies on time comparisons. 
+		// Clock time set to 1 day before expiry.
+		Clock.useNewTestClock ().set ( expTime - offsetTime );
+	}
 
 	@Test
 	public void testFromHeaderValid ()
@@ -81,18 +94,21 @@ public class JwtCredentialTest
 	}
 
 	@Test( expected = InvalidJwtToken.class )
-	public void testConstructorExpired () throws InvalidJwtToken
+	public void testConstructorInvalidType () throws InvalidJwtToken
 	{
-		// setup a test clock because this test relies on time comparisons 
-		Clock.useNewTestClock ().set ( 1670885435000L );
-
-		new JwtCredential ( expiredJwtToken );
+		new JwtCredential ( invalidTypJwtToken );
 	}
 
 	@Test( expected = InvalidJwtToken.class )
-	public void testConstructorInvalidType () throws InvalidJwtToken
+	public void testConstructorInvalidAlg () throws InvalidJwtToken
 	{
-		new JwtCredential ( invalidTypeJwtToken );
+		new JwtCredential ( invalidAlgJwtToken );
+	}
+
+	@Test( expected = InvalidJwtToken.class )
+	public void testConstructorInvalidAlgTyp () throws InvalidJwtToken
+	{
+		new JwtCredential ( invalidAlgTypJwtToken );
 	}
 
 	@Test( expected = InvalidJwtToken.class )
@@ -201,7 +217,7 @@ public class JwtCredentialTest
 	@Test
 	public void testGetExpiration ()
 	{
-		final long expect = 96707707280L;
+		final long expect = expTime / 1000;
 		try {
 			final JwtCredential jwtCred = new JwtCredential ( validJwtToken );
 			Assert.assertEquals ( expect , jwtCred.getExpiration() );
@@ -219,5 +235,35 @@ public class JwtCredentialTest
 		} catch (InvalidJwtToken e) {
 			Assert.fail ( "Expected to create instance. " + e.getMessage() );
 		}
+	}
+
+	@Test
+	public void testIsExpiredTrue ()
+	{
+		try {
+			final JwtCredential jwtCred = new JwtCredential ( validJwtToken );
+
+			// setup a test clock because this test relies on time comparisons 
+			Clock.useNewTestClock ().set ( expTime + offsetTime );
+
+			Assert.assertTrue ( jwtCred.isExpired() );
+		} catch (InvalidJwtToken e) {
+			Assert.fail ( "Expected to create instance. " + e.getMessage() );
+		}
+	}
+
+	@Test( expected = InvalidJwtToken.class )
+	public void testConstructorExpired () throws InvalidJwtToken
+	{
+		// setup a test clock because this test relies on time comparisons 
+		Clock.useNewTestClock ().set ( expTime + offsetTime );
+
+		new JwtCredential ( validJwtToken );
+	}
+
+	@After
+	public void tearDown ()
+	{
+		Clock.useNewTestClock();
 	}
 }
