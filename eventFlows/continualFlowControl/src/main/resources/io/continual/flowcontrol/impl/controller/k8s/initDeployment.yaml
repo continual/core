@@ -25,6 +25,8 @@ spec:
       labels:
         app: FC_JOB_TAG
     spec:
+
+      # mount our sysprep config and a place for the config to land
       volumes:
       - name: configdisk
         emptyDir: {}
@@ -32,16 +34,8 @@ spec:
         configMap:
           name: sysprep
           defaultMode: 0755
-      containers:
-      - name: processor
-        image: FC_RUNTIME_IMAGE
-        volumeMounts:
-        - name: configdisk
-          mountPath: "FC_CONFIG_MOUNT"
-        resources:
-          limits:
-            cpu: 1000m
-            memory: 512M
+
+      # init the pod by pulling the config file
       initContainers:
       - name: initializer
         image: FC_INITER_IMAGE
@@ -51,6 +45,18 @@ spec:
         - name: sysprep
           mountPath: /usr/local/bin
         command: ['/usr/local/bin/sysprep']
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512M
+
+      # run the pod's work
+      containers:
+      - name: processor
+        image: FC_RUNTIME_IMAGE
+        volumeMounts:
+        - name: configdisk
+          mountPath: "FC_CONFIG_MOUNT"
         resources:
           limits:
             cpu: 1000m

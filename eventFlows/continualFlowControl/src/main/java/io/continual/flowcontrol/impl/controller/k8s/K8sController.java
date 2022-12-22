@@ -1,6 +1,8 @@
 package io.continual.flowcontrol.impl.controller.k8s;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -12,6 +14,8 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder;
 import io.continual.builder.Builder.BuildFailure;
@@ -59,6 +63,8 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 
 	static final String kSetting_ConfigTransfer = "configTransfer";
 
+	static final String kSetting_DumpInitYaml = "dumpInitYaml";
+	
 	public K8sController ( ServiceContainer sc, JSONObject rawConfig ) throws BuildFailure
 	{
 		final JSONObject config = sc.getExprEval ().evaluateJsonObject ( rawConfig );
@@ -89,6 +95,8 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		{
 			fImageMapper = new SimpleImageMapper ();
 		}
+
+		fDumpInitYaml = config.optBoolean ( kSetting_DumpInitYaml, false );
 	}
 
 	@Override
@@ -160,7 +168,14 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 			try ( final InputStream deployTemplate = getClass ().getResourceAsStream ( "initDeployment.yaml" ) )
 			{
 				if ( deployTemplate == null ) throw new ServiceException ( "Couldn't load resource yaml" );
-				final List<HasMetadata> items = fApiClient.load ( replaceAllTokens ( deployTemplate, replacements ) ).get ();
+				
+				final String deployYaml = replaceAllTokens ( deployTemplate, replacements );
+				final ByteArrayInputStream bais = new ByteArrayInputStream ( deployYaml.getBytes ( StandardCharsets.UTF_8 ) );
+
+				dumpYaml ( tag, deployYaml );
+				
+				// build deployable item list
+				final List<HasMetadata> items = fApiClient.load ( bais ).get ();
 
 				// push environment
 				final HashMap<String,String> env = new HashMap<String,String> ();
@@ -324,6 +339,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	private final String fStorageClass;
 	private final String fConfigMountLoc;
 	private final ContainerImageMapper fImageMapper;
+	private final boolean fDumpInitYaml;
 
 	private static class SimpleImageMapper implements ContainerImageMapper
 	{
@@ -331,6 +347,25 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		public String getImageName ( FlowControlRuntimeSpec rs )
 		{
 			return rs.getName () + ":" + rs.getVersion ();
+		}
+	}
+
+	private void dumpYaml ( String tag, String deployYaml )
+	{
+		if ( fDumpInitYaml )
+		{
+			final File tmpDir = new File ( "/tmp/flowControlYamls" );
+			tmpDir.mkdir ();
+	
+			final File yamlFile = new File ( tmpDir, tag + ".yaml" );
+			try ( final FileWriter fw = new FileWriter ( yamlFile ) )
+			{
+				fw.write ( deployYaml );
+			}
+			catch ( IOException x )
+			{
+				log.warn ( "Couldn't write {}", yamlFile );
+			}
 		}
 	}
 
@@ -527,7 +562,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	}
 
 	// this is intended for small scale stream handling only
-	private static InputStream replaceAllTokens ( InputStream src, Map<String,String> replacements ) throws IOException
+	private static String replaceAllTokens ( InputStream src, Map<String,String> replacements ) throws IOException
 	{
 		final byte[] bytes = StreamTools.readBytes ( src );
 		final String origText = new String ( bytes, StandardCharsets.UTF_8 );
@@ -536,7 +571,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		{
 			newText = newText.replaceAll ( e.getKey (), e.getValue () );
 		}
-		return new ByteArrayInputStream ( newText.getBytes ( StandardCharsets.UTF_8 ) );
+		return newText;
 	}
 
 	private static class LocalDeploymentSpecBuilder implements DeploymentSpecBuilder
@@ -599,4 +634,6 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		@Override
 		public Map<String, String> getEnv () { return fBuilder.fEnv; }
 	}
+
+	private static final Logger log = LoggerFactory.getLogger ( K8sController.class );
 }
