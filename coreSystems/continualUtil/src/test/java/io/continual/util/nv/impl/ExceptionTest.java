@@ -4,6 +4,7 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 
 import org.junit.Test;
 
@@ -39,11 +40,11 @@ public class ExceptionTest
 	}
 
 	@Test(expected = NvReadable.MissingReqdSettingException.class)
-	public void testNvPropertiesFile_InvalidKeyGetString () throws MissingReqdSettingException
+	public void testNvPropertiesFile_InvalidKeyGetString () throws MissingReqdSettingException, IOException
 	{
-		final File file = new File( nvPropertiesFileTest.class.getResource( "ExceptionTest.class" ).getPath() );
+		final File tmpFile = File.createTempFile ( "continualTest", ".properties" );
 		try {
-			final nvPropertiesFile nvpf = new nvPropertiesFile ( file );
+			final nvPropertiesFile nvpf = new nvPropertiesFile ( tmpFile );
 			nvpf.getString( "key1" );
 		} catch ( LoadException le ) {
 			fail( "Expected file to get loaded." );
