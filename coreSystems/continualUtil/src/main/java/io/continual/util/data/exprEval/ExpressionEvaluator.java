@@ -107,7 +107,7 @@ public class ExpressionEvaluator
 			else
 			{
 				// read to "}", use the content as a key into the json
-				final int closer = sourceString.indexOf ( '}' );
+				final int closer = sourceString.indexOf ( '}', open );
 				if ( closer < 0 )
 				{
 					// not found. just treat it like plain text

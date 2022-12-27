@@ -20,13 +20,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
 
-import io.continual.util.data.TypeConvertor;
-
 import io.continual.resources.sources.AwsS3UriLoader;
+import io.continual.resources.sources.ClassResourceLoader;
 import io.continual.resources.sources.FileLoader;
 import io.continual.resources.sources.HttpLoader;
 import io.continual.resources.sources.JvmClassLoaderResourceLoader;
 import io.continual.resources.sources.JvmSystemResourceLoader;
+import io.continual.util.data.TypeConvertor;
 
 /**
  * ResourceLoader is a general purpose tool for loading a data stream by name.
@@ -75,11 +75,11 @@ public class ResourceLoader
 	/**
 	 * Install standard sources, with control over using networked resources.<br>
 	 * @param withNetwork
-	 * @param classLoaderRef
+	 * @param referenceClass
 	 * 
 	 * @return this
 	 */
-	public ResourceLoader usingStandardSources ( boolean withNetwork, Class<?> classLoaderRef )
+	public ResourceLoader usingStandardSources ( boolean withNetwork, Class<?> referenceClass )
 	{
 		if ( withNetwork )
 		{
@@ -94,10 +94,11 @@ public class ResourceLoader
 		// files...
 		usingSource ( new FileLoader () );
 
-		// possibly based on the classloader for a given class...
-		if ( classLoaderRef != null )
+		// possibly based on a given class or its classloader
+		if ( referenceClass != null )
 		{
-			usingSource ( new JvmClassLoaderResourceLoader ( classLoaderRef ) );
+			usingSource ( new ClassResourceLoader ( referenceClass ) );
+			usingSource ( new JvmClassLoaderResourceLoader ( referenceClass ) );
 		}
 
 		// system resources...

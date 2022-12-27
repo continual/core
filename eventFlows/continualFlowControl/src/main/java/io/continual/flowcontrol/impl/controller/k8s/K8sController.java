@@ -25,11 +25,15 @@ import io.continual.flowcontrol.controlapi.FlowControlDeployment;
 import io.continual.flowcontrol.controlapi.FlowControlDeploymentService;
 import io.continual.flowcontrol.controlapi.FlowControlRuntimeSpec;
 import io.continual.flowcontrol.jobapi.FlowControlJob;
+import io.continual.resources.ResourceLoader;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.util.data.StreamTools;
 import io.continual.util.data.TypeConvertor;
 import io.continual.util.data.UniqueStringGenerator;
+import io.continual.util.data.exprEval.EnvDataSource;
+import io.continual.util.data.exprEval.ExpressionEvaluator;
+import io.continual.util.data.exprEval.JsonDataSource;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.standards.HttpStatusCodes;
 import io.fabric8.kubernetes.api.model.Container;
@@ -60,9 +64,6 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	static final String kSetting_k8sContext = "context";
 	static final String kSetting_Namespace = "namespace";
 
-	static final String kSetting_StorageClass = "storageClass";
-	static final String kDefault_StorageClass = "";
-
 	static final String kSetting_ConfigMountLoc = "configMountLoc";
 	static final String kDefault_ConfigMountLoc = "/var/flowcontrol";
 
@@ -70,6 +71,8 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 
 	static final String kSetting_InitYamlResource = "deploymentYaml";
 	static final String kDefault_InitYamlResource = "initDeployment.yaml";
+
+	static final String kSetting_InitYamlSettings = "deploymentSettings";
 
 	static final String kSetting_InitYamlImagePullSecrets = "imagePullSecrets";
 
@@ -96,7 +99,6 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 			fApiClient = new DefaultKubernetesClient ();
 		}
 		fNamespace = config.getString ( kSetting_Namespace );
-		fStorageClass = config.optString ( kSetting_StorageClass, kDefault_StorageClass );
 		fConfigMountLoc = config.optString ( kSetting_ConfigMountLoc, kDefault_ConfigMountLoc );
 
 		final JSONObject mapperSpec = config.optJSONObject ( "imageMapper" );
@@ -110,6 +112,8 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		}
 
 		fInitYamlResource = config.optString ( kSetting_InitYamlResource, kDefault_InitYamlResource );
+		fInitYamlSettings = config.optJSONObject ( kSetting_InitYamlSettings );
+		
 		fImgPullSecrets = JsonVisitor.arrayToList ( config.optJSONArray ( kSetting_InitYamlImagePullSecrets ) );
 		fDumpInitYaml = config.optBoolean ( kSetting_DumpInitYaml, false );
 
@@ -137,22 +141,22 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		try
 		{
 			final String jobId = ds.getJob ().getId ();
-			final String tag = UniqueStringGenerator.createKeyUsingAlphabet ( jobId, "abcdefhigjklmnopqrstuvwxyz" );
+			final String k8sJobId = makeK8sName ( jobId );
+			final String tag = k8sJobId + "-" + UniqueStringGenerator.createKeyUsingAlphabet ( jobId, "abcdefhigjklmnopqrstuvwxyz" );
 			final Map<String,String> configFetchEnv = fConfigTransfer.deployConfiguration ( ds.getJob () );
 
 			final String targetConfigFile = fConfigMountLoc + "/jobConfig.json";
-			
-			// warning: don't use a key that's a substring of another key, because we don't pay attn to order here
-			final HashMap<String,String> replacements = new HashMap<>();
-			replacements.put ( "FC_DEPLOYMENT_NAME", tag );
-			replacements.put ( "FC_JOB_TAG", "job-" + tag );
-			replacements.put ( "FC_JOB_ID", jobId );
-			replacements.put ( "FC_STORAGE_CLASS", fStorageClass );
-			replacements.put ( "FC_INSTANCE_COUNT", "" + ds.getInstanceCount () );
-			replacements.put ( "FC_RUNTIME_IMAGE", fImageMapper.getImageName ( ds.getJob ().getRuntimeSpec () ) );
-			replacements.put ( "FC_CONFIG_MOUNT", fConfigMountLoc );
-			replacements.put ( "FC_CONFIG_FILE", targetConfigFile );
-			replacements.put ( "FC_INITER_IMAGE", "busybox:1.28" );
+
+			final JSONObject replacements = new JSONObject ()
+				.put ( "CONFIG_URL", "${CONFIG_URL}" )	// this is to restore the evaluation text that's required during actual deployment
+				.put ( "FC_DEPLOYMENT_NAME", tag )
+				.put ( "FC_JOB_TAG", "job-" + tag )
+				.put ( "FC_JOB_ID", jobId )
+				.put ( "FC_INSTANCE_COUNT", "" + ds.getInstanceCount () )
+				.put ( "FC_RUNTIME_IMAGE", fImageMapper.getImageName ( ds.getJob ().getRuntimeSpec () ) )
+				.put ( "FC_CONFIG_MOUNT", fConfigMountLoc )
+				.put ( "FC_CONFIG_FILE", targetConfigFile )
+			;
 //			replacements.put ( "FC_IMAGE_PULL_SECRET", "regcred" );
 
 			// place any secrets from this job
@@ -184,7 +188,11 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 			}
 
 			// get deployment installed
-			try ( final InputStream deployTemplate = getClass ().getResourceAsStream ( fInitYamlResource ) )
+			try ( final InputStream deployTemplate = new ResourceLoader ()
+				.usingStandardSources ( false, K8sController.this.getClass () )
+				.named ( fInitYamlResource )
+				.load ()
+			)
 			{
 				if ( deployTemplate == null ) throw new ServiceException ( "Couldn't load " + fInitYamlResource );
 
@@ -235,7 +243,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 						}
 					}
 				}
-				
+
 				fApiClient
 					.resourceList ( items )
 					.inNamespace ( fNamespace )
@@ -368,15 +376,20 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	private final ConfigTransferService fConfigTransfer;
 	private final KubernetesClient fApiClient;
 	private final String fNamespace;
-	private final String fStorageClass;
 	private final String fConfigMountLoc;
 	private final ContainerImageMapper fImageMapper;
 	private final String fInitYamlResource;
+	private final JSONObject fInitYamlSettings;
 	private final List<String> fImgPullSecrets;
 	private final boolean fDumpInitYaml;
 	private final String fDefCpuLimit;
 	private final String fDefMemLimit;
 
+	private static String makeK8sName ( String from )
+	{
+		return "s-" + from.toLowerCase ();
+	}
+	
 	private static class SimpleImageMapper implements ContainerImageMapper
 	{
 		@Override
@@ -626,16 +639,16 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	}
 
 	// this is intended for small scale stream handling only
-	private static String replaceAllTokens ( InputStream src, Map<String,String> replacements ) throws IOException
+	private String replaceAllTokens ( InputStream src, JSONObject replacements ) throws IOException
 	{
 		final byte[] bytes = StreamTools.readBytes ( src );
 		final String origText = new String ( bytes, StandardCharsets.UTF_8 );
-		String newText = origText;
-		for ( Map.Entry<String,String> e : replacements.entrySet () )
-		{
-			newText = newText.replaceAll ( e.getKey (), e.getValue () );
-		}
-		return newText;
+
+		return ExpressionEvaluator.evaluateText ( origText,
+			new JsonDataSource ( fInitYamlSettings ),
+			new JsonDataSource ( replacements ),
+			new EnvDataSource ()
+		);
 	}
 
 	private class LocalDeploymentSpecBuilder implements DeploymentSpecBuilder
