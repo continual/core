@@ -30,6 +30,9 @@ public interface FlowControlDeploymentService
 		FlowControlJob getJob ();
 		int getInstanceCount ();
 		Map<String,String> getEnv ();
+
+		default String getCpuLimitSpec () { return null; }
+		default String getMemLimitSpec () { return null; };
 	}
 
 	interface DeploymentSpecBuilder
@@ -38,6 +41,8 @@ public interface FlowControlDeploymentService
 		DeploymentSpecBuilder withInstances ( int count );
 		DeploymentSpecBuilder withEnv ( String key, String val );
 		DeploymentSpecBuilder withEnv ( Map<String, String> keyValMap );
+		DeploymentSpecBuilder withCpuLimit ( String cpuLimit );
+		DeploymentSpecBuilder withMemLimit ( String memLimit );
 		DeploymentSpec build () throws BuildFailure;
 	}
 

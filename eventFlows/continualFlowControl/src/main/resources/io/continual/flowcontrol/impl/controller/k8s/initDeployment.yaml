@@ -26,6 +26,8 @@ spec:
         app: FC_JOB_TAG
     spec:
 
+      # image pull secrets are added based on controller config
+
       # mount our sysprep config and a place for the config to land
       volumes:
       - name: configdisk
@@ -45,10 +47,7 @@ spec:
         - name: sysprep
           mountPath: /usr/local/bin
         command: ['/usr/local/bin/sysprep']
-        resources:
-          limits:
-            cpu: 500m
-            memory: 512M
+        # resources are set by the controller
 
       # run the pod's work
       containers:
@@ -57,7 +56,4 @@ spec:
         volumeMounts:
         - name: configdisk
           mountPath: "FC_CONFIG_MOUNT"
-        resources:
-          limits:
-            cpu: 1000m
-            memory: 512M
+        # resources are set by the controller

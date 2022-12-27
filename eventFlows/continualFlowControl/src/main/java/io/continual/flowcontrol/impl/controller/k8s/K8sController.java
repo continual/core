@@ -30,14 +30,19 @@ import io.continual.services.SimpleService;
 import io.continual.util.data.StreamTools;
 import io.continual.util.data.TypeConvertor;
 import io.continual.util.data.UniqueStringGenerator;
+import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.standards.HttpStatusCodes;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarSource;
 import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.fabric8.kubernetes.api.model.LocalObjectReference;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.api.model.PodSpec;
+import io.fabric8.kubernetes.api.model.PodTemplateSpec;
+import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.api.model.SecretKeySelector;
@@ -63,8 +68,16 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 
 	static final String kSetting_ConfigTransfer = "configTransfer";
 
+	static final String kSetting_InitYamlResource = "deploymentYaml";
+	static final String kDefault_InitYamlResource = "initDeployment.yaml";
+
+	static final String kSetting_InitYamlImagePullSecrets = "imagePullSecrets";
+
 	static final String kSetting_DumpInitYaml = "dumpInitYaml";
-	
+
+	static final String kSetting_DefaultCpuLimit = "defaultCpuLimit";
+	static final String kSetting_DefaultMemLimit = "defaultMemLimit";
+
 	public K8sController ( ServiceContainer sc, JSONObject rawConfig ) throws BuildFailure
 	{
 		final JSONObject config = sc.getExprEval ().evaluateJsonObject ( rawConfig );
@@ -96,7 +109,12 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 			fImageMapper = new SimpleImageMapper ();
 		}
 
+		fInitYamlResource = config.optString ( kSetting_InitYamlResource, kDefault_InitYamlResource );
+		fImgPullSecrets = JsonVisitor.arrayToList ( config.optJSONArray ( kSetting_InitYamlImagePullSecrets ) );
 		fDumpInitYaml = config.optBoolean ( kSetting_DumpInitYaml, false );
+
+		fDefCpuLimit = config.optString ( kSetting_DefaultCpuLimit, null );
+		fDefMemLimit = config.optString ( kSetting_DefaultMemLimit, null );
 	}
 
 	@Override
@@ -135,6 +153,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 			replacements.put ( "FC_CONFIG_MOUNT", fConfigMountLoc );
 			replacements.put ( "FC_CONFIG_FILE", targetConfigFile );
 			replacements.put ( "FC_INITER_IMAGE", "busybox:1.28" );
+//			replacements.put ( "FC_IMAGE_PULL_SECRET", "regcred" );
 
 			// place any secrets from this job
 			final String secretsName = tagToSecret ( tag );
@@ -165,15 +184,15 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 			}
 
 			// get deployment installed
-			try ( final InputStream deployTemplate = getClass ().getResourceAsStream ( "initDeployment.yaml" ) )
+			try ( final InputStream deployTemplate = getClass ().getResourceAsStream ( fInitYamlResource ) )
 			{
-				if ( deployTemplate == null ) throw new ServiceException ( "Couldn't load resource yaml" );
-				
+				if ( deployTemplate == null ) throw new ServiceException ( "Couldn't load " + fInitYamlResource );
+
 				final String deployYaml = replaceAllTokens ( deployTemplate, replacements );
 				final ByteArrayInputStream bais = new ByteArrayInputStream ( deployYaml.getBytes ( StandardCharsets.UTF_8 ) );
 
 				dumpYaml ( tag, deployYaml );
-				
+
 				// build deployable item list
 				final List<HasMetadata> items = fApiClient.load ( bais ).get ();
 
@@ -189,17 +208,30 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 					if ( md.getKind ().equals ( "Deployment" ) )
 					{
 						final Deployment d = (Deployment) md;
-						final PodSpec ps = d.getSpec ().getTemplate ().getSpec ();
+						final io.fabric8.kubernetes.api.model.apps.DeploymentSpec deploySpec = d.getSpec ();
+						final PodTemplateSpec template = deploySpec.getTemplate ();
+						final PodSpec ps = template.getSpec ();
 
+						// apply any image pull secrets we have
+						final List<LocalObjectReference> ipsList = new LinkedList<> ();
+						for ( String ips : fImgPullSecrets )
+						{
+							ipsList.add ( new LocalObjectReference ( ips ) );
+						}
+						ps.setImagePullSecrets ( ipsList );
+
+						// add env, secrets, and limits to the containers
 						for ( Container c : ps.getContainers () )
 						{
 							pushEnvMapToContainer ( env, c );
 							addSecretsToContainer ( secretsName, secrets, c );
+							setLimitsOnContainer ( ds, c );
 						}
 						for ( Container c : ps.getInitContainers () )
 						{
 							pushEnvMapToContainer ( env, c );
 							addSecretsToContainer ( secretsName, secrets, c );
+							setLimitsOnContainer ( ds, c );
 						}
 					}
 				}
@@ -339,7 +371,11 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	private final String fStorageClass;
 	private final String fConfigMountLoc;
 	private final ContainerImageMapper fImageMapper;
+	private final String fInitYamlResource;
+	private final List<String> fImgPullSecrets;
 	private final boolean fDumpInitYaml;
+	private final String fDefCpuLimit;
+	private final String fDefMemLimit;
 
 	private static class SimpleImageMapper implements ContainerImageMapper
 	{
@@ -393,6 +429,34 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		for ( Map.Entry<String,String> e : env.entrySet () )
 		{
 			list.add ( new EnvVar ( e.getKey (), e.getValue (), null ) );
+		}
+	}
+
+	private void setLimitsOnContainer ( DeploymentSpec ds, Container c )
+	{
+		final HashMap<String, Quantity> map = new HashMap<> ();
+
+		final String cpu = ds.getCpuLimitSpec ();
+		if ( cpu != null )
+		{
+			map.put ( "cpu", new Quantity ( cpu ) );
+		}
+
+		final String mem = ds.getMemLimitSpec ();
+		if ( mem != null )
+		{
+			map.put ( "memory", new Quantity ( mem ) );
+		}
+
+		if ( map.size () > 0 )
+		{
+			ResourceRequirements rr = c.getResources ();
+			if ( rr == null )
+			{
+				rr = new ResourceRequirements ();
+				c.setResources ( rr );
+			}
+			rr.setLimits ( map );
 		}
 	}
 
@@ -574,7 +638,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		return newText;
 	}
 
-	private static class LocalDeploymentSpecBuilder implements DeploymentSpecBuilder
+	private class LocalDeploymentSpecBuilder implements DeploymentSpecBuilder
 	{
 		@Override
 		public DeploymentSpecBuilder forJob ( FlowControlJob job )
@@ -605,6 +669,20 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		}
 
 		@Override
+		public DeploymentSpecBuilder withCpuLimit ( String cpuLimit )
+		{
+			fCpuLimit = cpuLimit;
+			return this;
+		}
+
+		@Override
+		public DeploymentSpecBuilder withMemLimit ( String memLimit )
+		{
+			fMemLimit = memLimit;
+			return this;
+		}
+
+		@Override
 		public DeploymentSpec build () throws BuildFailure
 		{
 			if ( fJob == null ) throw new BuildFailure ( "No job provided." );
@@ -614,6 +692,8 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		private FlowControlJob fJob;
 		private int fInstances = 1;
 		private HashMap<String,String> fEnv = new HashMap<> ();
+		private String fCpuLimit = fDefCpuLimit;
+		private String fMemLimit = fDefMemLimit;
 	}
 
 	private static class LocalDeploymentSpec implements DeploymentSpec
@@ -633,6 +713,12 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 
 		@Override
 		public Map<String, String> getEnv () { return fBuilder.fEnv; }
+
+		@Override
+		public String getCpuLimitSpec () { return fBuilder.fCpuLimit; }
+
+		@Override
+		public String getMemLimitSpec () { return fBuilder.fMemLimit; }
 	}
 
 	private static final Logger log = LoggerFactory.getLogger ( K8sController.class );

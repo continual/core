@@ -27,11 +27,15 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.time.LocalDate;
 import java.time.Month;
+import java.time.ZoneId;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.Iterator;
 import java.util.List;
+import java.util.TimeZone;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -607,26 +611,31 @@ public class JsonUtilTest
 	}
 	
 	@Test
-	public void writeDateTime(){
-		LocalDate today = LocalDate.now();
-		JSONObject src =  JsonUtil.readJsonObject( json );
-		src.put("myDate", "");
-		Date d = new Date();
-		JsonUtil.writeDateTime( src, "myDate", d ) ;
-		assertEquals ( today, LocalDate.parse(src.getString("myDate")) );
+	public void writeDateTime ()
+	{
+		final Calendar cal = new GregorianCalendar ();
+		cal.setTimeZone ( TimeZone.getTimeZone ( ZoneId.of ( "America/New_York" ) ) );
+		cal.set ( Calendar.YEAR, 2004 );
+		cal.set ( Calendar.MONTH, Calendar.MARCH );
+		cal.set ( Calendar.DAY_OF_MONTH, 9 );
+		final Date d = cal.getTime ();
+
+		final JSONObject src = new JSONObject ();
+		JsonUtil.writeDateTime ( src, "myDate", d );
+		assertEquals ( "2004-03-09", src.optString ( "myDate", "" ) );
 	}
 	
 	@Test
-	public void writeDateTime_localdate(){
+	public void writeDateTime_localdate ()
+	{
 		LocalDate today = LocalDate.now();
-		
 		LocalDate d = LocalDate.now();
-		
 		assertEquals ( today.toString(), JsonUtil.writeDate( d ).toString() );
 	}
 	
 	@Test
-	public void readDate_null(){		
+	public void readDate_null()
+	{
 		JSONObject base =  JsonUtil.readJsonObject( json );
 		base.put("myDate", "");		
 		assertEquals ( null, JsonUtil.readDate( base , "fieldX") );
