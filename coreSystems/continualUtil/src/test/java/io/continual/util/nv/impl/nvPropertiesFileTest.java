@@ -12,10 +12,9 @@ import java.util.Properties;
 
 import org.junit.Test;
 
-import junit.framework.TestCase;
-
 import io.continual.util.nv.NvReadable.LoadException;
 import io.continual.util.nv.NvReadable.MissingReqdSettingException;
+import junit.framework.TestCase;
 
 public class nvPropertiesFileTest extends TestCase
 {
@@ -25,11 +24,11 @@ public class nvPropertiesFileTest extends TestCase
 	}};
 	
 	@Test
-	public void testConstructorFileArgs ()
+	public void testConstructorFileArgs () throws IOException
 	{
-		final File file = new File( nvPropertiesFileTest.class.getResource( "nvPropertiesFileTest.class" ).getPath() );
+		final File tmpFile = File.createTempFile ( "continualTest", ".properties" );
 		try {
-			final nvPropertiesFile nvpf = new nvPropertiesFile ( file );
+			final nvPropertiesFile nvpf = new nvPropertiesFile ( tmpFile );
 			assertNotNull( nvpf );
 		} catch ( LoadException le ) {
 			fail( "Expected file to get loaded." );
@@ -37,11 +36,11 @@ public class nvPropertiesFileTest extends TestCase
 	}
 
 	@Test
-	public void testConstructorStreamArgs ()
+	public void testConstructorStreamArgs () throws IOException
 	{
-		final File file = new File( nvPropertiesFileTest.class.getResource( "nvPropertiesFileTest.class" ).getPath() );
+		final File tmpFile = File.createTempFile ( "continualTest", ".properties" );
 		try {
-			final nvPropertiesFile nvpf = new nvPropertiesFile ( new FileInputStream ( file ) );
+			final nvPropertiesFile nvpf = new nvPropertiesFile ( new FileInputStream ( tmpFile ) );
 			assertNotNull( nvpf );
 		} catch ( LoadException le ) {
 			fail( "Expected file to get loaded. " + le.getMessage() );
@@ -51,11 +50,11 @@ public class nvPropertiesFileTest extends TestCase
 	}
 
 	@Test
-	public void testConstructorURLArgs ()
+	public void testConstructorURLArgs () throws IOException
 	{
-		final File file = new File( nvPropertiesFileTest.class.getResource( "nvPropertiesFileTest.class" ).getPath() );
+		final File tmpFile = File.createTempFile ( "continualTest", ".properties" );
 		try {
-			final nvPropertiesFile nvpf = new nvPropertiesFile ( file.toURI().toURL() );
+			final nvPropertiesFile nvpf = new nvPropertiesFile ( tmpFile.toURI().toURL() );
 			assertNotNull( nvpf );
 		} catch ( LoadException le ) {
 			fail( "Expected file to get loaded. " + le.getMessage() );

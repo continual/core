@@ -26,7 +26,7 @@ public interface ResourceSource
 	 * @param resourceId
 	 * @return true if the resource ID might be handled by this source
 	 */
-	boolean qualifies ( String resourceId );
+	default boolean qualifies ( String resourceId ) { return true; }
 
 	/**
 	 * Attempt to load the named resource.

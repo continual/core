@@ -29,13 +29,6 @@ public class JvmClassLoaderResourceLoader implements ResourceSource
 	}
 
 	@Override
-	public boolean qualifies ( String resourceId )
-	{
-		/* almost any name works here */
-		return true;
-	}
-
-	@Override
 	public InputStream loadResource ( String resourceId ) throws IOException
 	{
 		return fClazz.getClassLoader().getResourceAsStream ( resourceId );
