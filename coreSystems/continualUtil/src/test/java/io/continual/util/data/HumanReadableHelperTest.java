@@ -184,16 +184,19 @@ public class HumanReadableHelperTest extends TestCase
 		assertEquals("1 ms in the future", HumanReadableHelper.elapsedTimeBetween(6, 7));
 	}
 
-	public void testElapsedTimeSince ()
-	{
-		final TestClock tc = TestClock.useNewTestClock ();
-		tc.set ( 1670204158000L );	// Mon, 05 Dec 2022 01:35:58 GMT
+// FIXME: this test confuses the amount of time with the value of a component. For example, 15:00 vs 14:59 is 1 minute ago,
+// not 1 hr ago, even though the diff between the hour component is 1.
 
-		final LocalDate then = LocalDate.of ( 2001, 9, 9 );
-		final int yearDiff = LocalDate.now ().getYear () - then.getYear ();
-		final Date thenDate = Date.from ( then.atStartOfDay ( ZoneId.systemDefault () ).toInstant () );
-		assertEquals ( yearDiff + " yrs ago", HumanReadableHelper.elapsedTimeSince ( thenDate, 1, 1 ) );
-	}
+//	public void testElapsedTimeSince ()
+//	{
+//		final TestClock tc = TestClock.useNewTestClock ();
+//		tc.set ( 1670204158000L );	// Mon, 05 Dec 2022 01:35:58 GMT
+//
+//		final LocalDate then = LocalDate.of ( 2001, 9, 9 );
+//		final int yearDiff = LocalDate.now ().getYear () - then.getYear ();
+//		final Date thenDate = Date.from ( then.atStartOfDay ( ZoneId.systemDefault () ).toInstant () );
+//		assertEquals ( yearDiff + " yrs ago", HumanReadableHelper.elapsedTimeSince ( thenDate, 1, 1 ) );
+//	}
 	
 // This fails depending on system TZ
 //	public void testElapsedTimeSince2 ()
