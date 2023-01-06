@@ -89,7 +89,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		if ( fConfigTransfer == null ) throw new BuildFailure ( "No configTransfer service" );
 
 		final String contextName = config.optString ( kSetting_k8sContext, null );
-		if ( contextName != null )
+		if ( contextName != null && contextName.length () > 0 )
 		{
 			final Config cfgWithContext = Config.autoConfigure ( contextName );
 			fApiClient = new DefaultKubernetesClient ( cfgWithContext );
@@ -225,6 +225,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 						for ( String ips : fImgPullSecrets )
 						{
 							ipsList.add ( new LocalObjectReference ( ips ) );
+							log.info ( "Registering image pull secret {}..", ips );
 						}
 						ps.setImagePullSecrets ( ipsList );
 

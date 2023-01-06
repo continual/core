@@ -34,6 +34,11 @@ public class ConfigFetchService extends SimpleService implements ConfigTransferS
 		final ExpressionEvaluator ee = new ExpressionEvaluator ( new JsonDataSource ( config ), new EnvDataSource () ); 
 
 		fSigningKey = ee.evaluateText ( config.getString ( "signingKey" ) );
+		if ( fSigningKey.length () == 0 )
+		{
+			throw new BuildFailure ( "Config signing key is an empty string." );
+		}
+
 		fBaseUrl = ee.evaluateText ( config.getString ( "baseUrl" ) );
 		fKeyTimeLimitSec = ee.evaluateTextToLong ( config.opt ( "timeLimitSec" ), -1L );
 	}
