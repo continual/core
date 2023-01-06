@@ -1,0 +1,6 @@
+{
+	"config" : { "cfgKey" : "cfgVal" } ,
+ 	"profiles" : { "profile_key" : { "user_key" : "user_value" } } ,
+ 	"services" : [ { "classname" : "io.continual.services.SimpleService" , "name" : "SimpleService1" } ,
+ 				   { "classname" : "io.continual.services.SimpleService" , "name" : "SimpleService2" , "enabled" : false } ]
+}
