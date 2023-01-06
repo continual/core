@@ -3,7 +3,6 @@ package io.continual.services;
 import java.util.Map;
 import java.util.HashMap;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import io.continual.util.console.CmdLineParser;
@@ -47,7 +46,7 @@ public class ServerTest extends TestCase
 			keyVal.put ( Server.kServices , "services.json" );
 			assertNotNull ( server.init ( new nvReadableTable ( keyVal ) , null ) );
 		} catch (MissingReqdSettingException | InvalidSettingValueException | StartupFailureException e) {
-			Assert.fail ( "Expected to execute but failed with exception " + e.getMessage () );
+			fail ( "Expected to execute but failed with exception " + e.getMessage () );
 		}
 	}
 
@@ -66,7 +65,7 @@ public class ServerTest extends TestCase
 			server.shutdown ();
 			assertFalse ( server.daemonStillRunning () );
 		} catch (MissingReqdSettingException | InvalidSettingValueException | StartupFailureException | InterruptedException e) {
-			Assert.fail ( "Expected to execute but failed with exception " + e.getMessage () );
+			fail ( "Expected to execute but failed with exception " + e.getMessage () );
 		}
 	}
 

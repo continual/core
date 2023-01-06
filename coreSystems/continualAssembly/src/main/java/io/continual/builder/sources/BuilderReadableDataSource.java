@@ -16,8 +16,6 @@
 
 package io.continual.builder.sources;
 
-import java.util.prefs.Preferences;
-
 import io.continual.builder.common.CommonDataSource;
 import io.continual.util.nv.NvReadable;
 
@@ -28,7 +26,7 @@ public class BuilderReadableDataSource extends CommonDataSource
 {
 	public BuilderReadableDataSource ( NvReadable data )
 	{
-		super ( Preferences.class, "fromSettings", data );
+		super ( NvReadable.class, "fromSettings", data );
 		fData = data;
 	}
 
