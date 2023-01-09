@@ -150,4 +150,74 @@ public class BuilderTest
 	{
 		throw new BuildFailure ( "Coverage" , new Throwable ( "Coverage" ) );
 	}
+
+	@Test
+	public void testBuildMethod ()
+	{
+		try {
+			// Single Param
+			Assert.assertNotNull ( Builder.withBaseClass ( BuilderJsonDataSource.class )
+					.usingClassName ( "io.continual.builder.BuilderTest$TestBuilderJsonDataSource1" )
+					.usingData ( new JSONObject () )
+					.providingContext ( new JSONObject () )
+					.build () );
+			// Double Param
+			Assert.assertNotNull ( Builder.withBaseClass ( BuilderJsonDataSource.class )
+					.usingClassName ( "io.continual.builder.BuilderTest$TestBuilderJsonDataSource2" )
+					.usingData ( new JSONObject () )
+					.providingContext ( new JSONObject () )
+					.build () );
+			// Static Single Param
+			Builder.withBaseClass ( BuilderJsonDataSource.class )
+					.usingClassName ( "io.continual.builder.BuilderTest$TestBuilderJsonDataSource3" )
+					.usingData ( new JSONObject () )
+					.providingContext ( new JSONObject () )
+					.build ();
+			// Static Double Param
+			Builder.withBaseClass ( BuilderJsonDataSource.class )
+					.usingClassName ( "io.continual.builder.BuilderTest$TestBuilderJsonDataSource4" )
+					.usingData ( new JSONObject () )
+					.providingContext ( new JSONObject () )
+					.build ();
+		} catch (BuildFailure e) {
+			Assert.fail ( "Expected to execute but failed with exception " + e.getMessage () );
+		}
+	}
+
+	@SuppressWarnings("unused")
+	private static class TestBuilderJsonDataSource1 extends BuilderJsonDataSource {
+		public TestBuilderJsonDataSource1 () {
+			super ( new JSONObject () );
+		}
+		public TestBuilderJsonDataSource2 fromJson ( JSONObject data ) {
+			return null;
+		}
+	}
+	@SuppressWarnings("unused")
+	private static class TestBuilderJsonDataSource2 extends BuilderJsonDataSource {
+		public TestBuilderJsonDataSource2 () {
+			super ( new JSONObject () );
+		}
+		public TestBuilderJsonDataSource1 fromJson ( JSONObject data , JSONObject context ) {
+			return null;
+		}
+	}
+	@SuppressWarnings("unused")
+	private static class TestBuilderJsonDataSource3 extends BuilderJsonDataSource {
+		public TestBuilderJsonDataSource3 () {
+			super ( new JSONObject () );
+		}
+		public static TestBuilderJsonDataSource3 fromJson ( JSONObject data ) {
+			return null;
+		}
+	}
+	@SuppressWarnings("unused")
+	private static class TestBuilderJsonDataSource4 extends BuilderJsonDataSource {
+		public TestBuilderJsonDataSource4 () {
+			super ( new JSONObject () );
+		}
+		public static TestBuilderJsonDataSource4 fromJson ( JSONObject data , JSONObject context ) {
+			return null;
+		}
+	}
 }
