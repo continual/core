@@ -1,6 +1,8 @@
 package io.continual.resources;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.Test;
 
@@ -33,4 +35,40 @@ public class ResourceLoaderTest extends TestCase
 			fail ( "Expected to execute but failed with exception " + e.getMessage () );
 		}		
 	}
+
+	@Test
+	public void testS3Available ()
+	{
+		try { setEnvironment();} catch(Exception e) {}
+		ResourceLoader.s3Available ();			
+		try { restoreEnvironment();} catch(Exception e) {}
+	}
+
+	@SuppressWarnings("unchecked")
+	private void setEnvironment () throws Exception
+	{
+		Class<?> processEnvironment = Class.forName("java.lang.ProcessEnvironment");
+		java.lang.reflect.Field field = processEnvironment.getDeclaredField("theCaseInsensitiveEnvironment");
+		field.setAccessible(true);
+		Map<String, String> fieldKV = (Map<String, String>) field.get ( null );
+		if( !origEnv.containsKey ( "DRIFT_ALLOW_S3" ) )
+		{
+			fieldKV.put ( "DRIFT_ALLOW_S3" , "true" );
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private void restoreEnvironment () throws Exception
+	{
+		Class<?> processEnvironment = Class.forName("java.lang.ProcessEnvironment");
+		java.lang.reflect.Field field = processEnvironment.getDeclaredField("theCaseInsensitiveEnvironment");
+		field.setAccessible(true);
+		Map<String, String> fieldKV = (java.util.Map<String, String>) field.get ( null );
+		if( !origEnv.containsKey ( "DRIFT_ALLOW_S3" ) && fieldKV.containsKey ( "DRIFT_ALLOW_S3" ) )
+		{
+			fieldKV.remove ( "DRIFT_ALLOW_S3" );
+		}
+	}
+
+	final Map<String, String> origEnv = new HashMap<String, String> ( System.getenv () );
 }
