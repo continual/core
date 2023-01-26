@@ -78,6 +78,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 
 	static final String kSetting_DumpInitYaml = "dumpInitYaml";
 
+	static final String kSetting_DefaultCpuRequest = "defaultCpuRequest";
 	static final String kSetting_DefaultCpuLimit = "defaultCpuLimit";
 	static final String kSetting_DefaultMemLimit = "defaultMemLimit";
 
@@ -117,6 +118,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		fImgPullSecrets = JsonVisitor.arrayToList ( config.optJSONArray ( kSetting_InitYamlImagePullSecrets ) );
 		fDumpInitYaml = config.optBoolean ( kSetting_DumpInitYaml, false );
 
+		fDefCpuRequest = config.optString ( kSetting_DefaultCpuRequest, null );
 		fDefCpuLimit = config.optString ( kSetting_DefaultCpuLimit, null );
 		fDefMemLimit = config.optString ( kSetting_DefaultMemLimit, null );
 	}
@@ -384,6 +386,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	private final List<String> fImgPullSecrets;
 	private final boolean fDumpInitYaml;
 	private final String fDefCpuLimit;
+	private final String fDefCpuRequest;
 	private final String fDefMemLimit;
 
 	private static String makeK8sName ( String from )
@@ -448,20 +451,39 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 
 	private void setLimitsOnContainer ( DeploymentSpec ds, Container c )
 	{
-		final HashMap<String, Quantity> map = new HashMap<> ();
-
-		final String cpu = ds.getCpuLimitSpec ();
-		if ( cpu != null )
-		{
-			map.put ( "cpu", new Quantity ( cpu ) );
-		}
-
+		final String cpuReq = ds.getCpuRequestSpec ();
+		final String cpuLimit = ds.getCpuLimitSpec ();
 		final String mem = ds.getMemLimitSpec ();
+
+		HashMap<String, Quantity> map = new HashMap<> ();
 		if ( mem != null )
 		{
 			map.put ( "memory", new Quantity ( mem ) );
 		}
+		if ( cpuReq != null )
+		{
+			map.put ( "cpu", new Quantity ( cpuReq ) );
+		}
+		if ( map.size () > 0 )
+		{
+			ResourceRequirements rr = c.getResources ();
+			if ( rr == null )
+			{
+				rr = new ResourceRequirements ();
+				c.setResources ( rr );
+			}
+			rr.setRequests ( map );
+		}
 
+		map = new HashMap<> ();
+		if ( mem != null )
+		{
+			map.put ( "memory", new Quantity ( mem ) );
+		}
+		if ( cpuLimit != null )
+		{
+			map.put ( "cpu", new Quantity ( cpuLimit ) );
+		}
 		if ( map.size () > 0 )
 		{
 			ResourceRequirements rr = c.getResources ();
@@ -683,16 +705,23 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		}
 
 		@Override
+		public DeploymentSpecBuilder withCpuRequest ( String cpuRequest )
+		{
+			fCpuRequest = selectValue ( cpuRequest, fCpuRequest, fCpuLimit );
+			return this;
+		}
+
+		@Override
 		public DeploymentSpecBuilder withCpuLimit ( String cpuLimit )
 		{
-			fCpuLimit = cpuLimit;
+			fCpuLimit = selectValue ( cpuLimit, fCpuLimit );
 			return this;
 		}
 
 		@Override
 		public DeploymentSpecBuilder withMemLimit ( String memLimit )
 		{
-			fMemLimit = memLimit;
+			fMemLimit = selectValue ( memLimit, fMemLimit );
 			return this;
 		}
 
@@ -707,6 +736,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		private int fInstances = 1;
 		private HashMap<String,String> fEnv = new HashMap<> ();
 		private String fCpuLimit = fDefCpuLimit;
+		private String fCpuRequest = fDefCpuRequest;
 		private String fMemLimit = fDefMemLimit;
 	}
 
@@ -729,6 +759,9 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		public Map<String, String> getEnv () { return fBuilder.fEnv; }
 
 		@Override
+		public String getCpuRequestSpec () { return fBuilder.fCpuRequest; }
+
+		@Override
 		public String getCpuLimitSpec () { return fBuilder.fCpuLimit; }
 
 		@Override
@@ -736,4 +769,16 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	}
 
 	private static final Logger log = LoggerFactory.getLogger ( K8sController.class );
+
+	private static String selectValue ( String... values )
+	{
+		for ( String val : values )
+		{
+			if ( val != null && val.length() > 0 )
+			{
+				return val;
+			}
+		}
+		return null;
+	}
 }

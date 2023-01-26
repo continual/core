@@ -1,15 +1,19 @@
 package io.continual.services.model.impl.common;
 
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
 import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelObjectComparator;
 import io.continual.services.model.core.ModelObjectList;
+import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
+import io.continual.services.model.impl.common.SimpleModelQuery.Filter;
 import io.continual.util.data.json.JsonEval;
 import io.continual.util.data.json.JsonPathEval;
 import io.continual.util.naming.Path;
@@ -144,6 +148,51 @@ public abstract class SimpleModelQuery implements ModelQuery
 	@Override
 	public abstract ModelObjectList execute ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException;
 
+	protected ModelObjectList refineSet ( List<ModelObject> initialList )
+	{
+		final LinkedList<ModelObject> result = new LinkedList<> ();
+
+		for ( ModelObject obj : initialList )
+		{
+			boolean match = true;
+			for ( Filter f : getFilters() )
+			{
+				match = f.matches ( obj );
+				if ( !match )
+				{
+					break;
+				}
+			}
+			if ( match )
+			{
+				result.add ( obj );
+			}
+		}
+
+		// now sort our list
+		ModelObjectComparator orderBy = getOrdering ();
+		if ( orderBy != null )
+		{
+			Collections.sort ( result, new java.util.Comparator<ModelObject> ()
+			{
+				@Override
+				public int compare ( ModelObject o1, ModelObject o2 )
+				{
+					return orderBy.compare ( o1, o2 );
+				}
+			} );
+		}
+
+		return new ModelObjectList ()
+		{
+			@Override
+			public Iterator<ModelObject> iterator ()
+			{
+				return result.iterator ();
+			}
+		};
+	}
+	
 	Path fPathPrefix = Path.getRootPath ();
 	ModelObjectComparator fOrderBy = null;
 	int fPageSize = Integer.MAX_VALUE;
