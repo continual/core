@@ -34,6 +34,7 @@ public interface FlowControlDeploymentService
 		default String getCpuRequestSpec () { return null; };
 		default String getCpuLimitSpec () { return null; }
 		default String getMemLimitSpec () { return null; };
+		default String getPersistDiskSize () { return null; };
 	}
 
 	interface DeploymentSpecBuilder
@@ -45,6 +46,7 @@ public interface FlowControlDeploymentService
 		DeploymentSpecBuilder withCpuLimit ( String cpuLimit );
 		DeploymentSpecBuilder withCpuRequest ( String cpuRequest );
 		DeploymentSpecBuilder withMemLimit ( String memLimit );
+		DeploymentSpecBuilder withPersistDiskSize ( String diskSize );
 		DeploymentSpec build () throws BuildFailure;
 	}
 

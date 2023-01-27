@@ -22,6 +22,7 @@ import io.continual.builder.Builder.BuildFailure;
 import io.continual.flowcontrol.FlowControlCallContext;
 import io.continual.flowcontrol.controlapi.ConfigTransferService;
 import io.continual.flowcontrol.controlapi.FlowControlDeployment;
+import io.continual.flowcontrol.controlapi.FlowControlDeployment.Status;
 import io.continual.flowcontrol.controlapi.FlowControlDeploymentService;
 import io.continual.flowcontrol.controlapi.FlowControlRuntimeSpec;
 import io.continual.flowcontrol.jobapi.FlowControlJob;
@@ -30,7 +31,6 @@ import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.util.data.StreamTools;
 import io.continual.util.data.TypeConvertor;
-import io.continual.util.data.UniqueStringGenerator;
 import io.continual.util.data.exprEval.EnvDataSource;
 import io.continual.util.data.exprEval.ExpressionEvaluator;
 import io.continual.util.data.exprEval.JsonDataSource;
@@ -52,7 +52,12 @@ import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.api.model.SecretKeySelector;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentCondition;
+import io.fabric8.kubernetes.api.model.apps.DeploymentList;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
+import io.fabric8.kubernetes.api.model.apps.StatefulSet;
+import io.fabric8.kubernetes.api.model.apps.StatefulSetList;
+import io.fabric8.kubernetes.api.model.apps.StatefulSetSpec;
+import io.fabric8.kubernetes.api.model.apps.StatefulSetStatus;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -65,7 +70,10 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	static final String kSetting_Namespace = "namespace";
 
 	static final String kSetting_ConfigMountLoc = "configMountLoc";
-	static final String kDefault_ConfigMountLoc = "/var/flowcontrol";
+	static final String kDefault_ConfigMountLoc = "/var/flowcontrol/config";
+
+	static final String kSetting_PersistMountLoc = "persistMountLoc";
+	static final String kDefault_PersistMountLoc = "/var/flowcontrol/persistence";
 
 	static final String kSetting_ConfigTransfer = "configTransfer";
 
@@ -76,11 +84,15 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 
 	static final String kSetting_InitYamlImagePullSecrets = "imagePullSecrets";
 
+	static final String kSetting_StorageClass = "storageClass";
+	static final String kDefault_StorageClass = "standard";
+	
 	static final String kSetting_DumpInitYaml = "dumpInitYaml";
 
 	static final String kSetting_DefaultCpuRequest = "defaultCpuRequest";
 	static final String kSetting_DefaultCpuLimit = "defaultCpuLimit";
 	static final String kSetting_DefaultMemLimit = "defaultMemLimit";
+	static final String kSetting_DefaultDiskSize = "defaultPersistDiskSize";
 
 	public K8sController ( ServiceContainer sc, JSONObject rawConfig ) throws BuildFailure
 	{
@@ -101,6 +113,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		}
 		fNamespace = config.getString ( kSetting_Namespace );
 		fConfigMountLoc = config.optString ( kSetting_ConfigMountLoc, kDefault_ConfigMountLoc );
+		fPersistMountLoc = config.optString ( kSetting_PersistMountLoc, kDefault_PersistMountLoc );
 
 		final JSONObject mapperSpec = config.optJSONObject ( "imageMapper" );
 		if ( mapperSpec != null )
@@ -114,13 +127,15 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 
 		fInitYamlResource = config.optString ( kSetting_InitYamlResource, kDefault_InitYamlResource );
 		fInitYamlSettings = config.optJSONObject ( kSetting_InitYamlSettings );
-		
+		fInitYamlStorageClass= config.optString ( kSetting_StorageClass, kDefault_StorageClass );
+
 		fImgPullSecrets = JsonVisitor.arrayToList ( config.optJSONArray ( kSetting_InitYamlImagePullSecrets ) );
 		fDumpInitYaml = config.optBoolean ( kSetting_DumpInitYaml, false );
 
 		fDefCpuRequest = config.optString ( kSetting_DefaultCpuRequest, null );
 		fDefCpuLimit = config.optString ( kSetting_DefaultCpuLimit, null );
 		fDefMemLimit = config.optString ( kSetting_DefaultMemLimit, null );
+		fDefDiskSize = config.optString ( kSetting_DefaultDiskSize, null );
 	}
 
 	@Override
@@ -144,7 +159,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		{
 			final String jobId = ds.getJob ().getId ();
 			final String k8sJobId = makeK8sName ( jobId );
-			final String tag = k8sJobId + "-" + UniqueStringGenerator.createKeyUsingAlphabet ( jobId, "abcdefhigjklmnopqrstuvwxyz" );
+			final String tag = k8sJobId ;//+ "-" + UniqueStringGenerator.createKeyUsingAlphabet ( jobId, "abcdefhigjklmnopqrstuvwxyz" );
 			final Map<String,String> configFetchEnv = fConfigTransfer.deployConfiguration ( ds.getJob () );
 
 			final String targetConfigFile = fConfigMountLoc + "/jobConfig.json";
@@ -157,7 +172,10 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 				.put ( "FC_INSTANCE_COUNT", "" + ds.getInstanceCount () )
 				.put ( "FC_RUNTIME_IMAGE", fImageMapper.getImageName ( ds.getJob ().getRuntimeSpec () ) )
 				.put ( "FC_CONFIG_MOUNT", fConfigMountLoc )
+				.put ( "FC_PERSISTENCE_MOUNT", fPersistMountLoc )
 				.put ( "FC_CONFIG_FILE", targetConfigFile )
+				.put ( "FC_STORAGE_CLASS", fInitYamlStorageClass )
+				.put ( "FC_STORAGE_SIZE", ds.getPersistDiskSize () )
 			;
 //			replacements.put ( "FC_IMAGE_PULL_SECRET", "regcred" );
 
@@ -189,7 +207,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 				fApiClient.secrets ().inNamespace ( fNamespace ).createOrReplace ( sb.build () );
 			}
 
-			// get deployment installed
+			// Get deployment installed.  
 			try ( final InputStream deployTemplate = new ResourceLoader ()
 				.usingStandardSources ( false, K8sController.this.getClass () )
 				.named ( fInitYamlResource )
@@ -212,38 +230,31 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 				env.putAll ( configFetchEnv );
 				env.put ( "FC_CONFIG_DIR", fConfigMountLoc );
 				env.put ( "CONFIG_FILE", targetConfigFile );
+				env.put ( "FC_PERSISTENCE_DIR", fPersistMountLoc );
+				env.put ( "JOB_ID", jobId );
 
 				for ( HasMetadata md : items )
 				{
-					if ( md.getKind ().equals ( "Deployment" ) )
+					final String kind = md.getKind ();
+					final String name = md.getMetadata ().getName ();
+					log.info ( "Manifest includes {} {}.", kind, name );
+
+					PodTemplateSpec template = null;
+					if ( kind.equals ( "Deployment" ) )
 					{
 						final Deployment d = (Deployment) md;
 						final io.fabric8.kubernetes.api.model.apps.DeploymentSpec deploySpec = d.getSpec ();
-						final PodTemplateSpec template = deploySpec.getTemplate ();
-						final PodSpec ps = template.getSpec ();
-
-						// apply any image pull secrets we have
-						final List<LocalObjectReference> ipsList = new LinkedList<> ();
-						for ( String ips : fImgPullSecrets )
-						{
-							ipsList.add ( new LocalObjectReference ( ips ) );
-							log.info ( "Registering image pull secret {}..", ips );
-						}
-						ps.setImagePullSecrets ( ipsList );
-
-						// add env, secrets, and limits to the containers
-						for ( Container c : ps.getContainers () )
-						{
-							pushEnvMapToContainer ( env, c );
-							addSecretsToContainer ( secretsName, secrets, c );
-							setLimitsOnContainer ( ds, c );
-						}
-						for ( Container c : ps.getInitContainers () )
-						{
-							pushEnvMapToContainer ( env, c );
-							addSecretsToContainer ( secretsName, secrets, c );
-							setLimitsOnContainer ( ds, c );
-						}
+						template = deploySpec.getTemplate ();
+					}
+					else if ( kind.equals ( "StatefulSet" ) )
+					{
+						final StatefulSet ss = (StatefulSet) md;
+						final StatefulSetSpec sss = ss.getSpec ();
+						template = sss.getTemplate ();
+					}
+					if ( template != null )
+					{
+						updateTemplate ( ds, template, env, secretsName, secrets );
 					}
 				}
 
@@ -273,36 +284,29 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 			throw new ServiceException ( x );
 		}
 	}
-
+	
 	@Override
 	public void undeploy ( FlowControlCallContext ctx, String deploymentId ) throws ServiceException
 	{
 		// FIXME: does user own deployment?
 
-		try
+		final K8sDeployWrapper dw = getDeployment ( deploymentId );
+		if ( dw != null )
 		{
-			final Deployment d = fApiClient.apps().deployments ().inNamespace ( fNamespace ).withName ( deploymentId ).get ();
-			if ( d != null )
+			dw.delete ();
+		
+			try
 			{
-				fApiClient.resource ( d ).delete ();
+				final Secret secret = fApiClient.secrets ().inNamespace ( fNamespace ).withName ( tagToSecret ( deploymentId ) ).get ();
+				if ( secret != null )
+				{
+					fApiClient.resource ( secret ).delete ();
+				}
 			}
-		}
-		catch ( KubernetesClientException | IllegalStateException x )
-		{
-			// spec says object should be null if it doesn't exist, but testing implies this exception is thrown instead
-		}
-	
-		try
-		{
-			final Secret secret = fApiClient.secrets ().inNamespace ( fNamespace ).withName ( tagToSecret ( deploymentId ) ).get ();
-			if ( secret != null )
+			catch ( KubernetesClientException | IllegalStateException x )
 			{
-				fApiClient.resource ( secret ).delete ();
+				// spec says object should be null if it doesn't exist, but testing implies this exception is thrown instead
 			}
-		}
-		catch ( KubernetesClientException | IllegalStateException x )
-		{
-			// spec says object should be null if it doesn't exist, but testing implies this exception is thrown instead
 		}
 	}
 
@@ -311,11 +315,11 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	{
 		try
 		{
-			final Deployment d = fApiClient.apps().deployments().inNamespace ( fNamespace ).withName ( deploymentId ).get ();
-			if ( d == null ) return null;
+			final K8sDeployWrapper dw = getDeployment ( deploymentId );
+			if ( dw == null ) return null;
 			
-			final String jobId = d.getMetadata ().getLabels ().get ( "flowcontroljob" );
-			return new IntDeployment ( d.getMetadata ().getName (), jobId == null ? "(unknown)" : jobId );
+			final String jobId = dw.getMetadata ().getLabels ().get ( "flowcontroljob" );
+			return new IntDeployment ( dw.getMetadata ().getName (), jobId == null ? "(unknown)" : jobId );
 		}
 		catch ( KubernetesClientException x )
 		{
@@ -341,10 +345,10 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		final LinkedList<FlowControlDeployment> result = new LinkedList<> ();
 		try
 		{
-			for ( Deployment d : fApiClient.apps().deployments().inNamespace ( fNamespace ).list ().getItems ()  )
+			for ( K8sDeployWrapper dw : getK8sDeployments () )
 			{
-				final String jobId = d.getMetadata ().getLabels ().get ( "flowcontroljob" );
-				result.add ( new IntDeployment ( d.getMetadata ().getName (), jobId == null ? "(unknown)" : jobId ) );
+				final String jobId = dw.getMetadata ().getLabels ().get ( "flowcontroljob" );
+				result.add ( new IntDeployment ( dw.getMetadata ().getName (), jobId == null ? "(unknown)" : jobId ) );
 			}
 		}
 		catch ( KubernetesClientException x )
@@ -360,12 +364,12 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		final LinkedList<FlowControlDeployment> result = new LinkedList<> ();
 		try
 		{
-			for ( Deployment d : fApiClient.apps().deployments().inNamespace ( fNamespace ).list ().getItems ()  )
+			for ( K8sDeployWrapper dw : getK8sDeployments () )
 			{
-				final String thisJobId = d.getMetadata ().getLabels ().get ( "flowcontroljob" );
+				final String thisJobId = dw.getMetadata ().getLabels ().get ( "flowcontroljob" );
 				if ( jobId.equals ( thisJobId ) )
 				{
-					result.add ( new IntDeployment ( d.getMetadata ().getName (), thisJobId ) );
+					result.add ( new IntDeployment ( dw.getMetadata ().getName (), thisJobId ) );
 				}
 			}
 		}
@@ -380,14 +384,17 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	private final KubernetesClient fApiClient;
 	private final String fNamespace;
 	private final String fConfigMountLoc;
+	private final String fPersistMountLoc;
 	private final ContainerImageMapper fImageMapper;
 	private final String fInitYamlResource;
 	private final JSONObject fInitYamlSettings;
+	private final String fInitYamlStorageClass;
 	private final List<String> fImgPullSecrets;
 	private final boolean fDumpInitYaml;
 	private final String fDefCpuLimit;
 	private final String fDefCpuRequest;
 	private final String fDefMemLimit;
+	private final String fDefDiskSize;
 
 	private static String makeK8sName ( String from )
 	{
@@ -425,6 +432,34 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	private static String tagToSecret ( String tag )
 	{
 		return "secret-" + tag;
+	}
+
+	private void updateTemplate ( DeploymentSpec ds, PodTemplateSpec template, HashMap<String,String> env, String secretsName, Map<String,String> secrets )
+	{
+		final PodSpec ps = template.getSpec ();
+
+		// apply any image pull secrets we have
+		final List<LocalObjectReference> ipsList = new LinkedList<> ();
+		for ( String ips : fImgPullSecrets )
+		{
+			ipsList.add ( new LocalObjectReference ( ips ) );
+			log.info ( "Registering image pull secret {}...", ips );
+		}
+		ps.setImagePullSecrets ( ipsList );
+
+		// add env, secrets, and limits to the containers
+		for ( Container c : ps.getContainers () )
+		{
+			pushEnvMapToContainer ( env, c );
+			addSecretsToContainer ( secretsName, secrets, c );
+			setLimitsOnContainer ( ds, c );
+		}
+		for ( Container c : ps.getInitContainers () )
+		{
+			pushEnvMapToContainer ( env, c );
+			addSecretsToContainer ( secretsName, secrets, c );
+			setLimitsOnContainer ( ds, c );
+		}
 	}
 
 	private void addSecretsToContainer ( String secretName, Map<String, String> secrets, Container c )
@@ -523,36 +558,32 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		throw new FlowControlDeploymentService.ServiceException ( x );
 	}
 
-	private class IntDeployment implements FlowControlDeployment
+	private class K8sDeployWrapper
 	{
-		public IntDeployment ( String tag, String jobId )
+		public K8sDeployWrapper ( Deployment d ) { fDeployment = d; fStatefulSet = null; }
+		public K8sDeployWrapper ( StatefulSet ss ) { fDeployment = null; fStatefulSet = ss; }
+
+		public io.fabric8.kubernetes.api.model.ObjectMeta getMetadata ()
 		{
-			fTag = tag;
-			fJobId = jobId;
+			if ( fDeployment != null ) return fDeployment.getMetadata (); 
+			if ( fStatefulSet != null ) return fStatefulSet.getMetadata ();
+			return null;
 		}
 
-		@Override
-		public String getId ()
+		public void delete ()
 		{
-			return fTag;
+			if ( fDeployment != null ) fApiClient.resource ( fDeployment ).delete (); 
+			if ( fStatefulSet != null ) fApiClient.resource ( fStatefulSet ).delete ();
 		}
 
-		@Override
-		public String getJobId ()
-		{
-			return fJobId;
-		}
-
-		@Override
 		public Status getStatus ()
 		{
-			final Deployment d = getDeployment ( fTag );
-			if ( d != null )
+			if ( fDeployment != null )
 			{
 				boolean progressing = false;
 				boolean available = false;
 				
-				final DeploymentStatus ds = d.getStatus ();
+				final DeploymentStatus ds = fDeployment.getStatus ();
 				for ( DeploymentCondition dc : ds.getConditions () )
 				{
 					final String type = dc.getType ();
@@ -577,21 +608,73 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 					return Status.PENDING;
 				}
 			}
+			else if ( fStatefulSet != null )
+			{
+				final int replReqd = safeInt ( fStatefulSet.getSpec ().getReplicas () );
+				final StatefulSetStatus sss = fStatefulSet.getStatus ();
+				final int ready = safeInt ( sss.getReadyReplicas () );
+				final int repls = safeInt ( sss.getReplicas () );
 
+				log.info ( "Sts {}: {} reqd, {} created, {} ready", fStatefulSet.getMetadata ().getName (), replReqd, repls, ready );
+
+				if ( ready < replReqd )
+				{
+					return Status.PENDING;
+				}
+				else if ( ready == replReqd )
+				{
+					return Status.RUNNING;
+				}
+			}
 			return Status.UNKNOWN;
+		}
+
+		public int getReplicaCount ()
+		{
+			if ( fDeployment != null )
+			{
+				final DeploymentStatus ds = fDeployment.getStatus ();
+				return ds.getReplicas ();
+			}
+			return -1;
+		}
+		
+		private final Deployment fDeployment;
+		private final StatefulSet fStatefulSet;
+	}
+	
+	private class IntDeployment implements FlowControlDeployment
+	{
+		public IntDeployment ( String tag, String jobId )
+		{
+			fTag = tag;
+			fJobId = jobId;
+		}
+
+		@Override
+		public String getId ()
+		{
+			return fTag;
+		}
+
+		@Override
+		public String getJobId ()
+		{
+			return fJobId;
+		}
+
+		@Override
+		public Status getStatus ()
+		{
+			final K8sDeployWrapper d = getDeployment ( fTag );
+			return d == null ? Status.UNKNOWN : d.getStatus ();
 		}
 
 		@Override
 		public int instanceCount ()
 		{
-			final Deployment d = getDeployment ( fTag );
-			if ( d != null )
-			{
-				final DeploymentStatus ds = d.getStatus ();
-				return ds.getReplicas ();
-			}
-
-			return -1;
+			final K8sDeployWrapper d = getDeployment ( fTag );
+			return d == null ? -1 : d.getReplicaCount ();
 		}
 
 		@Override
@@ -604,6 +687,17 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 				result.add ( p.getMetadata ().getName () );
 			}
 			return result;
+		}
+
+		@Override
+		public String getPodId ( int instanceNo )
+		{
+			final List<Pod> pods = getPodsFor ( fTag );
+			if ( pods.size () > instanceNo )
+			{
+				return pods.get ( instanceNo ).getMetadata ().getName ();
+			}
+			return null;
 		}
 
 		@Override
@@ -644,9 +738,65 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		private final String fJobId;
 	}
 
-	private Deployment getDeployment ( String tag )
+	private K8sDeployWrapper getDeployment ( String tag )
 	{
-		return fApiClient.apps().deployments ().inNamespace ( fNamespace ).withName ( tag ).get ();
+		// First look for a stateful set. Issuing a call for a named item as a deployment and then
+		// as a stateful set (since we don't know which was used in the init yaml) seemed to cause trouble
+		// either for the fabric8 client or for the service, with the 2nd call throwing "not found" so instead
+		// we're just grabbing the list and searching locally, and also running the stateful set search first
+		// since it's our normal.
+
+		try
+		{
+			// get the stateful set list
+			final StatefulSetList ssl = fApiClient.apps().statefulSets ().inNamespace ( fNamespace ).list ();
+			for ( StatefulSet ss : ssl.getItems () )
+			{
+				if ( ss.getMetadata ().getName ().equals ( tag ) )
+				{
+					return new K8sDeployWrapper ( ss );
+				}
+			}
+		}
+		catch ( KubernetesClientException | IllegalStateException x )
+		{
+			// spec says object should be null if it doesn't exist, but testing implies this exception is thrown instead
+			log.warn ( x.getMessage () );
+		}
+
+		try
+		{
+			// now try deployment list
+			final DeploymentList dl = fApiClient.apps().deployments ().inNamespace ( fNamespace ).list ();
+			for ( Deployment d : dl.getItems () )
+			{
+				if ( d.getMetadata ().getName ().equals ( tag ) )
+				{
+					return new K8sDeployWrapper ( d );
+				}
+			}
+		}
+		catch ( KubernetesClientException | IllegalStateException x )
+		{
+			// spec says object should be null if it doesn't exist, but testing implies this exception is thrown instead
+			log.warn ( x.getMessage () );
+		}
+
+		return null;
+	}
+
+	private List<K8sDeployWrapper> getK8sDeployments ( )
+	{
+		final LinkedList<K8sDeployWrapper> result = new LinkedList<> ();
+		for ( Deployment d : fApiClient.apps().deployments().inNamespace ( fNamespace ).list ().getItems () )
+		{
+			result.add ( new K8sDeployWrapper ( d ) );
+		}
+		for ( StatefulSet d : fApiClient.apps().statefulSets ().inNamespace ( fNamespace ).list ().getItems () )
+		{
+			result.add ( new K8sDeployWrapper ( d ) );
+		}
+		return result;
 	}
 
 	private List<Pod> getPodsFor ( String tag )
@@ -726,6 +876,13 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		}
 
 		@Override
+		public DeploymentSpecBuilder withPersistDiskSize ( String diskSize )
+		{
+			fDiskSize = selectValue ( diskSize, fDiskSize );
+			return this;
+		}
+
+		@Override
 		public DeploymentSpec build () throws BuildFailure
 		{
 			if ( fJob == null ) throw new BuildFailure ( "No job provided." );
@@ -738,6 +895,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		private String fCpuLimit = fDefCpuLimit;
 		private String fCpuRequest = fDefCpuRequest;
 		private String fMemLimit = fDefMemLimit;
+		private String fDiskSize = fDefDiskSize;
 	}
 
 	private static class LocalDeploymentSpec implements DeploymentSpec
@@ -766,10 +924,18 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 
 		@Override
 		public String getMemLimitSpec () { return fBuilder.fMemLimit; }
+
+		@Override
+		public String getPersistDiskSize () { return fBuilder.fDiskSize; }
 	}
 
 	private static final Logger log = LoggerFactory.getLogger ( K8sController.class );
 
+	private static int safeInt ( Integer i )
+	{
+		return i == null ? 0 : i;
+	}
+	
 	private static String selectValue ( String... values )
 	{
 		for ( String val : values )

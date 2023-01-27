@@ -13,7 +13,7 @@ data:
     echo
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: ${FC_DEPLOYMENT_NAME}
   labels:
@@ -32,6 +32,12 @@ spec:
 
       # image pull secrets are added based on controller config
 
+      # process user setup
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 3000
+        fsGroup: 2000
+
       # mount our sysprep config and a place for the config to land
       volumes:
       - name: configdisk
@@ -45,9 +51,10 @@ spec:
       initContainers:
       - name: initializer
         image: ${FC_INITER_IMAGE|curlimages/curl:7.87.0}
+
         volumeMounts:
         - name: configdisk
-          mountPath: "${FC_CONFIG_MOUNT}"
+          mountPath: "${FC_CONFIG_MOUNT|/var/flowcontrol/config}"
         - name: sysprep
           mountPath: /usr/local/bin
         command: ['/usr/local/bin/sysprep']
@@ -57,7 +64,23 @@ spec:
       containers:
       - name: processor
         image: ${FC_RUNTIME_IMAGE}
+
         volumeMounts:
         - name: configdisk
-          mountPath: "${FC_CONFIG_MOUNT}"
+          mountPath: "${FC_CONFIG_MOUNT|/var/flowcontrol/config}"
+        - name: scopepersistence
+          mountPath: "${FC_PERSISTENCE_MOUNT|/var/flowcontrol/persistence}"
+
         # resources are set by the controller
+
+  # pvc claim
+  volumeClaimTemplates:
+  - metadata:
+      name: scopepersistence
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: "${FC_STORAGE_SIZE|8Gi}"
+      storageClassName: "${FC_STORAGE_CLASS|standard}"

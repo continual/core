@@ -52,4 +52,11 @@ public interface FlowControlDeployment
 	 * @return a list of text entries
 	 */
 	List<String> getLog ( String instanceId, String sinceRfc3339Time ) throws FlowControlDeploymentService.ServiceException, FlowControlDeploymentService.RequestException;
+
+	/**
+	 * Get the pod ID for the deployment based on its 0-indexed instance number.
+	 * @param instanceNo
+	 * @return a pod ID
+	 */
+	String getPodId ( int instanceNo );
 }
