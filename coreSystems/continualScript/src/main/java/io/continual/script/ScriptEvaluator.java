@@ -5,7 +5,7 @@ import io.continual.metrics.MetricsSupplier;
 /**
  * Evaluate a very lightweight scripting "language" against a set of bound data.
  */
-public interface ScriptEvaluator extends MetricsSupplier
+public interface ScriptEvaluator<T> extends MetricsSupplier
 {
 	/**
 	 * Register applicable functions from the given class. All methods of the form
@@ -14,16 +14,16 @@ public interface ScriptEvaluator extends MetricsSupplier
 	 * @param clazz
 	 * @return this evaluator
 	 */
-	ScriptEvaluator registerFunctionsFrom ( Class<?> clazz );
+	ScriptEvaluator<T> registerFunctionsFrom ( Class<?> clazz );
 	
 	/**
-	 * Evaluate the script as an expression and return a boolean value
+	 * Evaluate the script as an expression and return a value
 	 * @param bindings
 	 * @return the expression value
 	 * @throws ScriptSyntaxError
 	 * @throws ScriptEvaluationException
 	 */
-	String evaluateExpr ( ScriptBindings bindings ) throws ScriptSyntaxError, ScriptEvaluationException;
+	T evaluateExpr ( ScriptBindings<T> bindings ) throws ScriptSyntaxError, ScriptEvaluationException;
 
 	/**
 	 * Evaluate the script as an expression and return a boolean value
@@ -32,7 +32,7 @@ public interface ScriptEvaluator extends MetricsSupplier
 	 * @throws ScriptSyntaxError
 	 * @throws ScriptEvaluationException
 	 */
-	boolean evaluateExprAsBoolean ( ScriptBindings bindings ) throws ScriptSyntaxError, ScriptEvaluationException;
+	boolean evaluateExprAsBoolean ( ScriptBindings<T> bindings ) throws ScriptSyntaxError, ScriptEvaluationException;
 
 	/**
 	 * Execute the given script against the bindings.
@@ -41,7 +41,15 @@ public interface ScriptEvaluator extends MetricsSupplier
 	 * @throws ScriptSyntaxError
 	 * @throws ScriptEvaluationException
 	 */
-	String evaluate ( ScriptBindings epd ) throws ScriptSyntaxError, ScriptEvaluationException;
+	T evaluate ( ScriptBindings<T> epd ) throws ScriptSyntaxError, ScriptEvaluationException;
 
-	String evaluateFunction ( String name, String[] args, ScriptBindings epd ) throws ScriptEvaluationException;
+	/**
+	 * Evaluate the named function with the given arguments and bindings.
+	 * @param name
+	 * @param args
+	 * @param epd
+	 * @return
+	 * @throws ScriptEvaluationException
+	 */
+	T evaluateFunction ( String name, T[] args, ScriptBindings<T> epd ) throws ScriptEvaluationException;
 }

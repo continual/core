@@ -3,7 +3,7 @@ package io.continual.script;
 /**
  * Bindings for script evaluation
  */
-public interface ScriptBindings
+public interface ScriptBindings<T>
 {
 	/**
 	 * Return true if the bindings have a named value
@@ -20,12 +20,12 @@ public interface ScriptBindings
 	 * @param id
 	 * @return a value or null
 	 */
-	String get ( String id );
+	T get ( String id );
 
 	/**
 	 * Set a named value into the bindings.
 	 * @param id
 	 * @param val
 	 */
-	void set ( String id, String val );
+	void set ( String id, T val ) throws ScriptEvaluationException;
 }

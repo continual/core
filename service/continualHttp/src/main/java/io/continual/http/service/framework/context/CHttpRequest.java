@@ -127,6 +127,14 @@ public interface CHttpRequest
 	boolean getBooleanParameter ( String key, boolean defVal );
 
 	/**
+	 * Get a parameter as a char.
+	 * @param key
+	 * @param defVal
+	 * @return
+	 */
+	char getCharParameter ( String key, char defVal );
+
+	/**
 	 * Change the value of a parameter on this request. (Generally used by validators.)
 	 * @param fieldName
 	 * @param defVal

@@ -20,5 +20,9 @@ import org.json.JSONObject;
 
 public interface JsonSerialized
 {
+	/**
+	 * Get this object's JSON representation.
+	 * @return a JSON object
+	 */
 	JSONObject toJson ();
 }

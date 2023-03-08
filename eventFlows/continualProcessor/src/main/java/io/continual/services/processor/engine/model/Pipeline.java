@@ -104,7 +104,7 @@ public class Pipeline
 
 	private static String makeMetricsName ( Processor p, int i )
 	{
-		final String clazz = p.getClass ().getSimpleName ();
+		final String clazz = p.getClass ().getSimpleName ().replaceAll ( "/", "-" );
 		return "proc-" + i + " (" + clazz + ")";
 	}
 

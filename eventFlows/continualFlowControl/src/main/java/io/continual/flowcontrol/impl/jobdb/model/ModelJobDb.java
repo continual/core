@@ -72,7 +72,7 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 			final ModelRequestContext mrc = buildContext ();
 
 			final Path path = getBaseJobPath ();
-			final ModelPathList pathList = fModel.listObjectsStartingWith ( mrc, path );	// FIXME: does this check READ rights already?
+			final ModelPathList pathList = fModel.listChildrenOfPath ( mrc, path );	// FIXME: does this check READ rights already?
 
 			final LinkedList<FlowControlJob> result = new LinkedList<> ();
 			if ( pathList != null )

@@ -93,7 +93,7 @@ public class ModelClient extends CommonJsonDbModel
 	}
 
 	@Override
-	public ModelPathList listObjectsStartingWith ( ModelRequestContext context, Path prefix ) throws ModelServiceException, ModelRequestException
+	public ModelPathList listChildrenOfPath ( ModelRequestContext context, Path prefix ) throws ModelServiceException, ModelRequestException
 	{
 		final LinkedList<Path> objects = new LinkedList<> ();
 
@@ -114,7 +114,7 @@ public class ModelClient extends CommonJsonDbModel
 		{
 			final LinkedList<ModelObject> result = new LinkedList<> ();
 
-			final ModelPathList objectPaths = listObjectsStartingWith ( context, getPathPrefix () );
+			final ModelPathList objectPaths = listChildrenOfPath ( context, getPathPrefix () );
 			for ( Path objectPath : objectPaths )
 			{
 				final ModelObject mo = load ( context, objectPath );

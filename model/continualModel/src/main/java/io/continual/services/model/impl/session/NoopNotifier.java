@@ -1,4 +1,4 @@
-package io.continual.services.model.service.impl;
+package io.continual.services.model.impl.session;
 
 import io.continual.services.model.core.ModelNotificationService;
 import io.continual.util.naming.Path;

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -14,6 +15,7 @@ import org.json.JSONObject;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.http.app.htmlForms.CHttpFormPostWrapper;
 import io.continual.http.app.htmlForms.CHttpFormPostWrapper.ParseException;
+import io.continual.http.service.framework.context.CHttpRequest;
 import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.iam.IamService;
 import io.continual.iam.identity.Identity;
@@ -27,6 +29,8 @@ import io.continual.restHttp.ApiContextHelper;
 import io.continual.restHttp.HttpServlet;
 import io.continual.services.ServiceContainer;
 import io.continual.util.data.StreamTools;
+import io.continual.util.data.csv.CsvCallbackReader;
+import io.continual.util.data.csv.CsvCallbackReader.RecordHandler;
 import io.continual.util.data.json.JsonUtil;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.standards.HttpStatusCodes;
@@ -358,5 +362,32 @@ public class ReceiverApi<I extends Identity> extends ApiContextHelper<I>
 		};
 		fContentTypeHandlers.put ( MimeTypes.kAppWwwForm, webFormHandler );
 		fContentTypeHandlers.put ( MimeTypes.kMultipartForm, webFormHandler );
+
+		// CSV content
+		fContentTypeHandlers.put ( MimeTypes.kCsv, new ContentTypeHandler ()
+		{
+			@Override
+			public List<JSONObject> handle ( CHttpRequestContext context ) throws IOException
+			{
+				final LinkedList<JSONObject> result = new LinkedList<> ();
+
+				final CHttpRequest req = context.request ();
+				final CsvCallbackReader<IOException> reader = new CsvCallbackReader<IOException> (
+					req.getCharParameter ( "quote", '"' ),
+					req.getCharParameter ( "sep", ',' ),
+					req.getBooleanParameter ( "header", false )
+				);
+				reader.read ( req.getBodyStream (), new RecordHandler<IOException> ()
+				{
+					@Override
+					public boolean handler ( Map<String, String> fields ) throws IOException
+					{
+						result.add ( JsonVisitor.mapOfStringsToObject ( fields ) );
+						return true;
+					}
+				} );
+				return result;
+			}
+		} );
 	}
 }

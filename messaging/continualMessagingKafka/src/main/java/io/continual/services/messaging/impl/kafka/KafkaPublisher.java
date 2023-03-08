@@ -18,16 +18,19 @@ import io.continual.messaging.ContinualMessageSink;
 import io.continual.messaging.ContinualMessageStream;
 import io.continual.messaging.MessagePublishException;
 import io.continual.services.ServiceContainer;
+import io.continual.services.SimpleService;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.data.json.JsonVisitor.ObjectVisitor;
 
 /**
  * Kafka publisher
  */
-public class KafkaPublisher implements ContinualMessagePublisher
+public class KafkaPublisher extends SimpleService implements ContinualMessagePublisher
 {
-	public KafkaPublisher ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public KafkaPublisher ( ServiceContainer sc, JSONObject rawConfig ) throws BuildFailure
 	{
+		final JSONObject config = sc.getExprEval ().evaluateJsonObject ( rawConfig );
+		
 		// setup props with some defaults
 		final Properties props = new Properties ();
 		props.put ( "acks", "all" );
@@ -63,10 +66,11 @@ public class KafkaPublisher implements ContinualMessagePublisher
 				for ( ContinualMessage msg : msgs )
 				{
 					final String partition = stream.getName ();
-					final String payload = msg.getMessagePayload ().toString ();
+					final String payload = msg.toJson ().toString ();
 					log.info  ( "To Kafka ("+ topic + " / " + partition + "): " + payload );
 					fProducer.send ( new ProducerRecord<String,String> ( topic.toString (), partition, payload ) );
 				}
+				fProducer.flush ();
 			}
 		};
 	}

@@ -96,6 +96,21 @@ public class JsonVisitor
 		return map;
 	}
 
+	public static<T> HashMap<String,T> objectToMap ( JSONObject obj, ItemRenderer<Object,T> ir )
+	{
+		final HashMap<String,T> map = new HashMap<> ();
+		if ( obj != null )
+		{
+			for ( Object oo : obj.keySet () )
+			{
+				final String key = oo.toString ();
+				final T val = ir.render ( obj.get ( key ) );
+				map.put ( key, val );
+			}
+		}
+		return map;
+	}
+
 	public interface ObjectFilter
 	{
 		boolean matches ( JSONObject item );

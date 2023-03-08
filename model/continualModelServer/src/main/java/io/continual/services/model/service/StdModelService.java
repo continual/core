@@ -1,4 +1,4 @@
-package io.continual.services.model.service.impl;
+package io.continual.services.model.service;
 
 import java.util.LinkedList;
 
@@ -22,9 +22,10 @@ import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.model.impl.common.BuiltinSchemaReg;
 import io.continual.services.model.impl.delegator.DelegatingModel;
-import io.continual.services.model.service.ModelService;
-import io.continual.services.model.service.ModelSession;
-import io.continual.services.model.service.ModelSessionBuilder;
+import io.continual.services.model.impl.session.NoopNotifier;
+import io.continual.services.model.impl.session.StdMountTableEntry;
+import io.continual.services.model.session.ModelSession;
+import io.continual.services.model.session.ModelSessionBuilder;
 import io.continual.util.collections.LruCache;
 import io.continual.util.data.json.JsonUtil;
 import io.continual.util.data.json.JsonVisitor;
@@ -111,6 +112,13 @@ public class StdModelService extends SimpleService implements ModelService
 		public ModelSessionBuilder forUser ( Identity user )
 		{
 			fUser = user;
+			return this;
+		}
+
+		@Override
+		public ModelSessionBuilder readingSettingsFrom ( JSONObject data )
+		{
+			// FIXME: implement
 			return this;
 		}
 

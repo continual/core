@@ -176,6 +176,13 @@ public class MockRequest implements CHttpRequest
 	}
 
 	@Override
+	public char getCharParameter ( String key, char defVal )
+	{
+		// TODO Auto-generated method stub
+		return ' ';
+	}
+
+	@Override
 	public String getUrl ()
 	{
 		return "http://foo.bar";

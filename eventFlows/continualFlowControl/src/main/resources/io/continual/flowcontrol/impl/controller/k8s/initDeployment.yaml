@@ -68,19 +68,30 @@ spec:
         volumeMounts:
         - name: configdisk
           mountPath: "${FC_CONFIG_MOUNT|/var/flowcontrol/config}"
-        - name: scopepersistence
+        - name: persistence
           mountPath: "${FC_PERSISTENCE_MOUNT|/var/flowcontrol/persistence}"
+        - name: logging
+          mountPath: "${FC_LOGS_MOUNT|/var/flowcontrol/logs}"
 
         # resources are set by the controller
 
   # pvc claim
   volumeClaimTemplates:
   - metadata:
-      name: scopepersistence
+      name: persistence
     spec:
       accessModes:
         - ReadWriteOnce
       resources:
         requests:
           storage: "${FC_STORAGE_SIZE|8Gi}"
+      storageClassName: "${FC_STORAGE_CLASS|standard}"
+  - metadata:
+      name: logging
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: "${FC_LOGS_SIZE|8Gi}"
       storageClassName: "${FC_STORAGE_CLASS|standard}"

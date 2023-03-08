@@ -24,6 +24,8 @@ public class OkHttp implements JsonOverHttpClient
 		return new OkRequest ( getHttpClient () );
 	}
 
+	// FIXME: set timeout values
+	
 	private final Proxy fProxy;
 	private OkHttpClient fHttpClient;
 

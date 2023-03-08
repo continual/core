@@ -4,6 +4,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import io.continual.builder.Builder.BuildFailure;
 import io.continual.metrics.MetricsCatalog;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
@@ -25,8 +26,9 @@ public class SimpleMessageProcessingContext implements MessageProcessingContext
 		 * Build a processing context for a specific message
 		 * @param msg
 		 * @return a message processing context
+		 * @throws BuildFailure 
 		 */
-		public SimpleMessageProcessingContext build ( Message msg )
+		public SimpleMessageProcessingContext build ( Message msg ) throws BuildFailure
 		{
 			return new SimpleMessageProcessingContext ( this, msg );
 		}
@@ -151,13 +153,15 @@ public class SimpleMessageProcessingContext implements MessageProcessingContext
 		return fSpc.getMetrics ().getSubCatalog ( "messageProcessing" );
 	}
 
-	private SimpleMessageProcessingContext ( Builder b, Message msg )
+	private SimpleMessageProcessingContext ( Builder b, Message msg ) throws BuildFailure
 	{
 		fSpc = b.fStreamProcContext;
 		fMsg = msg;
 		fId = b.fSng.getNext ();
 		fEvalStack = b.fEvalStack;
 		fProgram = b.fSrcSinkProg;
+
+		if ( fSpc == null ) throw new BuildFailure ( "No stream processing context in message processing context." );
 	}
 
 	private final StreamProcessingContext fSpc;

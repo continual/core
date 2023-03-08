@@ -17,6 +17,7 @@
 package io.continual.services.model.service;
 
 import io.continual.services.Service;
+import io.continual.services.model.session.ModelSessionBuilder;
 
 /**
  * The model service, a global view over all models everywhere.

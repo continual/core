@@ -125,9 +125,9 @@ public class JsonConfigReader implements ConfigReader
 		readInto ( sc, obj, p );
 		return p;
 	}
-		
-	public void readInto ( ServiceContainer sc, JSONObject obj, Program p ) throws ConfigReadException
-	{		
+
+	public static List<String> getStandardPackages ()
+	{
 		final ArrayList<String> pkgs = new ArrayList<> ();
 
 		// add standard packages
@@ -135,6 +135,14 @@ public class JsonConfigReader implements ConfigReader
 		pkgs.add ( "io.continual.services.processor.engine.library.processors" );
 		pkgs.add ( "io.continual.services.processor.engine.library.sinks" );
 		pkgs.add ( "io.continual.services.processor.engine.library.sources" );
+
+		return pkgs;
+	}
+
+	public void readInto ( ServiceContainer sc, JSONObject obj, Program p ) throws ConfigReadException
+	{		
+		final ArrayList<String> pkgs = new ArrayList<> ();
+		pkgs.addAll ( getStandardPackages() );
 
 		// read program packages
 		JsonVisitor.forEachElement ( obj.optJSONArray ( "packages" ), new ArrayVisitor<String,ConfigReadException> ()
@@ -203,7 +211,7 @@ public class JsonConfigReader implements ConfigReader
 			@Override
 			public boolean visit ( String pipelineName, JSONArray rules ) throws ConfigReadException
 			{
-				final Pipeline pl = readPipeline ( pipelineName, rules, pkgs, clc );
+				final Pipeline pl = readPipeline ( rules, pkgs, clc );
 				p.addPipeline ( pipelineName, pl );
 				log.info ( "\twith pipeline {}...", pipelineName );
 
@@ -242,8 +250,8 @@ public class JsonConfigReader implements ConfigReader
 			.build ()
 		;
 	}
-	
-	public Pipeline readPipeline ( String pipelineName, JSONArray rules, ArrayList<String> pkgs, ConfigLoadContext clc ) throws ConfigReadException
+
+	public static Pipeline readPipeline ( JSONArray rules, List<String> pkgs, ConfigLoadContext clc ) throws ConfigReadException
 	{
 		try
 		{
@@ -334,7 +342,7 @@ public class JsonConfigReader implements ConfigReader
 		return src;
 	}
 	
-	private List<Processor> readProcessorArray ( ConfigLoadContext clc, List<String> pkgs, JSONArray block ) throws ConfigReadException
+	private static List<Processor> readProcessorArray ( ConfigLoadContext clc, List<String> pkgs, JSONArray block ) throws ConfigReadException
 	{
 		final ArrayList<Processor> result = new ArrayList<> ();
 		JsonVisitor.forEachElement ( block, new ArrayVisitor<JSONObject,ConfigReadException> ()

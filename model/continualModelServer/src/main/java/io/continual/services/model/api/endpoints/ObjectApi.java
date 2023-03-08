@@ -35,7 +35,7 @@ import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.model.core.updaters.DataMerge;
 import io.continual.services.model.core.updaters.DataOverwrite;
 import io.continual.services.model.service.ModelService;
-import io.continual.services.model.service.ModelSession;
+import io.continual.services.model.session.ModelSession;
 import io.continual.util.collections.MultiMap;
 import io.continual.util.data.json.CommentedJsonTokener;
 import io.continual.util.data.json.JsonVisitor;

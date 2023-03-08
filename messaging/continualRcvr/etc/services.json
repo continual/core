@@ -1,0 +1,90 @@
+{
+	//
+	//	This configuration stands up a simple receiver node. It receives messages on the HTTP API and logs them.
+	//
+
+	"services":
+	[
+		//
+		// accounts
+		//
+		{
+			"name":"accounts",
+
+			"class": "io.continual.iam.impl.s3.S3IamServiceManager",
+			"aws":
+			{
+				"accessKey": "${AWS_ACCOUNTS_APIKEY}",
+				"secretKey": "${AWS_ACCOUNTS_APISECRET}"
+			},
+			"bucketId": "${AWS_ACCOUNTS_BUCKET}",
+			"pathPrefix": "${AWS_ACCOUNTS_PREFIX}"
+		},
+
+		// basic http presence
+		{
+			"name":"httpService",
+			"class":"io.continual.restHttp.HttpService",
+
+			"accountService": "accounts",
+
+			"port":8080
+		},
+
+		//
+		//	logging publisher
+		//
+		{
+			"name": "loggingPublisher",
+			"class": "io.continual.messaging.impl.LoggerPublisher",
+		},
+
+		//
+		//	Kafka publisher
+		//
+		{
+			"name": "kafkaPublisher",
+			"class": "io.continual.services.messaging.impl.kafka.KafkaPublisher",
+			"enabled": false,
+
+			"kafka":
+			{
+				"bootstrap.servers": "${KAFKA_SERVERS}"
+			}
+		},
+
+		// the receiver API
+		{
+			"name":"receiverApi",
+			"classname":"io.continual.services.rcvr.ReceiverApiService",
+
+			// the http service to present on
+			"httpService":"httpService",
+
+			// the accounts service
+			"accounts": "accounts",
+
+			// the publishing service
+			"publisherService": "loggingPublisher"
+		}
+	],
+
+	"profiles":
+	{
+		"kafka":
+		{
+			"loggingPublisher":
+			{
+				"enabled": false
+			},
+			"kafkaPublisher":
+			{
+				"enabled": true
+			},
+			"receiverApi":
+			{
+				"publisherService": "kafkaPublisher"
+			}
+		}
+	}
+}

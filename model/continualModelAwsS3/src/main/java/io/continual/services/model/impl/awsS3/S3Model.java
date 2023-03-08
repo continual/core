@@ -24,9 +24,12 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.amazonaws.SdkClientException;
 import com.amazonaws.auth.AWSCredentials;
@@ -176,38 +179,52 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	}
 
 	@Override
-	public ModelPathList listObjectsStartingWith ( ModelRequestContext context, Path prefix ) throws ModelServiceException, ModelRequestException
+	public ModelPathList listChildrenOfPath ( ModelRequestContext context, Path prefix ) throws ModelServiceException, ModelRequestException
 	{
-		final LinkedList<Path> objects = new LinkedList<> ();
+		final LinkedList<Path> pending = new LinkedList<> ();
 
 		final ListObjectsV2Request req = new ListObjectsV2Request()
 			.withBucketName ( fBucketId )
 			.withPrefix ( pathToS3Path ( prefix ) )
 		;
 
-		ListObjectsV2Result result;
-        do
-        {
-			result = fS3.listObjectsV2 ( req );
-
-			for ( S3ObjectSummary objectSummary : result.getObjectSummaries () )
-			{
-				final String key = objectSummary.getKey ();
-				objects.add ( s3KeyToPath ( key ) );
-			}
-
-			final String token = result.getNextContinuationToken ();
-			req.setContinuationToken ( token );
-        }
-		while ( result.isTruncated () );
-
-        return new ModelPathList ()
-        {
+		final AtomicBoolean lastResultTruncated = new AtomicBoolean ( true );
+		
+		final Iterator<Path> iter = new Iterator<Path> ()
+		{
 			@Override
-			public Iterator<Path> iterator ()
+			public boolean hasNext ()
 			{
-				return objects.iterator ();
+				if ( pending.size () > 0 ) return true;
+
+				// if we're out, maybe load the next set
+				if ( lastResultTruncated.get () )
+				{
+					final ListObjectsV2Result result = fS3.listObjectsV2 ( req );
+					for ( S3ObjectSummary objectSummary : result.getObjectSummaries () )
+					{
+						final String key = objectSummary.getKey ();
+						pending.add ( s3KeyToPath ( key ) );
+					}
+					final String token = result.getNextContinuationToken ();
+					req.setContinuationToken ( token );
+	
+					lastResultTruncated.set ( result.isTruncated () );
+				}
+				return pending.size () > 0;
 			}
+
+			@Override
+			public Path next ()
+			{
+				return pending.removeFirst ();
+			}
+		};
+		
+		return new ModelPathList ()
+		{
+			@Override
+			public Iterator<Path> iterator () { return iter; }
 		};
 	}
 
@@ -216,9 +233,22 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		@Override
 		public ModelObjectList execute ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException
 		{
+			ModelObjectComparator orderBy = getOrdering ();
+			if ( orderBy != null )
+			{
+				return fullLoad ( context );
+			}
+			else
+			{
+				return streamLoad ( context );
+			}
+		}
+
+		private ModelObjectList fullLoad ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException
+		{
 			final LinkedList<ModelObject> result = new LinkedList<> ();
 
-			final ModelPathList objectPaths = listObjectsStartingWith ( context, getPathPrefix () );
+			final ModelPathList objectPaths = listChildrenOfPath ( context, getPathPrefix () );
 			for ( Path objectPath : objectPaths )
 			{
 				final ModelObject mo = load ( context, objectPath );
@@ -257,6 +287,68 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 				public Iterator<ModelObject> iterator ()
 				{
 					return result.iterator ();
+				}
+			};
+		}
+
+		private ModelObjectList streamLoad ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException
+		{
+			final ModelPathList objectPaths = listChildrenOfPath ( context, getPathPrefix () );
+			final Iterator<Path> paths = objectPaths.iterator ();
+
+			final LinkedList<ModelObject> pending = new LinkedList<> ();
+
+			return new ModelObjectList ()
+			{
+				@Override
+				public Iterator<ModelObject> iterator ()
+				{
+					return new Iterator<ModelObject> ()
+					{
+						@Override
+						public boolean hasNext ()
+						{
+							if ( pending.size () > 0 ) return true;
+
+							// otherwise, we're empty... are there more available from the path list?
+							if ( !paths.hasNext () ) return false;
+
+							// paths has more
+							while ( pending.size () == 0 )
+							{
+								final Path p = paths.next ();
+								try
+								{
+									final ModelObject mo = load ( context, p );
+									boolean match = true;
+									for ( Filter f : getFilters() )
+									{
+										match = f.matches ( mo );
+										if ( !match )
+										{
+											break;
+										}
+									}
+									if ( match )
+									{
+										pending.add ( mo );
+									}
+								}
+								catch ( ModelServiceException | ModelRequestException x )
+								{
+									log.warn ( "Exception retrieving next object: " + x.getMessage () );
+									return false;
+								}
+							}
+							return pending.size () > 0;
+						}
+
+						@Override
+						public ModelObject next ()
+						{
+							return pending.removeFirst ();
+						}
+					};
 				}
 			};
 		}
@@ -502,4 +594,6 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	{
 		throw new ModelServiceException ( "not implemented" );
 	}
+
+	private static final Logger log = LoggerFactory.getLogger ( S3Model.class );
 }

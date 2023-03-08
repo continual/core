@@ -290,7 +290,7 @@ public class TypeConvertor
 	public static long iso8601ToEpochMs ( String dt ) throws ParseException
 	{
 		final TimeZone utc = TimeZone.getTimeZone ( "UTC" );
-		for ( String format : new String [] { "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" } )
+		for ( String format : new String [] { "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", "yyyy-MM-dd" } )
 		{
 			try
 			{

@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.continual.builder.Builder.BuildFailure;
 import io.continual.iam.identity.Identity;
 import io.continual.metrics.MetricsCatalog;
 import io.continual.metrics.MetricsCatalog.PathPopper;
@@ -416,7 +417,7 @@ public class Engine extends SimpleService
 					fSource.close ();
 				}
 			}
-			catch ( IOException e )
+			catch ( IOException | BuildFailure e )
 			{
 				log.warn ( "Error on source {}: {}", fSrcName, e.getMessage () );
 			}

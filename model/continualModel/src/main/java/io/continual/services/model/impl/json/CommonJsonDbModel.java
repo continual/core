@@ -34,10 +34,12 @@ import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelSchema;
 import io.continual.services.model.core.ModelSchema.ValidationResult;
 import io.continual.services.model.core.ModelSchemaRegistry;
+import io.continual.services.model.core.ModelTraversal;
 import io.continual.services.model.core.ModelUpdater;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
+import io.continual.services.model.impl.common.SimpleTraversal;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.naming.Path;
 
@@ -204,6 +206,18 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 		context.remove ( objectPath );
 		context.getNotificationService().onObjectDelete ( objectPath );
 		return result;
+	}
+
+	@Override
+	public Model createIndex ( String field ) throws ModelRequestException, ModelServiceException
+	{
+		return this;
+	}
+
+	@Override
+	public ModelTraversal startTraversal () throws ModelRequestException
+	{
+		return new SimpleTraversal ( this );
 	}
 
 	private final String fAcctId;

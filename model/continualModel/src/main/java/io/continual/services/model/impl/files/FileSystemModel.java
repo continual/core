@@ -28,6 +28,8 @@ import java.util.List;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.iam.access.AccessControlEntry;
@@ -72,6 +74,11 @@ public class FileSystemModel extends CommonJsonDbModel
 		this ( acctId, modelId, baseDir.getAbsolutePath () );
 	}
 
+	public FileSystemModel ( String acctId, String modelId, java.nio.file.Path path ) throws BuildFailure
+	{
+		this ( acctId, modelId, path.toFile () );
+	}
+
 	public FileSystemModel ( ServiceContainer sc, JSONObject config ) throws BuildFailure
 	{
 		this (
@@ -112,7 +119,7 @@ public class FileSystemModel extends CommonJsonDbModel
 	}
 
 	@Override
-	public ModelPathList listObjectsStartingWith ( ModelRequestContext context, Path prefix ) throws ModelServiceException, ModelRequestException
+	public ModelPathList listChildrenOfPath ( ModelRequestContext context, Path prefix ) throws ModelServiceException, ModelRequestException
 	{
 		final LinkedList<Path> result = new LinkedList<> ();
 
@@ -240,7 +247,7 @@ public class FileSystemModel extends CommonJsonDbModel
 			};
 		}
 	}
-	
+
 	@Override
 	public FsModelQuery startQuery ()
 	{
@@ -399,11 +406,33 @@ public class FileSystemModel extends CommonJsonDbModel
 		}
 
 		fRelnMgr.removeAllRelations ( objectPath );
-		return obj.delete ();
+		final boolean removed = obj.delete ();
+		log.info ( "Removed object {} file {}", objectPath, obj );
+
+		removeEmptyParents ( obj );
+
+		return removed;
+	}
+
+	static void removeEmptyDirsUpTo ( File from, File limit )
+	{
+		final File parentDir = from.getParentFile ();
+		if ( parentDir.exists () && parentDir.isDirectory () && !parentDir.equals ( limit ) && parentDir.list ().length == 0 )
+		{
+			log.info ( "Removing empty dir {}", parentDir );
+			parentDir.delete ();
+			removeEmptyDirsUpTo ( parentDir, limit );
+		}
+	}
+	
+	private void removeEmptyParents ( File from )
+	{
+		removeEmptyDirsUpTo ( from, getObjectDir () );
 	}
 
 	private final File fBaseDir;
 	private final FileSysRelnMgr fRelnMgr;
+	private static final Logger log = LoggerFactory.getLogger ( FileSystemModel.class );
 
 	private File getObjectDir ()
 	{

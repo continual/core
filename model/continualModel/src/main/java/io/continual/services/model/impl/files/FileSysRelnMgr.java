@@ -52,8 +52,15 @@ class FileSysRelnMgr
 
 	public boolean unrelate ( ModelRelation reln ) throws ModelServiceException, ModelRequestException
 	{
-		final boolean out = removeFromRelnFile ( new File ( pathToObjOutDir ( reln.getFrom () ), reln.getName () ), reln.getTo () );
-		final boolean in = removeFromRelnFile ( new File ( pathToObjInDir ( reln.getTo () ), reln.getName () ), reln.getFrom () );
+		final File outRelnDir = new File ( pathToObjOutDir ( reln.getFrom () ), reln.getName () );
+		final File inRelnDir = new File ( pathToObjInDir ( reln.getTo () ), reln.getName () );
+
+		final boolean out = removeFromRelnFile ( outRelnDir, reln.getTo () );
+		final boolean in = removeFromRelnFile ( inRelnDir, reln.getFrom () );
+
+		FileSystemModel.removeEmptyDirsUpTo ( outRelnDir, fRelnDir );
+		FileSystemModel.removeEmptyDirsUpTo ( inRelnDir, fRelnDir );
+
 		return out || in;
 	}
 
@@ -184,22 +191,30 @@ class FileSysRelnMgr
 	
 	private void storeToFile ( File relnFile, Set<Path> list ) throws ModelServiceException
 	{
-		final JSONArray arr = JsonVisitor.listToArray ( list, new ItemRenderer<Path,String> ()
+		if ( list.size () > 0 )
 		{
-			@Override
-			public String render ( Path t )
+			final JSONArray arr = JsonVisitor.listToArray ( list, new ItemRenderer<Path,String> ()
 			{
-				return t.toString ();
+				@Override
+				public String render ( Path t )
+				{
+					return t.toString ();
+				}
+			} );
+	
+			try ( FileWriter fw = new FileWriter ( relnFile ) )
+			{
+				fw.write ( arr.toString () );
 			}
-		} );
-
-		try ( FileWriter fw = new FileWriter ( relnFile ) )
-		{
-			fw.write ( arr.toString () );
+			catch ( IOException x )
+			{
+				throw new ModelServiceException ( x );
+			}
 		}
-		catch ( IOException x )
+		else
 		{
-			throw new ModelServiceException ( x );
+			// empty set; just remove the file
+			relnFile.delete ();
 		}
 	}
 

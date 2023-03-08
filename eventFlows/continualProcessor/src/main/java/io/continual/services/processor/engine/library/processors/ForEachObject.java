@@ -41,8 +41,8 @@ public class ForEachObject implements Processor
 		try
 		{
 			fSet = config.getString ( "set" );
-			fPipeline = new JsonConfigReader ()
-				.readPipeline ( "internal", config.optJSONArray ( "processing" ), new ArrayList<String>(), clc )
+			fPipeline = JsonConfigReader
+				.readPipeline ( config.optJSONArray ( "processing" ), new ArrayList<String>(), clc )
 			;
 			fVarName = config.optString ( "varName", "_item" );
 		}

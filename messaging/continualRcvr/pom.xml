@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.2.46</version>
+		<version>0.2.47</version>
 		<artifactId>continualMessagingGroup</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -46,6 +46,11 @@
 			<artifactId>continualIam</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualIamS3</artifactId>
+			<version>${project.version}</version>
+		</dependency>
 
 		<!-- slf4j logger -->
 		<dependency>
@@ -59,6 +64,28 @@
 		</dependency>
 
 	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<descriptors>
+						<descriptor>src/assembly/dep.xml</descriptor>
+					</descriptors>
+				</configuration>
+				<executions>
+					<execution>
+						<id>make-assembly</id> <!-- this is used for inheritance merges -->
+						<phase>package</phase> <!-- bind to the packaging phase -->
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
 
 </project>
 

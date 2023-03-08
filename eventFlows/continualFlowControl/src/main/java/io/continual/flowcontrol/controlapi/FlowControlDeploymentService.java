@@ -25,16 +25,56 @@ public interface FlowControlDeploymentService
 		private static final long serialVersionUID = 1L;
 	}
 
+	interface Toleration
+	{
+		default String effect () { return null; }
+		default String key () { return null; }
+		default String operator () { return null; }
+		default Long seconds () { return null; }
+		default String value () { return null; }
+	}
+	
+	interface ResourceSpecs
+	{
+		default String cpuRequest () { return null; }
+		default String cpuLimit () { return null; }
+		default String memLimit () { return null; }
+		default String persistDiskSize () { return null; }
+		default String logDiskSize () { return null; }
+		default List<Toleration> tolerations () { return null; }
+	}
+
+	interface ResourceSpecBuilder
+	{
+		ResourceSpecBuilder withCpuRequest ( String cpuReq );
+		ResourceSpecBuilder withCpuLimit ( String cpuLimit );
+		ResourceSpecBuilder withMemLimit ( String memLimit );
+		ResourceSpecBuilder withPersistDiskSize ( String diskSize );
+		ResourceSpecBuilder withLogDiskSize ( String diskSize );
+		ResourceSpecBuilder withToleration ( Toleration tol );
+		default ResourceSpecBuilder withTolerations ( List<Toleration> tols )
+		{
+			for ( Toleration tol : tols )
+			{
+				withToleration ( tol );
+			}
+			return this;
+		}
+
+		DeploymentSpecBuilder build ();
+	};
+	
 	interface DeploymentSpec
 	{
 		FlowControlJob getJob ();
 		int getInstanceCount ();
 		Map<String,String> getEnv ();
 
-		default String getCpuRequestSpec () { return null; };
-		default String getCpuLimitSpec () { return null; }
-		default String getMemLimitSpec () { return null; };
-		default String getPersistDiskSize () { return null; };
+		/**
+		 * Get resource specs. This result is always non-null.
+		 * @return a resource spec
+		 */
+		ResourceSpecs getResourceSpecs ();
 	}
 
 	interface DeploymentSpecBuilder
@@ -43,10 +83,21 @@ public interface FlowControlDeploymentService
 		DeploymentSpecBuilder withInstances ( int count );
 		DeploymentSpecBuilder withEnv ( String key, String val );
 		DeploymentSpecBuilder withEnv ( Map<String, String> keyValMap );
-		DeploymentSpecBuilder withCpuLimit ( String cpuLimit );
-		DeploymentSpecBuilder withCpuRequest ( String cpuRequest );
-		DeploymentSpecBuilder withMemLimit ( String memLimit );
-		DeploymentSpecBuilder withPersistDiskSize ( String diskSize );
+
+		ResourceSpecBuilder withResourceSpecs ();
+		default DeploymentSpecBuilder withResourceSpecs ( ResourceSpecs spec )
+		{
+			return withResourceSpecs ()
+				.withCpuRequest ( spec.cpuRequest () )
+				.withCpuLimit ( spec.cpuLimit () )
+				.withMemLimit ( spec.memLimit () )
+				.withPersistDiskSize ( spec.persistDiskSize () )
+				.withLogDiskSize ( spec.logDiskSize () )
+				.withTolerations ( spec.tolerations () )
+				.build ()
+			;
+		}
+		
 		DeploymentSpec build () throws BuildFailure;
 	}
 

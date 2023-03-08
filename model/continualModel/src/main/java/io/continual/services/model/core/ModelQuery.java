@@ -52,11 +52,11 @@ public interface ModelQuery
 
 	/**
 	 * Limit the results to objects with the given value in the given field.
-	 * @param jsonPath a JSON path
+	 * @param key A JSON key. Use dots to separate subobjects, brackets for arrays.
 	 * @param val a field value
 	 * @return this query
 	 */
-	ModelQuery withFieldValue ( String jsonPath, double val );
+	ModelQuery withFieldValue ( String key, double val );
 
 	/**
 	 * Limit the results to objects with the given value contained in the given field.

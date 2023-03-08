@@ -29,6 +29,7 @@ import io.continual.services.model.core.exceptions.ModelItemDoesNotExistExceptio
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelSchemaViolationException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
+import io.continual.services.model.core.updaters.DataMerge;
 import io.continual.services.model.core.updaters.DataOverwrite;
 import io.continual.util.data.json.JsonUtil;
 import io.continual.util.naming.Path;
@@ -68,14 +69,14 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	boolean exists ( ModelRequestContext context, Path objectPath ) throws ModelServiceException, ModelRequestException;
 
 	/**
-	 * List objects within the prefix path.
+	 * List paths immediately below the given path.
 	 * @param context
-	 * @param prefix
+	 * @param parentPath
 	 * @return a list of 0 or more object paths, or null if the requested prefix path does not exist
 	 * @throws ModelServiceException
 	 * @throws ModelRequestException
 	 */
-	ModelPathList listObjectsStartingWith ( ModelRequestContext context, Path prefix ) throws ModelServiceException, ModelRequestException;
+	ModelPathList listChildrenOfPath ( ModelRequestContext context, Path parentPath ) throws ModelServiceException, ModelRequestException;
 
 	/**
 	 * Start a query on this model implementation.
@@ -83,6 +84,20 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	 * @throws ModelRequestException 
 	 */
 	ModelQuery startQuery () throws ModelRequestException;
+
+	/**
+	 * Start a traversal on this model implementation.
+	 * @return a traversal
+	 * @throws ModelRequestException 
+	 */
+	ModelTraversal startTraversal () throws ModelRequestException;
+
+	/**
+	 * Create an index on a given field for use in later queries.
+	 * @param field A dot-notation field name.
+	 * @return this model
+	 */
+	Model createIndex ( String field ) throws ModelRequestException, ModelServiceException;
 	
 	/**
 	 * Load an object. For models that use a container (directory) structure, a path to a container should return an ObjectContainer object.
@@ -121,6 +136,20 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	default void store ( ModelRequestContext context, Path objectPath, JSONObject jsonData ) throws ModelRequestException, ModelSchemaViolationException, ModelServiceException
 	{
 		store ( context, objectPath, new DataOverwrite ( jsonData ) );
+	}
+
+	/**
+	 * Merge the given JSON into the object at the given path. If the object doesn't exist, it's created.
+	 * @param context
+	 * @param objectPath
+	 * @param jsonData
+	 * @throws ModelRequestException
+	 * @throws ModelSchemaViolationException
+	 * @throws ModelServiceException
+	 */
+	default void update ( ModelRequestContext context, Path objectPath, JSONObject jsonData ) throws ModelRequestException, ModelSchemaViolationException, ModelServiceException
+	{
+		store ( context, objectPath, new DataMerge ( jsonData ) );
 	}
 
 	/**

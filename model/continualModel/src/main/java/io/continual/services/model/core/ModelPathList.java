@@ -16,8 +16,8 @@
 
 package io.continual.services.model.core;
 
+import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 
 import io.continual.util.naming.Path;
 
@@ -28,11 +28,11 @@ import io.continual.util.naming.Path;
 public interface ModelPathList extends Iterable<Path>
 {
 	/**
-	 * Wrap a list of paths with a model path list.
+	 * Wrap a collection of paths with a model path list.
 	 * @param paths
 	 * @return a model path list
 	 */
-	static ModelPathList wrap ( List<Path> paths )
+	static ModelPathList wrap ( Collection<Path> paths )
 	{
 		return new ModelPathList () { @Override public Iterator<Path> iterator () { return paths.iterator (); } };
 	}

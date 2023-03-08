@@ -1,4 +1,4 @@
-package io.continual.services.model.service.impl;
+package io.continual.services.model.impl.session;
 
 import org.json.JSONObject;
 
@@ -6,7 +6,7 @@ import io.continual.services.model.core.Model;
 import io.continual.services.model.impl.delegator.ModelMount;
 import io.continual.util.naming.Path;
 
-class StdMountTableEntry implements ModelMount
+public class StdMountTableEntry implements ModelMount
 {
 	public StdMountTableEntry ( Path mountPoint, Model m )
 	{

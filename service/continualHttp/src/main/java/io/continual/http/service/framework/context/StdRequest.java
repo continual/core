@@ -248,6 +248,18 @@ public class StdRequest implements CHttpRequest
 	}
 
 	@Override
+	public char getCharParameter ( String key, char defVal )
+	{
+		char result = defVal;
+		final String p = getParameter ( key );
+		if ( p != null && p.length () == 1 )
+		{
+			result = p.charAt ( 0 );
+		}
+		return result;
+	}
+
+	@Override
 	public void changeParameter ( String fieldName, String value )
 	{
 		fParamOverrides.put ( fieldName, new String[] { value } );

@@ -28,13 +28,16 @@ import io.continual.services.processor.engine.model.Source;
 import io.continual.services.processor.engine.model.StreamProcessingContext;
 
 /**
- * A CSV stream source. This source will report EOF when all records are read.
+ * A null stream source. This source will always report EOF.
  */
 public class NullSource implements Source
 {
+	public NullSource () throws BuildFailure
+	{
+	}
+
 	public NullSource ( JSONObject config ) throws BuildFailure
 	{
-		this ( null, config );
 	}
 
 	public NullSource ( final ConfigLoadContext sc, JSONObject config ) throws BuildFailure

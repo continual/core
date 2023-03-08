@@ -17,7 +17,9 @@
 package io.continual.services.model.core;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -26,6 +28,35 @@ import java.util.List;
  */
 public interface ModelObjectList extends Iterable<ModelObject>
 {
+	/**
+	 * Filter this list with the given filter
+	 * @param mof
+	 * @return a filtered list
+	 */
+	default ModelObjectList filter ( ModelObjectFilter mof )
+	{
+		final LinkedList<ModelObject> result = new LinkedList<> ();
+
+		final Iterator<ModelObject> it = this.iterator ();
+		while ( it.hasNext () )
+		{
+			final ModelObject mo = it.next ();
+			if ( mof.matches ( mo ) )
+			{
+				result.add ( mo );
+			}
+		}
+
+		return new ModelObjectList ()
+		{
+			@Override
+			public Iterator<ModelObject> iterator ()
+			{
+				return result.iterator ();
+			}
+		};
+	}
+
 	/**
 	 * Construct an empty object list
 	 * @return an empty list
@@ -48,6 +79,22 @@ public interface ModelObjectList extends Iterable<ModelObject>
 			public Iterator<ModelObject> iterator ()
 			{
 				return list.iterator ();
+			}
+		};
+	}
+
+	/**
+	 * Convenience method for creating a small list of objects.
+	 * @return a list of objects
+	 */
+	static ModelObjectList simpleListOfCollection ( Collection<ModelObject> modelObjects )
+	{
+		return new ModelObjectList ()
+		{
+			@Override
+			public Iterator<ModelObject> iterator ()
+			{
+				return modelObjects.iterator ();
 			}
 		};
 	}

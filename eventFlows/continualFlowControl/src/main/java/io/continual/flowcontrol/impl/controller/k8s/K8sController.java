@@ -75,6 +75,9 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	static final String kSetting_PersistMountLoc = "persistMountLoc";
 	static final String kDefault_PersistMountLoc = "/var/flowcontrol/persistence";
 
+	static final String kSetting_LogsMountLoc = "logsMountLoc";
+	static final String kDefault_LogsMountLoc = "/var/flowcontrol/logs";
+
 	static final String kSetting_ConfigTransfer = "configTransfer";
 
 	static final String kSetting_InitYamlResource = "deploymentYaml";
@@ -86,13 +89,16 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 
 	static final String kSetting_StorageClass = "storageClass";
 	static final String kDefault_StorageClass = "standard";
-	
+
+	static final String kSetting_InstallationName = "installationName";
+
 	static final String kSetting_DumpInitYaml = "dumpInitYaml";
 
 	static final String kSetting_DefaultCpuRequest = "defaultCpuRequest";
 	static final String kSetting_DefaultCpuLimit = "defaultCpuLimit";
 	static final String kSetting_DefaultMemLimit = "defaultMemLimit";
-	static final String kSetting_DefaultDiskSize = "defaultPersistDiskSize";
+	static final String kSetting_DefaultPersistDiskSize = "defaultPersistDiskSize";
+	static final String kSetting_DefaultLogDiskSize = "defaultLogDiskSize";
 
 	public K8sController ( ServiceContainer sc, JSONObject rawConfig ) throws BuildFailure
 	{
@@ -114,6 +120,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		fNamespace = config.getString ( kSetting_Namespace );
 		fConfigMountLoc = config.optString ( kSetting_ConfigMountLoc, kDefault_ConfigMountLoc );
 		fPersistMountLoc = config.optString ( kSetting_PersistMountLoc, kDefault_PersistMountLoc );
+		fLogsMountLoc = config.optString ( kSetting_LogsMountLoc, kDefault_LogsMountLoc );
 
 		final JSONObject mapperSpec = config.optJSONObject ( "imageMapper" );
 		if ( mapperSpec != null )
@@ -129,13 +136,16 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		fInitYamlSettings = config.optJSONObject ( kSetting_InitYamlSettings );
 		fInitYamlStorageClass= config.optString ( kSetting_StorageClass, kDefault_StorageClass );
 
+		fInstallationName = config.optString ( kSetting_InstallationName, "" );
+
 		fImgPullSecrets = JsonVisitor.arrayToList ( config.optJSONArray ( kSetting_InitYamlImagePullSecrets ) );
 		fDumpInitYaml = config.optBoolean ( kSetting_DumpInitYaml, false );
 
 		fDefCpuRequest = config.optString ( kSetting_DefaultCpuRequest, null );
 		fDefCpuLimit = config.optString ( kSetting_DefaultCpuLimit, null );
 		fDefMemLimit = config.optString ( kSetting_DefaultMemLimit, null );
-		fDefDiskSize = config.optString ( kSetting_DefaultDiskSize, null );
+		fDefPersistDiskSize = config.optString ( kSetting_DefaultPersistDiskSize, null );
+		fDefLogDiskSize = config.optString ( kSetting_DefaultLogDiskSize, null );
 	}
 
 	@Override
@@ -173,9 +183,11 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 				.put ( "FC_RUNTIME_IMAGE", fImageMapper.getImageName ( ds.getJob ().getRuntimeSpec () ) )
 				.put ( "FC_CONFIG_MOUNT", fConfigMountLoc )
 				.put ( "FC_PERSISTENCE_MOUNT", fPersistMountLoc )
+				.put ( "FC_LOGS_MOUNT", fLogsMountLoc )
 				.put ( "FC_CONFIG_FILE", targetConfigFile )
 				.put ( "FC_STORAGE_CLASS", fInitYamlStorageClass )
-				.put ( "FC_STORAGE_SIZE", ds.getPersistDiskSize () )
+				.put ( "FC_STORAGE_SIZE", ds.getResourceSpecs().persistDiskSize () )
+				.put ( "FC_LOGS_SIZE", ds.getResourceSpecs().logDiskSize () )
 			;
 //			replacements.put ( "FC_IMAGE_PULL_SECRET", "regcred" );
 
@@ -209,7 +221,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 
 			// Get deployment installed.  
 			try ( final InputStream deployTemplate = new ResourceLoader ()
-				.usingStandardSources ( false, K8sController.this.getClass () )
+				.usingStandardSources ( false, K8sController.class )
 				.named ( fInitYamlResource )
 				.load ()
 			)
@@ -228,10 +240,13 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 				final HashMap<String,String> env = new HashMap<String,String> ();
 				env.putAll ( ds.getEnv () );
 				env.putAll ( configFetchEnv );
+				env.put ( "FC_INSTALLATION_NAME", fInstallationName );
 				env.put ( "FC_CONFIG_DIR", fConfigMountLoc );
-				env.put ( "CONFIG_FILE", targetConfigFile );
 				env.put ( "FC_PERSISTENCE_DIR", fPersistMountLoc );
+				env.put ( "FC_LOGS_DIR", fLogsMountLoc );
 				env.put ( "JOB_ID", jobId );
+				env.put ( "CONFIG_FILE", targetConfigFile );
+				updateEnv ( env );
 
 				for ( HasMetadata md : items )
 				{
@@ -385,16 +400,23 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	private final String fNamespace;
 	private final String fConfigMountLoc;
 	private final String fPersistMountLoc;
+	private final String fLogsMountLoc;
 	private final ContainerImageMapper fImageMapper;
 	private final String fInitYamlResource;
 	private final JSONObject fInitYamlSettings;
 	private final String fInitYamlStorageClass;
+	private final String fInstallationName;
 	private final List<String> fImgPullSecrets;
 	private final boolean fDumpInitYaml;
 	private final String fDefCpuLimit;
 	private final String fDefCpuRequest;
 	private final String fDefMemLimit;
-	private final String fDefDiskSize;
+	private final String fDefPersistDiskSize;
+	private final String fDefLogDiskSize;
+
+	protected void updateEnv ( HashMap<String,String> env )
+	{
+	}
 
 	private static String makeK8sName ( String from )
 	{
@@ -460,6 +482,17 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 			addSecretsToContainer ( secretsName, secrets, c );
 			setLimitsOnContainer ( ds, c );
 		}
+
+		// apply tolerations
+		final LinkedList<io.fabric8.kubernetes.api.model.Toleration> tols = new LinkedList<> ();
+		for ( Toleration t : ds.getResourceSpecs ().tolerations () )
+		{
+			tols.add ( new io.fabric8.kubernetes.api.model.Toleration ( t.effect (), t.key (), t.operator (), t.seconds (), t.value () ) );
+		}
+		if ( tols.size () > 0 )
+		{
+			ps.setTolerations ( tols );
+		}
 	}
 
 	private void addSecretsToContainer ( String secretName, Map<String, String> secrets, Container c )
@@ -486,9 +519,10 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 
 	private void setLimitsOnContainer ( DeploymentSpec ds, Container c )
 	{
-		final String cpuReq = ds.getCpuRequestSpec ();
-		final String cpuLimit = ds.getCpuLimitSpec ();
-		final String mem = ds.getMemLimitSpec ();
+		final ResourceSpecs rs = ds.getResourceSpecs ();
+		final String cpuReq = rs.cpuRequest ();
+		final String cpuLimit = rs.cpuLimit ();
+		final String mem = rs.memLimit ();
 
 		HashMap<String, Quantity> map = new HashMap<> ();
 		if ( mem != null )
@@ -855,31 +889,58 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		}
 
 		@Override
-		public DeploymentSpecBuilder withCpuRequest ( String cpuRequest )
+		public ResourceSpecBuilder withResourceSpecs ()
 		{
-			fCpuRequest = selectValue ( cpuRequest, fCpuRequest, fCpuLimit );
-			return this;
-		}
+			return new ResourceSpecBuilder ()
+			{
+				@Override
+				public ResourceSpecBuilder withCpuRequest ( String cpuReq )
+				{
+					fCpuRequest = selectValue ( cpuReq, fCpuRequest, fCpuLimit );
+					return this;
+				}
 
-		@Override
-		public DeploymentSpecBuilder withCpuLimit ( String cpuLimit )
-		{
-			fCpuLimit = selectValue ( cpuLimit, fCpuLimit );
-			return this;
-		}
+				@Override
+				public ResourceSpecBuilder withCpuLimit ( String cpuLimit )
+				{
+					fCpuLimit = selectValue ( cpuLimit, fCpuLimit );
+					return this;
+				}
 
-		@Override
-		public DeploymentSpecBuilder withMemLimit ( String memLimit )
-		{
-			fMemLimit = selectValue ( memLimit, fMemLimit );
-			return this;
-		}
+				@Override
+				public ResourceSpecBuilder withMemLimit ( String memLimit )
+				{
+					fMemLimit = selectValue ( memLimit, fMemLimit );
+					return this;
+				}
 
-		@Override
-		public DeploymentSpecBuilder withPersistDiskSize ( String diskSize )
-		{
-			fDiskSize = selectValue ( diskSize, fDiskSize );
-			return this;
+				@Override
+				public ResourceSpecBuilder withPersistDiskSize ( String diskSize )
+				{
+					fPersistDiskSize = selectValue ( diskSize, fPersistDiskSize );
+					return this;
+				}
+
+				@Override
+				public ResourceSpecBuilder withLogDiskSize ( String diskSize )
+				{
+					fLogDiskSize = selectValue ( diskSize, fLogDiskSize );
+					return this;
+				}
+
+				@Override
+				public ResourceSpecBuilder withToleration ( Toleration tol )
+				{
+					fTolerations.add ( tol );
+					return this;
+				}
+
+				@Override
+				public DeploymentSpecBuilder build ()
+				{
+					return LocalDeploymentSpecBuilder.this;
+				}
+			};
 		}
 
 		@Override
@@ -895,7 +956,9 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		private String fCpuLimit = fDefCpuLimit;
 		private String fCpuRequest = fDefCpuRequest;
 		private String fMemLimit = fDefMemLimit;
-		private String fDiskSize = fDefDiskSize;
+		private String fPersistDiskSize = fDefPersistDiskSize;
+		private String fLogDiskSize = fDefLogDiskSize;
+		private LinkedList<Toleration> fTolerations = new LinkedList<>();
 	}
 
 	private static class LocalDeploymentSpec implements DeploymentSpec
@@ -917,16 +980,21 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		public Map<String, String> getEnv () { return fBuilder.fEnv; }
 
 		@Override
-		public String getCpuRequestSpec () { return fBuilder.fCpuRequest; }
-
-		@Override
-		public String getCpuLimitSpec () { return fBuilder.fCpuLimit; }
-
-		@Override
-		public String getMemLimitSpec () { return fBuilder.fMemLimit; }
-
-		@Override
-		public String getPersistDiskSize () { return fBuilder.fDiskSize; }
+		public ResourceSpecs getResourceSpecs ()
+		{
+			return new ResourceSpecs ()
+			{
+				public String cpuRequest () { return fBuilder.fCpuRequest; }
+				public String cpuLimit () { return fBuilder.fCpuLimit; }
+				public String memLimit () { return fBuilder.fMemLimit; }
+				public String persistDiskSize () { return fBuilder.fPersistDiskSize; }
+				public String logDiskSize () { return fBuilder.fLogDiskSize; }
+				public List<Toleration> tolerations ()
+				{
+					return fBuilder.fTolerations;
+				}
+			};
+		}
 	}
 
 	private static final Logger log = LoggerFactory.getLogger ( K8sController.class );

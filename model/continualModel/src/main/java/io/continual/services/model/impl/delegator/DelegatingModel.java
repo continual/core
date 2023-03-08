@@ -17,11 +17,13 @@ import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRequestContext;
+import io.continual.services.model.core.ModelTraversal;
 import io.continual.services.model.core.ModelUpdater;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.model.impl.common.BasicModelRequestContextBuilder;
+import io.continual.services.model.impl.common.SimpleTraversal;
 import io.continual.services.model.impl.json.CommonJsonDbObjectContainer;
 import io.continual.util.naming.Path;
 
@@ -132,7 +134,7 @@ public class DelegatingModel extends SimpleService implements Model
 	}
 
 	@Override
-	public ModelPathList listObjectsStartingWith ( ModelRequestContext context, Path prefix ) throws ModelServiceException, ModelRequestException
+	public ModelPathList listChildrenOfPath ( ModelRequestContext context, Path prefix ) throws ModelServiceException, ModelRequestException
 	{
 		final ModelMount mm = getModelForPath ( prefix );
 		if ( mm.getModel () == this )
@@ -154,8 +156,14 @@ public class DelegatingModel extends SimpleService implements Model
 		}
 		else
 		{
-			return mm.getModel ().listObjectsStartingWith ( context, mm.getPathWithinModel ( prefix ) );
+			return mm.getModel ().listChildrenOfPath ( context, mm.getPathWithinModel ( prefix ) );
 		}
+	}
+
+	@Override
+	public DelegatingModel createIndex ( String field ) throws ModelRequestException, ModelServiceException
+	{
+		return this;
 	}
 
 	@Override
@@ -163,6 +171,12 @@ public class DelegatingModel extends SimpleService implements Model
 	{
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public ModelTraversal startTraversal () throws ModelRequestException
+	{
+		return new SimpleTraversal ( this );
 	}
 
 	@Override

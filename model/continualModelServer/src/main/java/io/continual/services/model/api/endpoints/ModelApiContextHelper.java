@@ -35,7 +35,7 @@ import io.continual.restHttp.HttpServlet;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.model.service.ModelService;
-import io.continual.services.model.service.ModelSession;
+import io.continual.services.model.session.ModelSession;
 import io.continual.util.naming.Path;
 import io.continual.util.standards.HttpStatusCodes;
 import io.continual.util.standards.MimeTypes;

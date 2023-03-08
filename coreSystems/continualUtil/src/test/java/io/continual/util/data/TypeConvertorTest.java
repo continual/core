@@ -260,10 +260,16 @@ public class TypeConvertorTest {
 		long expected = Instant.parse("2022-12-30T21:00:00Z").toEpochMilli();
 		Assert.assertEquals("2022-12-30T21:00:00Z", TypeConvertor.dateToIso8601(expected));
     }
-	
+
 	@Test
 	public void iso8601ToEpochMs() throws ParseException {
 		Assert.assertEquals(1672434000000L, TypeConvertor.iso8601ToEpochMs("2022-12-30T21:00:00.000Z"));
+	}
+
+	@Test
+	public void iso8601DateOnlyToEpochMs () throws ParseException
+	{
+		Assert.assertEquals ( 1672358400000L, TypeConvertor.iso8601ToEpochMs ( "2022-12-30" ) );
 	}
 
 	@Test(expected = ParseException.class)

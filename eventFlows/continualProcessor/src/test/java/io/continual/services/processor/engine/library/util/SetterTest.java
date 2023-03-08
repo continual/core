@@ -3,6 +3,7 @@ package io.continual.services.processor.engine.library.util;
 import org.json.JSONObject;
 import org.junit.Test;
 
+import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.util.data.exprEval.ExprDataSource;
 import io.continual.util.data.exprEval.JsonDataSource;
@@ -11,7 +12,7 @@ import junit.framework.TestCase;
 public class SetterTest extends TestCase
 {
 	@Test
-	public void testSettingWithMissingData ()
+	public void testSettingWithMissingData () throws BuildFailure
 	{
 		final Message msg = new Message ();
 
@@ -22,7 +23,11 @@ public class SetterTest extends TestCase
 			)
 		);
 
+		final SimpleStreamProcessingContext spc = SimpleStreamProcessingContext.builder ()
+			.build ()
+		;
 		final SimpleMessageProcessingContext mpc = SimpleMessageProcessingContext.builder ()
+			.usingContext ( spc )
 			.evaluatingAgainst ( baseData )
 			.build ( msg );
 

@@ -14,7 +14,6 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.JSONTokener;
 
 import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.library.sources.BasicSource;
@@ -22,6 +21,7 @@ import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageAndRouting;
 import io.continual.services.processor.engine.model.StreamProcessingContext;
 import io.continual.util.data.exprEval.ExpressionEvaluator;
+import io.continual.util.data.json.CommentedJsonTokener;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.data.json.JsonVisitor.ObjectVisitor;
 
@@ -72,8 +72,16 @@ public class KafkaSource extends BasicSource
 		for ( ConsumerRecord<String,String> cr : records )
 		{
 			final String msgStr = cr.value ();
-			final Message msg = Message.adoptJsonAsMessage ( new JSONObject ( new JSONTokener ( msgStr ) ) );
-			fPendingMsgs.add ( makeDefRoutingMessage ( msg ) );
+			try
+			{
+				final JSONObject msgData = new JSONObject ( new CommentedJsonTokener ( msgStr ) );
+				final Message msg = Message.adoptJsonAsMessage ( msgData );
+				fPendingMsgs.add ( makeDefRoutingMessage ( msg ) );
+			}
+			catch ( JSONException x )
+			{
+				spc.warn ( "Couldn't parse inbound text as JSON: " + msgStr );
+			}
 		}
 
 		if ( fPendingMsgs.size () > 0 )
