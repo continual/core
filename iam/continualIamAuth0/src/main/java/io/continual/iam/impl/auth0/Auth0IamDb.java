@@ -268,7 +268,6 @@ public class Auth0IamDb implements IamDb<Auth0Identity,Auth0Group>
 		}
 	}
 
-
 	@Override
 	public Auth0Group loadGroup ( String id ) throws IamSvcException
 	{
@@ -392,7 +391,6 @@ public class Auth0IamDb implements IamDb<Auth0Identity,Auth0Group>
 	@Override
 	public Auth0Identity authenticate ( JwtCredential jwt ) throws IamSvcException
 	{
-		// TODO Auto-generated method stub
 		return null;
 	}
 

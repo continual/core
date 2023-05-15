@@ -19,14 +19,27 @@ package io.continual.util.data;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
+import com.github.f4b6a3.ulid.Ulid;
+
 /**
  * create a string that's unlikely to be guessed
  */
 public class UniqueStringGenerator
 {
-	private UniqueStringGenerator() {
+	/**
+	 * Create a ULID id. See https://github.com/ulid/spec.
+	 * @return a ULID rendered as a string
+	 */
+	public static String createUlid ()
+	{
+		return Ulid.fast().toString();
 	}
 	
+	/**
+	 * Create a unique string.
+	 * @param nonsense extra text or null
+	 * @return a unique string
+	 */
 	public static String create ( String nonsense )
 	{
 		final byte[] val = createValue ( nonsense );
@@ -136,6 +149,10 @@ public class UniqueStringGenerator
 	
 	private static final String kLicenseKeyAlphabet = "123456789BCDFGHJKLMNPQRTVWXYZ";
 	private static final String kUrlKeyAlphabet = "0123456789ABCDFGHJKLMNPQRTVWXYZabcdefhigjklmnopqrstuvwxyz";
+
+	private UniqueStringGenerator()
+	{
+	}
 
 	private static byte[] createValue ( String nonsense )
 	{

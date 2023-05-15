@@ -145,6 +145,18 @@ public class OnapMsgRouterSubscriber
 		}
 
 		/**
+		 * Specify the log to use. If never called, the default logger, named for this class, is used.
+		 * @param log the slf4j logger to use for this library. Do not pass null.
+		 * @return this builder
+		 */
+		public Builder logTo ( Logger log )
+		{
+			super.logTo ( log );
+			return this;
+		}
+
+
+		/**
 		 * Do not specify a maximum number of events to return on a fetch, allowing the
 		 * server to determine the number to send.
 		 * @return this builder

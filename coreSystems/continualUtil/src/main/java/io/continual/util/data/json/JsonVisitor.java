@@ -81,6 +81,11 @@ public class JsonVisitor
 		forEachElement ( a, v );
 	}
 
+	/**
+	 * Returns a map of string values from a JOSNObject. If the argument is null, an empty map is returned.
+	 * @param obj
+	 * @return a map
+	 */
 	public static HashMap<String,String> objectToMap ( JSONObject obj )
 	{
 		final HashMap<String,String> map = new HashMap<String,String> ();
