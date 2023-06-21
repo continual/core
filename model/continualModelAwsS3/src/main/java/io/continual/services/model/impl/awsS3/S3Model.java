@@ -75,6 +75,53 @@ import io.continual.util.naming.Path;
 
 public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 {
+	public static void initModel ( String acctId, String modelId, String accessKey, String secretKey, String region, String bucketId, String prefix ) throws BuildFailure
+	{
+		final AmazonS3 fS3 = AmazonS3ClientBuilder
+			.standard ()
+			.withRegion ( region )
+			.withCredentials ( new S3Creds ( accessKey, secretKey ) )
+			.build ()
+		;
+		final String fBucketId = bucketId;
+		final String fPrefix = prefix == null ? "" : prefix;
+
+		// setup metadata using our Path tools
+		Path metadataPath = Path.getRootPath ();
+		if ( fPrefix.length () > 0 )
+		{
+			metadataPath = metadataPath.makeChildItem ( Name.fromString ( fPrefix ) );
+		}
+		metadataPath = metadataPath
+			.makeChildItem ( Name.fromString ( acctId ) )
+			.makeChildItem ( Name.fromString ( modelId  ) )
+			.makeChildItem ( Name.fromString ( "metadata.json" ) )
+		;
+		final String metdataStr = metadataPath.toString ().substring ( 1 );
+
+		// if the object exists, something's not right
+		if ( fS3.doesObjectExist ( fBucketId, metdataStr ) )
+		{
+			throw new BuildFailure ( "This model is already initialized." );
+		}
+
+		// write the metadata object
+		final JSONObject metadata = new JSONObject ()
+			.put ( "version", Version.V2.toString () )
+		;
+
+		try (
+			final ByteArrayInputStream bais = new ByteArrayInputStream ( metadata.toString ( 4 ).getBytes ( kUtf8 ) )
+		)
+		{
+			fS3.putObject ( fBucketId, metdataStr, bais, new ObjectMetadata () );
+		}
+		catch ( IOException x )
+		{
+			throw new BuildFailure ( x );
+		}
+	}
+
 	public S3Model ( String acctId, String modelId, String accessKey, String secretKey, String bucketId, String prefix ) throws BuildFailure
 	{
 		super ( acctId, modelId );
@@ -96,6 +143,9 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 			.named ( "not found cache" )
 			.build ()
 		;
+
+		fVersion = determineVersion ( );
+		fRelnMgr = new S3SysRelnMgr ( fS3, fBucketId, getRelationsPath () );
 	}
 
 	public S3Model ( ServiceContainer sc, JSONObject config ) throws BuildFailure
@@ -127,6 +177,9 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 				.named ( "not found cache" )
 				.build ()
 			;
+
+			fVersion = determineVersion ( );
+			fRelnMgr = new S3SysRelnMgr ( fS3, fBucketId, getRelationsPath () );
 
 			// optionally report metrics
 			final MetricsService ms = sc.get ( "metrics", MetricsService.class );
@@ -189,7 +242,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		;
 
 		final AtomicBoolean lastResultTruncated = new AtomicBoolean ( true );
-		
+
 		final Iterator<Path> iter = new Iterator<Path> ()
 		{
 			@Override
@@ -220,7 +273,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 				return pending.removeFirst ();
 			}
 		};
-		
+
 		return new ModelPathList ()
 		{
 			@Override
@@ -360,6 +413,9 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		return new S3ModelQuery ();
 	}
 
+	private static final String kObjects = "objects";
+	private static final String kRelationships = "relationships";
+
 	private Path s3KeyToPath ( String s3Key )
 	{
 		if ( !s3Key.startsWith ( fPrefix  ) )
@@ -370,8 +426,15 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		final String withoutPrefix = s3Key.substring ( fPrefix.length () );
 
 		Path asPath = Path.fromString ( withoutPrefix );
+
 		asPath = asPath.makePathWithinParent ( Path.fromString ( "/" + getAcctId() ) );
 		asPath = asPath.makePathWithinParent ( Path.fromString ( "/" + getId() ) );
+
+		if ( Version.isV2OrLater ( fVersion ) )
+		{
+			asPath = asPath.makePathWithinParent ( Path.fromString ( "/" + kObjects ) );
+		}
+
 		return asPath;
 	}
 
@@ -382,14 +445,53 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		{
 			p = p.makeChildItem ( Name.fromString ( fPrefix ) );
 		}
+
 		p = p
 			.makeChildItem ( Name.fromString ( getAcctId () ) )
 			.makeChildItem ( Name.fromString ( getId () ) )
-			.makeChildPath ( path )
 		;
+
+		if ( Version.isV2OrLater ( fVersion ) )
+		{
+			p = p.makeChildItem ( Name.fromString ( kObjects ) );
+		}
+
+		p = p.makeChildPath ( path );
+
 		return p.toString ().substring ( 1 );
 	}
-	
+
+	private Path getRelationsPath ()
+	{
+		Path p = Path.getRootPath ();
+		if ( fPrefix != null && fPrefix.length () > 0 )
+		{
+			p = p.makeChildItem ( Name.fromString ( fPrefix ) );
+		}
+
+		return p
+			.makeChildItem ( Name.fromString ( getAcctId () ) )
+			.makeChildItem ( Name.fromString ( getId () ) )
+			.makeChildItem ( Name.fromString ( kRelationships ) )
+		;
+	}
+
+	private String metadataS3Path ()
+	{
+		Path p = Path.getRootPath ();
+		if ( fPrefix != null && fPrefix.length () > 0 )
+		{
+			p = p.makeChildItem ( Name.fromString ( fPrefix ) );
+		}
+
+		p = p
+			.makeChildItem ( Name.fromString ( getAcctId () ) )
+			.makeChildItem ( Name.fromString ( getId () ) )
+		;
+
+		return p.toString ().substring ( 1 ) + "/metadata.json";
+	}
+
 	@Override
 	protected boolean objectExists ( ModelRequestContext context, Path objectPath ) throws ModelRequestException
 	{
@@ -515,10 +617,37 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	private final AmazonS3 fS3;
 	private final String fBucketId;
 	private final String fPrefix;
+	private final S3SysRelnMgr fRelnMgr;
 
 	private final ShardedExpiringCache<String,ModelObject> fCache;
 	private final ShardedExpiringCache<String,Boolean> fNotFoundCache;	// because null means not-found :-(
 
+	private enum Version
+	{
+		V1,
+		V2;
+
+		public static Version fromText ( String s )
+		{
+			if ( s == null ) return V1;
+			try
+			{
+				return Version.valueOf ( s.toUpperCase ().trim () );
+			}
+			catch ( IllegalArgumentException x )
+			{
+				// ignore
+			}
+			return V1;
+		}
+
+		public static boolean isV2OrLater ( Version v )
+		{
+			return v != V1;
+		}
+	};
+	private final Version fVersion;
+	
 	private Meter fCacheHitCounter = new NoopMeter ();
 	private Meter fCacheMissCounter = new NoopMeter ();
 	private Timer fReadTimer = new NoopTimer ();
@@ -526,7 +655,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	private Timer fWriteTimer = new NoopTimer ();
 	private Timer fRemoveTimer = new NoopTimer ();
 
-	private static final Charset kUtf8 = Charset.forName ( "UTF8" );
+	static final Charset kUtf8 = Charset.forName ( "UTF8" );
 
 	private static class S3Creds implements AWSCredentialsProvider
 	{
@@ -559,40 +688,88 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		private final String fPrivateKey;
 	}
 
+	// we store a JSON object in the bucket/prefix folder with model metadata.
+	private JSONObject readModelMetadata () throws BuildFailure
+	{
+		final String loc = metadataS3Path ();
+
+		try ( Timer.Context s3TimingContext = fS3ReadTimer.time () )
+		{
+			final S3Object o = fS3.getObject ( fBucketId, loc );
+
+			final JSONObject rawData;
+			try ( InputStream is = o.getObjectContent () )
+			{
+				 rawData = new JSONObject ( new CommentedJsonTokener ( is ) );
+			}
+			catch ( JSONException x )
+			{
+				throw new BuildFailure ( "The model metadata is corrupt." );
+			}
+			catch ( IOException x )
+			{
+				throw new BuildFailure ( x );
+			}
+
+			return rawData;
+		}
+	}
+	
+	private Version determineVersion () throws BuildFailure
+	{
+		final JSONObject metadata = readModelMetadata ();
+		return Version.fromText ( metadata.optString ( "version", Version.V1.toString () ) );
+	}
+
+
 	@Override
 	public void relate ( ModelRequestContext context, ModelRelation mr ) throws ModelServiceException, ModelRequestException
 	{
-		throw new ModelServiceException ( "not implemented" );
+		if ( !Version.isV2OrLater ( fVersion ) ) throw new ModelServiceException ( "not implemented" );
+
+		fRelnMgr.relate ( mr );
 	}
 
 	@Override
-	public boolean unrelate ( ModelRequestContext context, ModelRelation reln ) throws ModelServiceException
+	public boolean unrelate ( ModelRequestContext context, ModelRelation reln ) throws ModelServiceException, ModelRequestException
 	{
-		throw new ModelServiceException ( "not implemented" );
+		if ( !Version.isV2OrLater ( fVersion ) ) throw new ModelServiceException ( "not implemented" );
+
+		final boolean exists = fRelnMgr.doesRelationExist ( reln );
+		fRelnMgr.unrelate ( reln );
+		return exists;
 	}
 
 	@Override
-	public List<ModelRelation> getInboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException
+	public List<ModelRelation> getInboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
 	{
-		throw new ModelServiceException ( "not implemented" );
+		if ( !Version.isV2OrLater ( fVersion ) ) throw new ModelServiceException ( "not implemented" );
+
+		return fRelnMgr.getInboundRelations ( forObject );
 	}
 
 	@Override
-	public List<ModelRelation> getOutboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException
+	public List<ModelRelation> getOutboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
 	{
-		throw new ModelServiceException ( "not implemented" );
+		if ( !Version.isV2OrLater ( fVersion ) ) throw new ModelServiceException ( "not implemented" );
+
+		return fRelnMgr.getOutboundRelations ( forObject );
 	}
 
 	@Override
-	public List<ModelRelation> getInboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException
+	public List<ModelRelation> getInboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
 	{
-		throw new ModelServiceException ( "not implemented" );
+		if ( !Version.isV2OrLater ( fVersion ) ) throw new ModelServiceException ( "not implemented" );
+
+		return fRelnMgr.getInboundRelationsNamed ( forObject, named );
 	}
 
 	@Override
-	public List<ModelRelation> getOutboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException
+	public List<ModelRelation> getOutboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
 	{
-		throw new ModelServiceException ( "not implemented" );
+		if ( !Version.isV2OrLater ( fVersion ) ) throw new ModelServiceException ( "not implemented" );
+
+		return fRelnMgr.getOutboundRelationsNamed ( forObject, named );
 	}
 
 	private static final Logger log = LoggerFactory.getLogger ( S3Model.class );

@@ -134,7 +134,8 @@ public class Path implements Comparable<Path>
 	}
 
 	/**
-	 * Make a new path that's the path within the given parent path.
+	 * Make a new path that's the path within the given parent path. For example, if this
+	 * is "/foo/bar" and parentPath is "/foo", the result is "/bar".
 	 * @param parentPath
 	 * @return a new path
 	 */
