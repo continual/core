@@ -1,11 +1,15 @@
 package io.continual.notify;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -30,6 +34,33 @@ public class ContinualNotifier
 	{
 		new ContinualNotifier()
 			.withMessage ( msg )
+			.send ()
+		;
+	}
+
+	public static void send ( Throwable t )
+	{
+		String stack = "??";
+		try (
+			final ByteArrayOutputStream baos = new ByteArrayOutputStream (); 
+			final PrintStream ps = new PrintStream ( baos )
+		)
+		{
+			t.printStackTrace ( ps );
+			ps.close ();
+			stack = new String ( baos.toByteArray () );
+		}
+		catch ( IOException x )
+		{
+			stack = "?? IOException: " + x.getMessage ();
+		}
+		
+		new ContinualNotifier()
+			.withMessage ( new JSONObject ()
+				.put ( "class", t.getClass ().getName () )
+				.put ( "message", t.getMessage () )
+				.put ( "stack", stack )
+			)
 			.send ()
 		;
 	}
@@ -64,12 +95,24 @@ public class ContinualNotifier
 		return this;
 	}
 
+	public ContinualNotifier inForeground ()
+	{
+		fBackground = false;
+		return this;
+	}
+
+	public ContinualNotifier inBackground ()
+	{
+		fBackground = true;
+		return this;
+	}
+
 	public ContinualNotifier withMessage ( String msg )
 	{
 		if ( msg == null ) throw new IllegalArgumentException ( "Provide a text message." );
 		return withMessage ( new JSONObject ().put ( "message", msg ) );
 	}
-	
+
 	public ContinualNotifier withMessage ( JSONObject msg )
 	{
 		if ( msg == null ) throw new IllegalArgumentException ( "Provide a JSON object." );
@@ -79,65 +122,14 @@ public class ContinualNotifier
 
 	public void send ()
 	{
-		if ( fUser == null || fPassword == null )
+		final Sender mySender = new Sender ();
+		if ( fBackground )
 		{
-			warn ( "Skipping message send because credentials are not set." );
-			return;
+			skBackgroundSender.submit ( mySender );
 		}
-		
-		try
+		else
 		{
-			// generate the URL
-			String urlText = skBaseUrlStr;
-			if ( fTopic != null )
-			{
-				urlText = urlText + "/" + URLEncoder.encode ( fTopic, StandardCharsets.UTF_8.toString () );
-				if  ( fStream != null )
-				{
-					urlText = urlText + "/" + URLEncoder.encode ( fStream, StandardCharsets.UTF_8.toString () );
-				}
-			}
-
-			final URL url = new URL ( urlText );
-			final byte[] payload = fMsg.toString ().getBytes ( StandardCharsets.UTF_8 );
-
-			final HttpURLConnection conn = (HttpURLConnection) url.openConnection ();
-
-			// posting JSON data
-			conn.setRequestMethod ( "POST" );
-			conn.setRequestProperty ( "Content-Type", "application/json" );
-
-			// basic auth
-			final String authString = fUser + ":" + fPassword;
-			final String encodedAuthString = Base64.getEncoder ().encodeToString ( authString.getBytes ( StandardCharsets.UTF_8 ) );
-			conn.setRequestProperty ( "Authorization", "Basic " + encodedAuthString );
-
-			// setup the streams 
-			conn.setDoInput ( true );
-			conn.setDoOutput ( true );
-
-			// write our data
-			conn.setRequestProperty ( "Content-Length", String.valueOf ( payload.length ) );
-			conn.getOutputStream ().write ( payload );
-
-			// read the response 
-			final int responseCode = conn.getResponseCode ();
-			final byte[] response = StreamTools.readBytes ( conn.getInputStream () );
-			if ( HttpStatusCodes.isSuccess ( responseCode ) )
-			{
-				debug ( "ok: " + responseCode + " " + response );
-			}
-			else
-			{
-				warn ( "failed: " + responseCode );
-			}
-
-			// Close the connection
-			conn.disconnect ();
-		}
-		catch ( IOException e )
-		{
-			warn ( "failed with exception: " + e.getMessage () );
+			mySender.run ();
 		}
 	}
 
@@ -146,11 +138,85 @@ public class ContinualNotifier
 	private JSONObject fMsg = new JSONObject ();
 	private String fUser = null;
 	private String fPassword = null;
+	private boolean fBackground = true;
 
+	private class Sender implements Runnable
+	{
+		@Override
+		public void run ()
+		{
+			if ( fUser == null || fPassword == null )
+			{
+				warn ( "Skipping message send because credentials are not set." );
+				return;
+			}
+
+			try
+			{
+				// generate the URL
+				String urlText = skBaseUrlStr;
+				if ( fTopic != null )
+				{
+					urlText = urlText + "/" + URLEncoder.encode ( fTopic, StandardCharsets.UTF_8.toString () );
+					if  ( fStream != null )
+					{
+						urlText = urlText + "/" + URLEncoder.encode ( fStream, StandardCharsets.UTF_8.toString () );
+					}
+				}
+
+				final URL url = new URL ( urlText );
+				final byte[] payload = fMsg.toString ().getBytes ( StandardCharsets.UTF_8 );
+
+				final HttpURLConnection conn = (HttpURLConnection) url.openConnection ();
+
+				// posting JSON data
+				conn.setRequestMethod ( "POST" );
+				conn.setRequestProperty ( "Content-Type", "application/json" );
+
+				// setup a timeout
+				conn.setConnectTimeout ( 15000 );
+
+				// basic auth
+				final String authString = fUser + ":" + fPassword;
+				final String encodedAuthString = Base64.getEncoder ().encodeToString ( authString.getBytes ( StandardCharsets.UTF_8 ) );
+				conn.setRequestProperty ( "Authorization", "Basic " + encodedAuthString );
+
+				// setup the streams 
+				conn.setDoInput ( true );
+				conn.setDoOutput ( true );
+
+				// write our data
+				conn.setRequestProperty ( "Content-Length", String.valueOf ( payload.length ) );
+				conn.getOutputStream ().write ( payload );
+
+				// read the response 
+				final int responseCode = conn.getResponseCode ();
+				final byte[] response = StreamTools.readBytes ( conn.getInputStream () );
+				if ( HttpStatusCodes.isSuccess ( responseCode ) )
+				{
+					debug ( "ok: " + responseCode + " " + new String ( response ).trim () );
+				}
+				else
+				{
+					warn ( "failed: " + responseCode );
+				}
+
+				// Close the connection
+				conn.disconnect ();
+			}
+			catch ( IOException e )
+			{
+				warn ( "failed with exception: " + e.getMessage () );
+			}
+		}
+	}
+	
 	private static final String skBaseUrlStr = "https://rcvr.continual.io/events";
 	private static final ExpressionEvaluator skEval = new ExpressionEvaluator ( new EnvDataSource () );
 
 	private static final Logger log = LoggerFactory.getLogger ( ContinualNotifier.class );
+
+	private static ExecutorService skBackgroundSender = Executors.newSingleThreadExecutor();
 
 	private static String formatLog ( String msg )
 	{
@@ -159,7 +225,7 @@ public class ContinualNotifier
 
 	private static void debug ( String msg )
 	{
-		log.debug ( formatLog ( msg ) );
+		log.info ( formatLog ( msg ) );
 	}
 	
 	private static void warn ( String msg )

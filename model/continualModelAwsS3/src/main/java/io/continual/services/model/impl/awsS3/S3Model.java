@@ -700,7 +700,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 			final JSONObject rawData;
 			try ( InputStream is = o.getObjectContent () )
 			{
-				 rawData = new JSONObject ( new CommentedJsonTokener ( is ) );
+				rawData = new JSONObject ( new CommentedJsonTokener ( is ) );
 			}
 			catch ( JSONException x )
 			{
@@ -712,6 +712,21 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 			}
 
 			return rawData;
+		}
+		catch ( AmazonS3Exception x )
+		{
+			if ( x.getErrorCode ().equals ( "NoSuchKey" ) )
+			{
+				return new JSONObject ();
+			}
+			else
+			{
+				throw new BuildFailure ( x );
+			}
+		}
+		catch ( SdkClientException x )
+		{
+			throw new BuildFailure ( x );
 		}
 	}
 	

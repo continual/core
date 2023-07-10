@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.2.49</version>
+		<version>0.2.50</version>
 		<artifactId>continualEventFlows</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -46,6 +46,12 @@
 		<dependency>
 			<groupId>io.continual</groupId>
 			<artifactId>continualIam</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualNotify</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 

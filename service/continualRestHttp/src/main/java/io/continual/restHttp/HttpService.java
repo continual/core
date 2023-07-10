@@ -81,11 +81,12 @@ public class HttpService implements Service
 		);
 	}
 
-	protected HttpService ( ServiceContainer sc, JSONObject settings, String serviceName, int defaultPort ) throws BuildFailure
+	protected HttpService ( ServiceContainer sc, JSONObject rawConfig, String serviceName, int defaultPort ) throws BuildFailure
 	{
 		try
 		{
 			fServices = sc;
+			final JSONObject settings = sc.getExprEval ().evaluateJsonObject ( rawConfig );
 
 			final String acctsServiceName = settings.optString ( "accountService", null );
 			if ( acctsServiceName != null )

@@ -17,6 +17,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
+import io.continual.services.ServiceContainer;
 import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelObjectComparator;
 import io.continual.services.model.core.ModelObjectList;
@@ -46,6 +47,15 @@ import io.continual.util.naming.Path;
  */
 public class SingleFileModel extends CommonJsonDbModel
 {
+	public SingleFileModel ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	{
+		this (
+			sc.getExprEval ( config ).evaluateText ( config.getString ( "acctId" ) ),
+			sc.getExprEval ( config ).evaluateText ( config.getString ( "modelId" ) ),
+			new File ( sc.getExprEval ( config ).evaluateText ( config.getString ( "file" ) ) )
+		);
+	}
+
 	public SingleFileModel ( String acctId, String modelId, File f ) throws BuildFailure
 	{
 		super ( acctId, modelId );
@@ -75,6 +85,9 @@ public class SingleFileModel extends CommonJsonDbModel
 		{
 			fRoot.put ( kRelnsNode, new JSONObject () );
 		}
+
+		fReversals = new HashMap<Path,MultiMap<String,Path>> ();
+
 		rebuildReversals ();
 	}
 
@@ -230,7 +243,7 @@ public class SingleFileModel extends CommonJsonDbModel
 		for ( Name name : objectPath.getSegments () )
 		{
 			current = current.optJSONObject ( name.toString () );
-			if ( current == null ) return null;
+			if ( current == null ) throw new ModelItemDoesNotExistException ( objectPath );
 		}
 		return new CommonJsonDbObject ( objectPath.toString (), current );
 	}
