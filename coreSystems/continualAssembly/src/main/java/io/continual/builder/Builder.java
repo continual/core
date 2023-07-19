@@ -54,6 +54,7 @@ public class Builder<T>
 		fBase = base;
 		fClassName = null;
 		fClassNameInData = true;
+		fClassLoader = null;
 		fData = null;
 		fContext = null;
 		fContextClass = null;
@@ -123,6 +124,17 @@ public class Builder<T>
 	{
 		fClassName = null;
 		fClassNameInData = true;
+		return this;
+	}
+
+	/**
+	 * Specify a Java ClassLoader to use to load the requested class.
+	 * @param loader
+	 * @return this builder
+	 */
+	public Builder<T> usingClassLoader ( ClassLoader loader )
+	{
+		fClassLoader = loader;
 		return this;
 	}
 
@@ -322,7 +334,7 @@ public class Builder<T>
 			try
 			{
 				log.trace ( "Builder looking for " + className + " as " + fBase.getName () );
-				return Class.forName ( className ).asSubclass ( fBase );
+				return classForName ( className ).asSubclass ( fBase );
 			}
 			catch ( java.lang.ClassCastException x )
 			{
@@ -353,7 +365,7 @@ public class Builder<T>
 
 			try
 			{
-				return Class.forName ( newClassName ).asSubclass ( fBase );
+				return classForName ( newClassName ).asSubclass ( fBase );
 			}
 			catch ( java.lang.ClassCastException x )
 			{
@@ -522,9 +534,19 @@ public class Builder<T>
 		}
 	}
 
+	private Class<?> classForName ( String className ) throws ClassNotFoundException
+	{
+		if ( fClassLoader != null )
+		{
+			return Class.forName ( className, true, fClassLoader );
+		}
+		return Class.forName ( className );
+	}
+
 	private final Class<T> fBase;
 	private String fClassName;
 	private boolean fClassNameInData;
+	private ClassLoader fClassLoader;
 	private BuilderDataSource fData;
 	private Object fContext;
 	private Class<? extends Object> fContextClass;

@@ -16,6 +16,7 @@ import io.continual.jsonHttpClient.HttpUsernamePasswordCredentials;
 import io.continual.jsonHttpClient.JsonOverHttpClient.HttpRequest;
 import io.continual.jsonHttpClient.JsonOverHttpClient.HttpResponse;
 import io.continual.jsonHttpClient.JsonOverHttpClient.HttpServiceException;
+import io.continual.util.data.TypeConvertor;
 import okhttp3.Credentials;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -70,37 +71,59 @@ class OkRequest implements HttpRequest
 	}
 
 	@Override
-	public HttpRequest withQueryString ( String qs )
+	public HttpRequest withExplicitQueryString ( String qs )
 	{
 		fQueryString = qs;
+		fQueryParams = null;
+		return this;
+	}
+
+	@Override
+	public HttpRequest addQueryParam ( String key, String val )
+	{
+		fQueryString = null;
+		if ( fQueryParams == null )
+		{
+			fQueryParams = new HashMap<> ();
+		}
+		fQueryParams.put ( key, val );
 		return this;
 	}
 
 	@Override
 	public HttpRequest withQueryString ( Map<String, String> qsMap )
 	{
-		final StringBuilder sb = new StringBuilder ();
 		for ( Map.Entry<String,String> e : qsMap.entrySet () )
 		{
-			if ( sb.length () > 0 )
-			{
-				sb.append ( "&" );
-			}
-			sb
-				.append ( e.getKey () )
-				.append ( "=" )
-				.append ( e.getValue () )		// FIXME: encoding
-			;
+			addQueryParam ( e.getKey (), e.getValue () );
 		}
-		return withQueryString ( sb.toString () );
+		return this;
 	}
 
 	private Request.Builder basicReq ()
 	{
 		String path = fPath;
+
 		if ( fQueryString != null && fQueryString.length () > 0 )
 		{
 			path = path + "?" + fQueryString;
+		}
+		else if ( fQueryParams != null && fQueryParams.size () > 0 )
+		{
+			final StringBuilder sb = new StringBuilder ();
+			for ( Map.Entry<String,String> e : fQueryParams.entrySet () )
+			{
+				if ( sb.length () > 0 )
+				{
+					sb.append ( "&" );
+				}
+				sb
+					.append ( e.getKey () )
+					.append ( "=" )
+					.append ( TypeConvertor.urlEncode ( e.getValue () )	)
+				;
+			}
+			path = path + "?" + sb.toString ();
 		}
 
 		Request.Builder rb = new Request.Builder ()
@@ -181,6 +204,7 @@ class OkRequest implements HttpRequest
 	private HttpUsernamePasswordCredentials fCreds;
 	private HashMap<String,List<String>> fHeaders;
 	private String fQueryString = null;
+	private HashMap<String,String> fQueryParams = null;
 
 	private HttpResponse run ( String verbForLog, Request request ) throws HttpServiceException
 	{

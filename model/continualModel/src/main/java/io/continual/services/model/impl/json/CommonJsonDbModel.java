@@ -114,7 +114,7 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 		{
 			throw new ModelItemDoesNotExistException ( objectPath );
 		}
-		
+
 		ModelObject result = context.get ( objectPath );
 		if ( result != null ) return result;
 		
@@ -122,6 +122,7 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 		if ( result == null )
 		{
 			context.doesNotExist ( objectPath );
+			throw new ModelItemDoesNotExistException ( objectPath );
 		}
 		else
 		{

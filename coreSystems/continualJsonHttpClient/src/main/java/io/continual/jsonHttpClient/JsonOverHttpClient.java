@@ -1,11 +1,14 @@
 package io.continual.jsonHttpClient;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import io.continual.util.data.StreamTools;
 import io.continual.util.data.json.CommentedJsonTokener;
 
 /**
@@ -27,12 +30,23 @@ public interface JsonOverHttpClient
 	}
 
 	/**
+	 * An exception representing a body parsing problem.
+	 */
+	public class BodyFormatException extends Exception
+	{
+		public BodyFormatException ( Exception x ) { super(x); }
+		public BodyFormatException ( String msg ) { super(msg); }
+		public BodyFormatException ( String msg, Exception x ) { super(msg,x); }
+		private static final long serialVersionUID = 1L;
+	}
+
+	/**
 	 * An interface for creating a body instance given an HTTP payload.
 	 * @param <T>
 	 */
 	interface BodyFactory<T>
 	{
-		T getBody ( long contentLength, String mimeType, InputStream byteStream );
+		T getBody ( long contentLength, String mimeType, InputStream byteStream ) throws BodyFormatException;
 	}
 
 	/**
@@ -85,8 +99,9 @@ public interface JsonOverHttpClient
 		/**
 		 * Get the HTTP body as a JSON document
 		 * @return a JSON document from the server
+		 * @throws BodyFormatException 
 		 */
-		default JSONObject getBody ()
+		default JSONObject getBody () throws BodyFormatException
 		{
 			return getBody ( new JsonObjectBodyFactory () );
 		}
@@ -94,19 +109,46 @@ public interface JsonOverHttpClient
 		/**
 		 * Get the HTTP body as a JSON array
 		 * @return a JSON array from the server
+		 * @throws BodyFormatException 
 		 */
-		default JSONArray getArrayBody ()
+		default JSONArray getArrayBody () throws BodyFormatException
 		{
 			return getBody ( new JsonArrayBodyFactory () );
 		}
 
 		/**
+		 * For troubleshooting, we can just read the response as a string
+		 * @return a string
+		 * @throws BodyFormatException 
+		 */
+		default String getStringBody () throws BodyFormatException
+		{
+			return getBody ( new BodyFactory<String> ()
+			{
+				@Override
+				public String getBody ( long contentLength, String mimeType, InputStream byteStream ) throws BodyFormatException
+				{
+					try
+					{
+						final byte[] bytes = StreamTools.readBytes ( byteStream );
+						return new String ( bytes, StandardCharsets.UTF_8 );
+					}
+					catch ( IOException e )
+					{
+						throw new BodyFormatException ( e );
+					}
+				}
+			} );
+		}
+		
+		/**
 		 * Get the HTTP body as an arbitrary type
 		 * @param <T>
 		 * @param bf
 		 * @return a T
+		 * @throws BodyFormatException 
 		 */
-		<T> T getBody ( BodyFactory<T> bf );
+		<T> T getBody ( BodyFactory<T> bf ) throws BodyFormatException;
 		
 		/**
 		 * Return true if the call was a success
@@ -192,14 +234,25 @@ public interface JsonOverHttpClient
 		HttpRequest withHeaders ( Map<String,String> headers );
 
 		/**
-		 * Add a query string to the request.
+		 * Set a query string on the request, overwriting any other query settings.
+		 * If this value is provided, prior calls to addQueryParam are ignored.
 		 * @param qs
 		 * @return this request
 		 */
-		HttpRequest withQueryString ( String qs );
+		HttpRequest withExplicitQueryString ( String qs );
 
 		/**
-		 * Add a query string to the request.
+		 * Add a query key/value to the request, preserving any existing settings. If
+		 * withExplicitQueryString() has been called prior to this call, its setting is ignored.
+		 * @param key
+		 * @param val
+		 * @return this request
+		 */
+		HttpRequest addQueryParam ( String key, String val );
+
+		/**
+		 * Add a map of query key/values to the request. This is equivalent to calling
+		 * addQueryParam for each entry.
 		 * @param qsMap
 		 * @return this request
 		 */

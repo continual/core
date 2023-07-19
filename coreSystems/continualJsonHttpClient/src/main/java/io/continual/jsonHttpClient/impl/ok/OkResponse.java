@@ -6,6 +6,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.continual.jsonHttpClient.JsonOverHttpClient.BodyFactory;
+import io.continual.jsonHttpClient.JsonOverHttpClient.BodyFormatException;
 import io.continual.jsonHttpClient.JsonOverHttpClient.HttpResponse;
 import io.continual.util.data.json.CommentedJsonTokener;
 import okhttp3.MediaType;
@@ -35,7 +36,7 @@ class OkResponse implements HttpResponse
 	public String getMessage () { return fResponse.message (); }
 
 	@Override
-	public JSONObject getBody ()
+	public JSONObject getBody () throws BodyFormatException
 	{
 		return getBody ( new BodyFactory<JSONObject> ()
 		{
@@ -59,7 +60,7 @@ class OkResponse implements HttpResponse
 	}
 
 	@Override
-	public <T> T getBody ( BodyFactory<T> bf )
+	public <T> T getBody ( BodyFactory<T> bf ) throws BodyFormatException
 	{
 		if ( fResponse == null ) return null;
 		try

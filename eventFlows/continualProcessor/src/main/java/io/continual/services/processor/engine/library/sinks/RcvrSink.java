@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.jsonHttpClient.HttpUsernamePasswordCredentials;
 import io.continual.jsonHttpClient.JsonOverHttpClient;
+import io.continual.jsonHttpClient.JsonOverHttpClient.BodyFormatException;
 import io.continual.jsonHttpClient.JsonOverHttpClient.HttpRequest;
 import io.continual.jsonHttpClient.JsonOverHttpClient.HttpResponse;
 import io.continual.jsonHttpClient.JsonOverHttpClient.HttpServiceException;
@@ -278,6 +279,10 @@ public class RcvrSink implements Sink
 				catch ( HttpServiceException e )
 				{
 					warn ( spc, "Error posting to " + path + ": " + e.getMessage () );
+				}
+				catch ( BodyFormatException x )
+				{
+					warn ( spc, "Response format was flawed from " + path + ": " + x.getMessage () );
 				}
 			}
 
