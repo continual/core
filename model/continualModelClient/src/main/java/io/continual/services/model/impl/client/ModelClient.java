@@ -28,6 +28,7 @@ import org.json.JSONObject;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.jsonHttpClient.HttpUsernamePasswordCredentials;
 import io.continual.jsonHttpClient.JsonOverHttpClient;
+import io.continual.jsonHttpClient.JsonOverHttpClient.BodyFormatException;
 import io.continual.jsonHttpClient.JsonOverHttpClient.HttpResponse;
 import io.continual.jsonHttpClient.JsonOverHttpClient.HttpServiceException;
 import io.continual.jsonHttpClient.impl.ok.OkHttp;
@@ -216,7 +217,7 @@ public class ModelClient extends CommonJsonDbModel
 				throw new ModelServiceException ( "server replied " + resp.getCode () + " " + resp.getMessage () );
 			}
 		}
-		catch ( HttpServiceException e )
+		catch ( HttpServiceException | BodyFormatException e )
 		{
 			throw new ModelServiceException ( e );
 		}
@@ -273,7 +274,7 @@ public class ModelClient extends CommonJsonDbModel
 				throw new ModelServiceException ( "server replied " + resp.getCode () + " " + resp.getMessage () );
 			}
 		}
-		catch ( HttpServiceException e )
+		catch ( HttpServiceException | BodyFormatException e )
 		{
 			throw new ModelServiceException ( e );
 		}
@@ -330,7 +331,7 @@ public class ModelClient extends CommonJsonDbModel
 				throw new ModelServiceException ( "server replied " + resp.getCode () + " " + resp.getMessage () );
 			}
 		}
-		catch ( HttpServiceException e )
+		catch ( HttpServiceException | BodyFormatException e )
 		{
 			throw new ModelServiceException ( e );
 		}
@@ -399,7 +400,7 @@ public class ModelClient extends CommonJsonDbModel
 				throw new ModelServiceException ( "server replied " + resp.getCode () + " " + resp.getMessage () );
 			}
 		}
-		catch ( HttpServiceException e )
+		catch ( HttpServiceException | BodyFormatException e )
 		{
 			throw new ModelServiceException ( e );
 		}
