@@ -11,7 +11,7 @@ public class SendTest extends TestCase
 	@Test
 	public void testSimpleSend ()
 	{
-		ContinualNotifier.send ( "whats up" );
+		ContinualNotifier.send ( "subj", "cond" );
 	}
 
 	@Test
@@ -20,7 +20,7 @@ public class SendTest extends TestCase
 		new ContinualNotifier ()
 			.toTopic ( "TEST" )
 			.onStream ( "foobar" )
-			.withMessage ( "whats up" )
+			.withDetails ( "whats up" )
 			.send ()
 		;
 	}

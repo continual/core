@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>io.continual</groupId>
 		<artifactId>continualOnap</artifactId>
-		<version>0.2.51</version>
+		<version>0.2.52</version>
 		<relativePath>../</relativePath>
 	</parent>
 

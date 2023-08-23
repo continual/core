@@ -66,7 +66,7 @@ public class Notify implements Processor
 			.asUser ( readSetting ( context, kUserSetting ), readSetting ( context, kPasswordSetting ) )
 			.toTopic ( readSetting ( context, kTopicSetting ) )
 			.onStream ( readSetting ( context, kStreamSetting ) )
-			.withMessage ( line )
+			.withDetails ( line )
 			.send ()
 		;
 	}

@@ -41,10 +41,12 @@ import io.continual.services.model.core.ModelObjectList;
 import io.continual.services.model.core.ModelOperation;
 import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelRelation;
+import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
+import io.continual.services.model.impl.common.BasicModelRelnInstance;
 import io.continual.services.model.impl.common.BasicModelRequestContextBuilder;
 import io.continual.services.model.impl.common.SimpleModelQuery;
 import io.continual.services.model.impl.json.CommonJsonDbModel;
@@ -255,9 +257,9 @@ public class FileSystemModel extends CommonJsonDbModel
 	}
 
 	@Override
-	public void relate ( ModelRequestContext context, ModelRelation reln ) throws ModelServiceException, ModelRequestException
+	public ModelRelationInstance relate ( ModelRequestContext context, ModelRelation reln ) throws ModelServiceException, ModelRequestException
 	{
-		fRelnMgr.relate ( reln );
+		return fRelnMgr.relate ( reln );
 	}
 
 	@Override
@@ -267,25 +269,39 @@ public class FileSystemModel extends CommonJsonDbModel
 	}
 
 	@Override
-	public List<ModelRelation> getInboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
+	public boolean unrelate ( ModelRequestContext context, String relnId ) throws ModelServiceException, ModelRequestException
+	{
+		try
+		{
+			final BasicModelRelnInstance mr = BasicModelRelnInstance.fromId ( relnId );
+			return unrelate ( context, mr );
+		}
+		catch ( IllegalArgumentException x )
+		{
+			throw new ModelRequestException ( x );
+		}
+	}
+
+	@Override
+	public List<ModelRelationInstance> getInboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
 	{
 		return fRelnMgr.getInboundRelations ( forObject );
 	}
 
 	@Override
-	public List<ModelRelation> getOutboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
+	public List<ModelRelationInstance> getOutboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
 	{
 		return fRelnMgr.getOutboundRelations ( forObject );
 	}
 
 	@Override
-	public List<ModelRelation> getInboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
+	public List<ModelRelationInstance> getInboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
 	{
 		return fRelnMgr.getInboundRelationsNamed ( forObject, named );
 	}
 
 	@Override
-	public List<ModelRelation> getOutboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
+	public List<ModelRelationInstance> getOutboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
 	{
 		return fRelnMgr.getOutboundRelationsNamed ( forObject, named );
 	}

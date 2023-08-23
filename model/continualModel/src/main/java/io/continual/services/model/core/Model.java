@@ -180,7 +180,7 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	 * @throws ModelServiceException
 	 * @throws ModelRequestException
 	 */
-	void relate ( ModelRequestContext context, ModelRelation reln ) throws ModelServiceException, ModelRequestException;
+	ModelRelationInstance relate ( ModelRequestContext context, ModelRelation reln ) throws ModelServiceException, ModelRequestException;
 
 	/**
 	 * Remove a relation between two objects.
@@ -193,6 +193,29 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	boolean unrelate ( ModelRequestContext context, ModelRelation reln ) throws ModelServiceException, ModelRequestException;
 
 	/**
+	 * Remove a relation between two objects.
+	 * @param context
+	 * @param reln
+	 * @return true if the relationship existed 
+	 * @throws ModelServiceException
+	 * @throws ModelRequestException
+	 */
+	default boolean unrelate ( ModelRequestContext context, ModelRelationInstance reln ) throws ModelServiceException, ModelRequestException
+	{
+		return unrelate ( context, reln.getId () );
+	}
+
+	/**
+	 * Remove a relation between two objects by relation ID
+	 * @param context
+	 * @param relnId
+	 * @return true if the relationship existed 
+	 * @throws ModelServiceException
+	 * @throws ModelRequestException
+	 */
+	boolean unrelate ( ModelRequestContext context, String relnId ) throws ModelServiceException, ModelRequestException;
+
+	/**
 	 * Get all related objects from a given object
 	 * @param context
 	 * @param forObject
@@ -200,9 +223,9 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	 * @throws ModelServiceException
 	 * @throws ModelRequestException
 	 */
-	default List<ModelRelation> getRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
+	default List<ModelRelationInstance> getRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
 	{
-		final LinkedList<ModelRelation> result = new LinkedList<> ();
+		final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
 		result.addAll ( getInboundRelations ( context, forObject ) );
 		result.addAll ( getOutboundRelations ( context, forObject ) );
 		return result;
@@ -216,7 +239,7 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	 * @throws ModelServiceException
 	 * @throws ModelRequestException
 	 */
-	default List<ModelRelation> getInboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
+	default List<ModelRelationInstance> getInboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
 	{
 		return getInboundRelationsNamed ( context, forObject, null );
 	}
@@ -229,7 +252,7 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	 * @throws ModelServiceException
 	 * @throws ModelRequestException
 	 */
-	default List<ModelRelation> getOutboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
+	default List<ModelRelationInstance> getOutboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
 	{
 		return getOutboundRelationsNamed ( context, forObject, null );
 	}
@@ -243,7 +266,7 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	 * @throws ModelServiceException
 	 * @throws ModelRequestException
 	 */
-	List<ModelRelation> getInboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException;
+	List<ModelRelationInstance> getInboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException;
 
 	/**
 	 * Get outbound related objects with a given name from a given object
@@ -254,5 +277,5 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	 * @throws ModelServiceException
 	 * @throws ModelRequestException
 	 */
-	List<ModelRelation> getOutboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException;
+	List<ModelRelationInstance> getOutboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException;
 }

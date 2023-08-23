@@ -39,10 +39,12 @@ import io.continual.services.model.core.ModelObjectList;
 import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRelation;
+import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
+import io.continual.services.model.impl.common.BasicModelRelnInstance;
 import io.continual.services.model.impl.common.BasicModelRequestContextBuilder;
 import io.continual.services.model.impl.common.SimpleModelQuery;
 import io.continual.services.model.impl.json.CommonJsonDbModel;
@@ -281,7 +283,7 @@ public class ModelClient extends CommonJsonDbModel
 	}
 
 	@Override
-	public void relate ( ModelRequestContext context, ModelRelation reln ) throws ModelServiceException, ModelRequestException
+	public ModelRelationInstance relate ( ModelRequestContext context, ModelRelation reln ) throws ModelServiceException, ModelRequestException
 	{
 		final String path = getBasePath ("relations") + "/" + encodePath ( reln.getFrom () ) + "/" + encodeString ( reln.getName () ) + "/" + encodePath ( reln.getTo () );  
 		try ( 
@@ -299,6 +301,9 @@ public class ModelClient extends CommonJsonDbModel
 			{
 				throw new ModelServiceException ( "server replied " + resp.getCode () + " " + resp.getMessage () );
 			}
+
+			// FIXME: return ID from service
+			return new BasicModelRelnInstance ( reln );
 		}
 		catch ( HttpServiceException e )
 		{
@@ -337,9 +342,24 @@ public class ModelClient extends CommonJsonDbModel
 		}
 	}
 
-	private List<ModelRelation> getRelns ( Path forObject, boolean inbound, String relnName ) throws ModelItemDoesNotExistException, ModelRequestException, ModelServiceException
+	@Override
+	public boolean unrelate ( ModelRequestContext context, String relnId ) throws ModelServiceException, ModelRequestException
 	{
-		final LinkedList<ModelRelation> result = new LinkedList<> ();
+		// FIXME: this needs to use id from service
+		try
+		{
+			final BasicModelRelnInstance mr = BasicModelRelnInstance.fromId ( relnId );
+			return unrelate ( context, mr );
+		}
+		catch ( IllegalArgumentException x )
+		{
+			throw new ModelRequestException ( x );
+		}
+	}
+
+	private List<ModelRelationInstance> getRelns ( Path forObject, boolean inbound, String relnName ) throws ModelItemDoesNotExistException, ModelRequestException, ModelServiceException
+	{
+		final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
 
 		final String path = getBasePath ("relations") + (inbound?"/in/":"/out/") + encodePath ( forObject );  
 		try (
@@ -365,8 +385,9 @@ public class ModelClient extends CommonJsonDbModel
 							@Override
 							public boolean visit ( String srcObj ) throws JSONException
 							{
+								// FIXME: get ID from service
 								final Path srcPath = Path.fromString ( srcObj );
-								result.add ( new ModelRelation () {
+								result.add ( new BasicModelRelnInstance ( new ModelRelation () {
 
 									@Override
 									public Path getFrom () { return inbound ? srcPath : forObject; }
@@ -376,7 +397,7 @@ public class ModelClient extends CommonJsonDbModel
 
 									@Override
 									public String getName () { return relnName; }
-								} );
+								} ) );
 								return true;
 							}
 							
@@ -407,25 +428,25 @@ public class ModelClient extends CommonJsonDbModel
 	}
 	
 	@Override
-	public List<ModelRelation> getInboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
+	public List<ModelRelationInstance> getInboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
 	{
 		return getRelns ( forObject, true, null );
 	}
 
 	@Override
-	public List<ModelRelation> getOutboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
+	public List<ModelRelationInstance> getOutboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
 	{
 		return getRelns ( forObject, false, null );
 	}
 
 	@Override
-	public List<ModelRelation> getInboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
+	public List<ModelRelationInstance> getInboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
 	{
 		return getRelns ( forObject, true, named );
 	}
 
 	@Override
-	public List<ModelRelation> getOutboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
+	public List<ModelRelationInstance> getOutboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
 	{
 		return getRelns ( forObject, false, named );
 	}

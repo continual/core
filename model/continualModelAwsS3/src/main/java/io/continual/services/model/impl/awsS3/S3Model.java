@@ -59,10 +59,12 @@ import io.continual.services.model.core.ModelObjectList;
 import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRelation;
+import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
+import io.continual.services.model.impl.common.BasicModelRelnInstance;
 import io.continual.services.model.impl.common.BasicModelRequestContextBuilder;
 import io.continual.services.model.impl.common.SimpleModelQuery;
 import io.continual.services.model.impl.json.CommonJsonDbModel;
@@ -75,7 +77,7 @@ import io.continual.util.naming.Path;
 
 public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 {
-	public static void initModel ( String acctId, String modelId, String accessKey, String secretKey, String region, String bucketId, String prefix ) throws BuildFailure
+	public static void initModel ( String acctId, String modelId, String accessKey, String secretKey, Regions region, String bucketId, String prefix ) throws BuildFailure
 	{
 		final AmazonS3 fS3 = AmazonS3ClientBuilder
 			.standard ()
@@ -157,13 +159,14 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 			final ExpressionEvaluator evaluator = sc.getExprEval ( config );
 			final JSONObject evaledConfig = evaluator.evaluateJsonObject ( config );
 
+			final String accessKey = evaledConfig.getString ( "accessKey" );
+			final String secretKey = evaledConfig.getString ( "secretKey" );
+			final Regions region = Regions.fromName ( evaledConfig.optString ( "region", Regions.US_WEST_2.getName () ) );
+
 			fS3 = AmazonS3ClientBuilder
 				.standard ()
-				.withRegion ( Regions.fromName ( evaledConfig.optString ( "region", Regions.US_WEST_2.getName () ) ) )
-				.withCredentials ( new S3Creds (
-					evaledConfig.getString ( "accessKey" ),
-					evaledConfig.getString ( "secretKey" )
-				) )
+				.withRegion ( region )
+				.withCredentials ( new S3Creds ( accessKey, secretKey ) )
 				.build ()
 			;
 			fBucketId = evaledConfig.getString ( "bucket" );
@@ -178,7 +181,14 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 				.build ()
 			;
 
-			fVersion = determineVersion ( );
+			Version vv = determineVersion ();
+			if ( config.optBoolean ( "initOk", false ) && vv == Version.V1_IMPLIED )
+			{
+				initModel ( super.getAcctId (), super.getId (), accessKey, secretKey, region, fBucketId, fPrefix );
+				vv = Version.V2;
+			}
+			fVersion = vv;
+			
 			fRelnMgr = new S3SysRelnMgr ( fS3, fBucketId, getRelationsPath () );
 
 			// optionally report metrics
@@ -624,12 +634,13 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 
 	private enum Version
 	{
+		V1_IMPLIED,
 		V1,
 		V2;
 
 		public static Version fromText ( String s )
 		{
-			if ( s == null ) return V1;
+			if ( s == null ) return V1_IMPLIED;
 			try
 			{
 				return Version.valueOf ( s.toUpperCase ().trim () );
@@ -638,12 +649,12 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 			{
 				// ignore
 			}
-			return V1;
+			return V1_IMPLIED;
 		}
 
 		public static boolean isV2OrLater ( Version v )
 		{
-			return v != V1;
+			return v != V1 && v != V1_IMPLIED;
 		}
 	};
 	private final Version fVersion;
@@ -733,16 +744,18 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	private Version determineVersion () throws BuildFailure
 	{
 		final JSONObject metadata = readModelMetadata ();
-		return Version.fromText ( metadata.optString ( "version", Version.V1.toString () ) );
+		return Version.fromText ( metadata.optString ( "version", Version.V1_IMPLIED.toString () ) );
 	}
 
 
 	@Override
-	public void relate ( ModelRequestContext context, ModelRelation mr ) throws ModelServiceException, ModelRequestException
+	public ModelRelationInstance relate ( ModelRequestContext context, ModelRelation mr ) throws ModelServiceException, ModelRequestException
 	{
 		if ( !Version.isV2OrLater ( fVersion ) ) throw new ModelServiceException ( "not implemented" );
 
 		fRelnMgr.relate ( mr );
+
+		return new BasicModelRelnInstance ( mr );
 	}
 
 	@Override
@@ -756,7 +769,22 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	}
 
 	@Override
-	public List<ModelRelation> getInboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
+	public boolean unrelate ( ModelRequestContext context, String relnId ) throws ModelServiceException, ModelRequestException
+	{
+		try
+		{
+			final BasicModelRelnInstance mr = BasicModelRelnInstance.fromId ( relnId );
+			return unrelate ( context, mr );
+		}
+		catch ( IllegalArgumentException x )
+		{
+			throw new ModelRequestException ( x );
+		}
+	}
+
+
+	@Override
+	public List<ModelRelationInstance> getInboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
 	{
 		if ( !Version.isV2OrLater ( fVersion ) ) throw new ModelServiceException ( "not implemented" );
 
@@ -764,7 +792,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	}
 
 	@Override
-	public List<ModelRelation> getOutboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
+	public List<ModelRelationInstance> getOutboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
 	{
 		if ( !Version.isV2OrLater ( fVersion ) ) throw new ModelServiceException ( "not implemented" );
 
@@ -772,7 +800,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	}
 
 	@Override
-	public List<ModelRelation> getInboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
+	public List<ModelRelationInstance> getInboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
 	{
 		if ( !Version.isV2OrLater ( fVersion ) ) throw new ModelServiceException ( "not implemented" );
 
@@ -780,7 +808,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	}
 
 	@Override
-	public List<ModelRelation> getOutboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
+	public List<ModelRelationInstance> getOutboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
 	{
 		if ( !Version.isV2OrLater ( fVersion ) ) throw new ModelServiceException ( "not implemented" );
 

@@ -16,6 +16,7 @@ import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRelation;
+import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelTraversal;
 import io.continual.services.model.core.ModelUpdater;
@@ -228,7 +229,7 @@ public class DelegatingModel extends SimpleService implements Model
 	}
 
 	@Override
-	public void relate ( ModelRequestContext context, ModelRelation mr ) throws ModelServiceException, ModelRequestException
+	public ModelRelationInstance relate ( ModelRequestContext context, ModelRelation mr ) throws ModelServiceException, ModelRequestException
 	{
 		// for each relation, we check if both sides are in the same model. If so, let the model handle the relation. If not,
 		// we store it in our "local" store.
@@ -241,7 +242,7 @@ public class DelegatingModel extends SimpleService implements Model
 
 		if ( mmFrom == mmTo )	// same instance
 		{
-			mmFrom.getModel ().relate ( context, new ModelRelation ()
+			return mmFrom.getModel ().relate ( context, new ModelRelation ()
 			{
 				@Override
 				public Path getFrom () { return mmFrom.getPathWithinModel ( from ); }
@@ -257,6 +258,7 @@ public class DelegatingModel extends SimpleService implements Model
 		{
 			// store it in this model's backing data
 			// (FIXME)
+			throw new ModelServiceException ( "not yet implemented across models" );
 		}
 	}
 
@@ -290,16 +292,32 @@ public class DelegatingModel extends SimpleService implements Model
 		{
 			// store it in this model's backing data
 			// (FIXME)
-			return false;
+			throw new ModelServiceException ( "not yet implemented across models" );
 		}
 	}
 
 	@Override
-	public List<ModelRelation> getInboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
+	public boolean unrelate ( ModelRequestContext context, String relnId ) throws ModelServiceException, ModelRequestException
+	{
+		for ( ModelMount mountEntry : fUserMountTable )
+		{
+			if ( mountEntry.getModel ().unrelate ( context, relnId ) )
+			{
+				return true;
+			}
+		}
+
+		// FIXME: check cross-model relations
+
+		return false;
+	}
+
+	@Override
+	public List<ModelRelationInstance> getInboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
 	{
 		// we need to check our own data source as well as the model hosting the object
 
-		final LinkedList<ModelRelation> result = new LinkedList<> ();
+		final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
 
 		final ModelMount mm = getModelForPath ( forObject );
 
@@ -310,7 +328,7 @@ public class DelegatingModel extends SimpleService implements Model
 				.build ()
 			;
 
-			for ( ModelRelation mrInternal : mm.getModel ().getInboundRelations ( mrc, mm.getPathWithinModel ( forObject ) ) )
+			for ( ModelRelationInstance mrInternal : mm.getModel ().getInboundRelations ( mrc, mm.getPathWithinModel ( forObject ) ) )
 			{
 				result.add ( new ToGlobalMapper ( mm, mrInternal ) );
 			}
@@ -324,11 +342,11 @@ public class DelegatingModel extends SimpleService implements Model
 	}
 
 	@Override
-	public List<ModelRelation> getOutboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
+	public List<ModelRelationInstance> getOutboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
 	{
 		// we need to check our own data source as well as the model hosting the object
 
-		final LinkedList<ModelRelation> result = new LinkedList<> ();
+		final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
 
 		final ModelMount mm = getModelForPath ( forObject );
 
@@ -339,7 +357,7 @@ public class DelegatingModel extends SimpleService implements Model
 				.build ()
 			;
 
-			for ( ModelRelation mrInternal : mm.getModel ().getOutboundRelations ( mrc, mm.getPathWithinModel ( forObject ) ) )
+			for ( ModelRelationInstance mrInternal : mm.getModel ().getOutboundRelations ( mrc, mm.getPathWithinModel ( forObject ) ) )
 			{
 				result.add ( new ToGlobalMapper ( mm, mrInternal ) );
 			}
@@ -353,11 +371,11 @@ public class DelegatingModel extends SimpleService implements Model
 	}
 
 	@Override
-	public List<ModelRelation> getInboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
+	public List<ModelRelationInstance> getInboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
 	{
 		// we need to check our own data source as well as the model hosting the object
 
-		final LinkedList<ModelRelation> result = new LinkedList<> ();
+		final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
 
 		final ModelMount mm = getModelForPath ( forObject );
 
@@ -368,7 +386,7 @@ public class DelegatingModel extends SimpleService implements Model
 				.build ()
 			;
 
-			for ( ModelRelation mrInternal : mm.getModel ().getInboundRelationsNamed ( mrc, mm.getPathWithinModel ( forObject ), named ) )
+			for ( ModelRelationInstance mrInternal : mm.getModel ().getInboundRelationsNamed ( mrc, mm.getPathWithinModel ( forObject ), named ) )
 			{
 				result.add ( new ToGlobalMapper ( mm, mrInternal ) );
 			}
@@ -382,11 +400,11 @@ public class DelegatingModel extends SimpleService implements Model
 	}
 
 	@Override
-	public List<ModelRelation> getOutboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
+	public List<ModelRelationInstance> getOutboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
 	{
 		// we need to check our own data source as well as the model hosting the object
 
-		final LinkedList<ModelRelation> result = new LinkedList<> ();
+		final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
 
 		final ModelMount mm = getModelForPath ( forObject );
 
@@ -397,7 +415,7 @@ public class DelegatingModel extends SimpleService implements Model
 				.build ()
 			;
 
-			for ( ModelRelation mrInternal : mm.getModel ().getOutboundRelationsNamed ( mrc, mm.getPathWithinModel ( forObject ), named ) )
+			for ( ModelRelationInstance mrInternal : mm.getModel ().getOutboundRelationsNamed ( mrc, mm.getPathWithinModel ( forObject ), named ) )
 			{
 				result.add ( new ToGlobalMapper ( mm, mrInternal ) );
 			}
@@ -414,13 +432,16 @@ public class DelegatingModel extends SimpleService implements Model
 	private final String fModelId;
 	private final LinkedList<ModelMount> fUserMountTable;
 
-	private static class ToGlobalMapper implements ModelRelation
+	private static class ToGlobalMapper implements ModelRelationInstance
 	{
-		public ToGlobalMapper ( ModelMount mount, ModelRelation internal )
+		public ToGlobalMapper ( ModelMount mount, ModelRelationInstance internal )
 		{
 			fModelMount = mount;
 			fInternalReln = internal;
 		}
+
+		@Override
+		public String getId () { return fInternalReln.getId (); }
 
 		@Override
 		public Path getFrom () { return fModelMount.getGlobalPath ( fInternalReln.getFrom () ); }
@@ -430,8 +451,8 @@ public class DelegatingModel extends SimpleService implements Model
 
 		@Override
 		public String getName () { return fInternalReln.getName (); }
-		
-		private final ModelRelation fInternalReln;
+
+		private final ModelRelationInstance fInternalReln;
 		private final ModelMount fModelMount;
 	}
 	

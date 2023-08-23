@@ -15,8 +15,10 @@ import org.json.JSONException;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.model.core.ModelRelation;
+import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
+import io.continual.services.model.impl.common.BasicModelRelnInstance;
 import io.continual.util.data.json.CommentedJsonTokener;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.data.json.JsonVisitor.ItemRenderer;
@@ -43,11 +45,12 @@ class FileSysRelnMgr
 		}
 	}
 
-	public void relate ( ModelRelation mr ) throws ModelServiceException, ModelRequestException
+	public ModelRelationInstance relate ( ModelRelation mr ) throws ModelServiceException, ModelRequestException
 	{
 		// not loving having an non-atomic write here, but we're going for simple, not production strength.
 		addToRelnFile ( pathToObjOutDir ( mr.getFrom () ), mr.getName (), mr.getTo () );
 		addToRelnFile ( pathToObjInDir ( mr.getTo () ), mr.getName (), mr.getFrom () );
+		return new BasicModelRelnInstance ( mr );
 	}
 
 	public boolean unrelate ( ModelRelation reln ) throws ModelServiceException, ModelRequestException
@@ -75,9 +78,9 @@ class FileSysRelnMgr
 		}
 	}
 	
-	public List<ModelRelation> getInboundRelations ( Path forObject ) throws ModelServiceException, ModelRequestException
+	public List<ModelRelationInstance> getInboundRelations ( Path forObject ) throws ModelServiceException, ModelRequestException
 	{
-		final LinkedList<ModelRelation> result = new LinkedList<> ();
+		final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
 
 		final File objDir = pathToObjInDir ( forObject );
 		if ( objDir.isDirectory () )
@@ -91,9 +94,9 @@ class FileSysRelnMgr
 		return result;
 	}
 
-	public List<ModelRelation> getOutboundRelations ( Path forObject ) throws ModelServiceException, ModelRequestException
+	public List<ModelRelationInstance> getOutboundRelations ( Path forObject ) throws ModelServiceException, ModelRequestException
 	{
-		final LinkedList<ModelRelation> result = new LinkedList<> ();
+		final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
 
 		final File objDir = pathToObjOutDir ( forObject );
 		if ( objDir.isDirectory () )
@@ -107,7 +110,7 @@ class FileSysRelnMgr
 		return result;
 	}
 
-	public List<ModelRelation> getInboundRelationsNamed ( Path forObject, String named ) throws ModelServiceException, ModelRequestException
+	public List<ModelRelationInstance> getInboundRelationsNamed ( Path forObject, String named ) throws ModelServiceException, ModelRequestException
 	{
 		if ( named == null ) return getInboundRelations ( forObject );
 
@@ -116,10 +119,10 @@ class FileSysRelnMgr
 		{
 			return getRelationsFrom ( forObject, reln, false );
 		}
-		return new LinkedList<ModelRelation> ();
+		return new LinkedList<ModelRelationInstance> ();
 	}
 
-	public List<ModelRelation> getOutboundRelationsNamed ( Path forObject, String named ) throws ModelServiceException, ModelRequestException
+	public List<ModelRelationInstance> getOutboundRelationsNamed ( Path forObject, String named ) throws ModelServiceException, ModelRequestException
 	{
 		if ( named == null ) return getOutboundRelations ( forObject );
 
@@ -128,19 +131,19 @@ class FileSysRelnMgr
 		{
 			return getRelationsFrom ( forObject, reln, true );
 		}
-		return new LinkedList<ModelRelation> ();
+		return new LinkedList<ModelRelationInstance> ();
 	}
 
 	private final File fRelnDir;
 
-	private List<ModelRelation> getRelationsFrom ( Path forObject, File reln, boolean objIsFromSide ) throws ModelServiceException
+	private List<ModelRelationInstance> getRelationsFrom ( Path forObject, File reln, boolean objIsFromSide ) throws ModelServiceException
 	{
-		final LinkedList<ModelRelation> result = new LinkedList<> ();
+		final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
 
 		final String relnName = reln.getName ();
 		for ( Path to : loadToSet ( reln ) )
 		{
-			result.add ( new ModelRelation ()
+			result.add ( new BasicModelRelnInstance ( new ModelRelation ()
 			{
 				@Override
 				public Path getFrom () { return objIsFromSide ? forObject : to; }
@@ -150,7 +153,7 @@ class FileSysRelnMgr
 
 				@Override
 				public String getName () { return relnName; }
-			} );
+			} ) );
 		}
 
 		return result;

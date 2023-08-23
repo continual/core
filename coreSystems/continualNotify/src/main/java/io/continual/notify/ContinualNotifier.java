@@ -1,8 +1,6 @@
 package io.continual.notify;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -18,8 +16,8 @@ import org.slf4j.LoggerFactory;
 import io.continual.util.data.StreamTools;
 import io.continual.util.data.exprEval.EnvDataSource;
 import io.continual.util.data.exprEval.ExpressionEvaluator;
-import io.continual.util.data.json.JsonUtil;
 import io.continual.util.standards.HttpStatusCodes;
+import io.continual.util.time.Clock;
 
 /**
  * A minimal client for sending notifications to Continual's Rcvr system.
@@ -27,40 +25,14 @@ import io.continual.util.standards.HttpStatusCodes;
 public class ContinualNotifier
 {
 	/**
-	 * Send a message to Continual using credentials and topic/stream data from the environment.
+	 * Send an alert to Continual using credentials and topic/stream data from the environment.
 	 * @param msg
 	 */
-	public static void send ( String msg )
+	public static void send ( String subject, String condition )
 	{
 		new ContinualNotifier()
-			.withMessage ( msg )
-			.send ()
-		;
-	}
-
-	public static void send ( Throwable t )
-	{
-		String stack = "??";
-		try (
-			final ByteArrayOutputStream baos = new ByteArrayOutputStream (); 
-			final PrintStream ps = new PrintStream ( baos )
-		)
-		{
-			t.printStackTrace ( ps );
-			ps.close ();
-			stack = new String ( baos.toByteArray () );
-		}
-		catch ( IOException x )
-		{
-			stack = "?? IOException: " + x.getMessage ();
-		}
-		
-		new ContinualNotifier()
-			.withMessage ( new JSONObject ()
-				.put ( "class", t.getClass ().getName () )
-				.put ( "message", t.getMessage () )
-				.put ( "stack", stack )
-			)
+			.onSubject ( subject )
+			.withCondition ( condition )
 			.send ()
 		;
 	}
@@ -69,8 +41,21 @@ public class ContinualNotifier
 	{
 		fUser = evalSetting ( "CONTINUAL_USER" );
 		fPassword = evalSetting ( "CONTINUAL_PASSWORD" );
+
 		fTopic = evalSetting ( "CONTINUAL_RCVR_TOPIC" );
+		fSourceSystem = evalSetting ( "CONTINUAL_SYSTEM" );
+		if ( fSourceSystem != null && fSourceSystem.length () > 0 )
+		{
+			onSubject ( fSourceSystem );
+		}
+
 		fStream = evalSetting ( "CONTINUAL_RCVR_STREAM" );
+		if ( fStream == null && fSourceSystem != null && fSourceSystem.length () > 0 )
+		{
+			fStream = fSourceSystem;
+		}
+
+		fMsg.put ( kVersionTag, kVersion );
 	}
 
 	public ContinualNotifier toTopic ( String topic )
@@ -107,21 +92,49 @@ public class ContinualNotifier
 		return this;
 	}
 
-	public ContinualNotifier withMessage ( String msg )
+	public ContinualNotifier onSubject ( String subject )
 	{
-		if ( msg == null ) throw new IllegalArgumentException ( "Provide a text message." );
-		return withMessage ( new JSONObject ().put ( "message", msg ) );
+		if ( subject == null ) throw new IllegalArgumentException ( "Provide a subject." );
+		fMsg.put ( kSubject, subject );
+		return this;
+	}
+	
+	public ContinualNotifier withCondition ( String condition )
+	{
+		if ( condition == null ) throw new IllegalArgumentException ( "Provide a subject." );
+		fMsg.put ( kCondition, condition );
+		return this;
 	}
 
-	public ContinualNotifier withMessage ( JSONObject msg )
+	public ContinualNotifier asOnset ()
 	{
-		if ( msg == null ) throw new IllegalArgumentException ( "Provide a JSON object." );
-		fMsg = JsonUtil.clone ( msg );
+		fMsg.put ( kOnset, true );
+		return this;
+	}
+
+	public ContinualNotifier asClear ()
+	{
+		fMsg.put ( kOnset, false );
+		return this;
+	}
+
+	public ContinualNotifier withDetails ( String details )
+	{
+		if ( details == null ) throw new IllegalArgumentException ( "Provide details." );
+		fMsg.put ( kDetails, details);
+		return this;
+	}
+
+	public ContinualNotifier withAddlData ( String key, Object val )
+	{
+		fMsg.put ( key, val );
 		return this;
 	}
 
 	public void send ()
 	{
+		withAddlData ( kQueuedAt, Clock.now () );
+
 		final Sender mySender = new Sender ();
 		if ( fBackground )
 		{
@@ -139,6 +152,19 @@ public class ContinualNotifier
 	private String fUser = null;
 	private String fPassword = null;
 	private boolean fBackground = true;
+	private String fSourceSystem = null;
+
+	private static final String kVersionTag = "ver";
+	private static final String kVersion = "1.0";
+
+	private static final String kSubject = "subj";
+	private static final String kCondition = "cond";
+	private static final String kDetails = "details";
+
+	private static final String kOnset = "onset";
+
+	private static final String kQueuedAt = "queuedAt";
+	private static final String kSendAt = "sentAt";
 
 	private class Sender implements Runnable
 	{
@@ -165,7 +191,11 @@ public class ContinualNotifier
 				}
 
 				final URL url = new URL ( urlText );
-				final byte[] payload = fMsg.toString ().getBytes ( StandardCharsets.UTF_8 );
+				final byte[] payload = fMsg
+					.put ( kSendAt, Clock.now () )
+					.toString ()
+					.getBytes ( StandardCharsets.UTF_8 )
+				;
 
 				final HttpURLConnection conn = (HttpURLConnection) url.openConnection ();
 

@@ -1,9 +1,5 @@
-package io.continual.services.model.impl.file;
+package io.continual.services.model.impl.mem;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -34,7 +30,6 @@ import io.continual.services.model.impl.common.SimpleModelQuery;
 import io.continual.services.model.impl.json.CommonJsonDbModel;
 import io.continual.services.model.impl.json.CommonJsonDbObject;
 import io.continual.util.collections.MultiMap;
-import io.continual.util.data.json.CommentedJsonTokener;
 import io.continual.util.data.json.JsonUtil;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.data.json.JsonVisitor.ArrayVisitor;
@@ -42,55 +37,25 @@ import io.continual.util.data.json.JsonVisitor.ObjectVisitor;
 import io.continual.util.naming.Name;
 import io.continual.util.naming.Path;
 
-/**
- * A single file model in JSON
- * @author peter
- *
- */
-public class SingleFileModel extends CommonJsonDbModel
+public class InMemoryModel extends CommonJsonDbModel
 {
-	public SingleFileModel ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public InMemoryModel ( ServiceContainer sc, JSONObject config ) throws BuildFailure
 	{
 		this (
 			sc.getExprEval ( config ).evaluateText ( config.getString ( "acctId" ) ),
-			sc.getExprEval ( config ).evaluateText ( config.getString ( "modelId" ) ),
-			new File ( sc.getExprEval ( config ).evaluateText ( config.getString ( "file" ) ) )
+			sc.getExprEval ( config ).evaluateText ( config.getString ( "modelId" ) )
 		);
 	}
 
-	public SingleFileModel ( String acctId, String modelId, File f ) throws BuildFailure
+	public InMemoryModel ( String acctId, String modelId ) throws BuildFailure
 	{
 		super ( acctId, modelId );
 
-		fFile = f;
-		if ( !fFile.exists () || fFile.length () == 0L )
-		{
-			fRoot = new JSONObject ();
-		}
-		else
-		{
-			try ( FileInputStream fis = new FileInputStream ( f ) )
-			{
-				fRoot = new JSONObject ( new CommentedJsonTokener ( fis ) );
-			}
-			catch ( IOException x )
-			{
-				throw new BuildFailure ( x );
-			}
-		}
-
-		if ( null == fRoot.optJSONObject ( kObjectsNode ) )
-		{
-			fRoot.put ( kObjectsNode, new JSONObject () );
-		}
-		if ( null == fRoot.optJSONArray ( kRelnsNode ) )
-		{
-			fRoot.put ( kRelnsNode, new JSONObject () );
-		}
+		fRoot = new JSONObject ();
+		fRoot.put ( kObjectsNode, new JSONObject () );
+		fRoot.put ( kRelnsNode, new JSONObject () );
 
 		fReversals = new HashMap<Path,MultiMap<String,Path>> ();
-
-		rebuildReversals ();
 	}
 
 	@Override
@@ -154,15 +119,7 @@ public class SingleFileModel extends CommonJsonDbModel
 			tos.add ( reln.getTo ().toString () );
 			fromNode.put ( reln.getName (), JsonVisitor.collectionToArray ( tos ) );
 
-			flush ();
-
 			return new BasicModelRelnInstance ( reln );
-		}
-		catch ( ModelServiceException x )
-		{
-			// restore...
-			fRoot = rootCopy;
-			throw x;
 		}
 		catch ( Exception x )
 		{
@@ -179,15 +136,7 @@ public class SingleFileModel extends CommonJsonDbModel
 		final JSONObject rootCopy = JsonUtil.clone ( fRoot );
 		try
 		{
-			final boolean result = removeReln ( reln );
-			flush ();
-			return result;
-		}
-		catch ( ModelServiceException x )
-		{
-			// restore...
-			fRoot = rootCopy;
-			throw x;
+			return removeReln ( reln );
 		}
 		catch ( Exception x )
 		{
@@ -283,10 +232,8 @@ public class SingleFileModel extends CommonJsonDbModel
 				}
 			}
 			current.put ( objectPath.getItemName ().toString (), o.toJson () );
-
-			flush ( );
 		}
-		catch ( ModelRequestException | ModelServiceException x )
+		catch ( ModelRequestException x )
 		{
 			// restore...
 			fRoot = rootCopy;
@@ -324,16 +271,8 @@ public class SingleFileModel extends CommonJsonDbModel
 
 				removeRelnsFor ( objectPath );
 
-				flush ();
-
 				return true;
 			}
-		}
-		catch ( ModelServiceException x )
-		{
-			// restore...
-			fRoot = rootCopy;
-			throw x;
 		}
 		catch ( Exception x )
 		{
@@ -425,7 +364,6 @@ public class SingleFileModel extends CommonJsonDbModel
 		}
 	*/
 
-	private final File fFile;
 	private JSONObject fRoot;
 	private HashMap<Path,MultiMap<String,Path>> fReversals;
 
@@ -440,58 +378,6 @@ public class SingleFileModel extends CommonJsonDbModel
 	private JSONObject getRelnRoot ()
 	{
 		return fRoot.getJSONObject ( kRelnsNode );
-	}
-
-	private void rebuildReversals ()
-	{
-		fReversals.clear ();
-
-		JsonVisitor.forEachElement ( getRelnRoot(), new ObjectVisitor<JSONObject,JSONException> ()
-		{
-			@Override
-			public boolean visit ( String fromPathStr, JSONObject relnData ) throws JSONException
-			{
-				final Path fromPath = Path.fromString ( fromPathStr );
-				JsonVisitor.forEachElement ( relnData, new ObjectVisitor<JSONArray,JSONException> ()
-				{
-					@Override
-					public boolean visit ( String relnName, JSONArray toPathList ) throws JSONException
-					{
-						JsonVisitor.forEachElement ( toPathList, new ArrayVisitor<String,JSONException> ()
-						{
-							@Override
-							public boolean visit ( String pathText ) throws JSONException
-							{
-								MultiMap<String,Path> mm = fReversals.get ( fromPath );
-								if ( mm == null )
-								{
-									mm = new MultiMap<> ();
-									fReversals.put ( fromPath, mm );
-								}
-								mm.put ( relnName, Path.fromString ( pathText ) );
-								return true;
-							}
-							
-						} );
-						return true;
-					}
-				} );
-
-				return true;
-			}
-		} );
-	}
-	
-	private void flush () throws ModelServiceException
-	{
-		try ( FileWriter fw = new FileWriter ( fFile ) )
-		{
-			fw.write ( fRoot.toString ( 4 ) );
-		}
-		catch ( IOException x )
-		{
-			throw new ModelServiceException ( x );
-		}
 	}
 
 	private class ModelQuery extends SimpleModelQuery
