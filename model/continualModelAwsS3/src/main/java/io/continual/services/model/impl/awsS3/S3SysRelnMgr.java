@@ -16,6 +16,7 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.model.core.ModelRelation;
+import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.util.naming.Name;
@@ -99,7 +100,7 @@ class S3SysRelnMgr
 	
 	public void removeAllRelations ( Path forObject ) throws ModelServiceException, ModelRequestException
 	{
-		final LinkedList<ModelRelation> relns = new LinkedList<> ();
+		final LinkedList<ModelRelationInstance> relns = new LinkedList<> ();
 		relns.addAll ( getInboundRelations ( forObject ) );
 		relns.addAll ( getOutboundRelations ( forObject ) );
 		for ( ModelRelation mr : relns )
@@ -108,19 +109,19 @@ class S3SysRelnMgr
 		}
 	}
 
-	public List<ModelRelation> getInboundRelations ( Path forObject ) throws ModelServiceException, ModelRequestException
+	public List<ModelRelationInstance> getInboundRelations ( Path forObject ) throws ModelServiceException, ModelRequestException
 	{
 		return getInboundRelationsNamed ( forObject, null );
 	}
 
-	public List<ModelRelation> getOutboundRelations ( Path forObject ) throws ModelServiceException, ModelRequestException
+	public List<ModelRelationInstance> getOutboundRelations ( Path forObject ) throws ModelServiceException, ModelRequestException
 	{
 		return getOutboundRelationsNamed ( forObject, null );
 	}
 
-	public List<ModelRelation> getInboundRelationsNamed ( Path forObject, String named ) throws ModelServiceException, ModelRequestException
+	public List<ModelRelationInstance> getInboundRelationsNamed ( Path forObject, String named ) throws ModelServiceException, ModelRequestException
 	{
-		final LinkedList<ModelRelation> result = new LinkedList<> ();
+		final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
 
 		final String inPrefix = getInboundPrefixFor ( forObject, named );
 		final ListObjectsRequest listObjectsRequest = new ListObjectsRequest ()
@@ -142,9 +143,9 @@ class S3SysRelnMgr
 		return result;
 	}
 
-	public List<ModelRelation> getOutboundRelationsNamed ( Path forObject, String named ) throws ModelServiceException, ModelRequestException
+	public List<ModelRelationInstance> getOutboundRelationsNamed ( Path forObject, String named ) throws ModelServiceException, ModelRequestException
 	{
-		final LinkedList<ModelRelation> result = new LinkedList<> ();
+		final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
 
 		final String inPrefix = getOutboundPrefixFor ( forObject, named );
 		final ListObjectsRequest listObjectsRequest = new ListObjectsRequest ()
@@ -218,8 +219,9 @@ class S3SysRelnMgr
 		return p.toString ().substring ( 1 );
 	}
 
-	private ModelRelation s3EntryToReln ( S3ObjectSummary objectSummary )
+	private ModelRelationInstance s3EntryToReln ( S3ObjectSummary objectSummary )
 	{
+		// FIXME
 		return null;
 	}
 
