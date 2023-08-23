@@ -26,7 +26,8 @@ public class ContinualNotifier
 {
 	/**
 	 * Send an alert to Continual using credentials and topic/stream data from the environment.
-	 * @param msg
+	 * @param subject
+	 * @param condition
 	 */
 	public static void send ( String subject, String condition )
 	{
