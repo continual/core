@@ -29,7 +29,7 @@ public class LruCache <K extends Object, T extends Object>
 
 	/**
 	 * Construct an LRU Cache with the given max size. 
-	 * @param maxSize the maximum number of entries in the cache
+	 * @param maxSize the maximum number of entries in the cache. 0 is allowed to mean "don't cache"
 	 */
 	public LruCache ( long maxSize )
 	{

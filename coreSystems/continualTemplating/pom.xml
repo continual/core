@@ -1,0 +1,25 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>io.continual</groupId>
+		<version>0.3.0</version>
+		<artifactId>continualCoreSystems</artifactId>
+		<relativePath>..</relativePath>
+	</parent>
+
+	<artifactId>continualTemplating</artifactId>
+	<packaging>pom</packaging>
+
+	<name>TEMPLATING</name>
+
+	<modules>
+		<module>continualTemplatingCore</module>
+		<module>continualTemplatingMoustache</module>
+		<module>continualTemplatingVelocity</module>
+		<module>continualTemplatingGolang</module>
+	</modules>
+
+</project>

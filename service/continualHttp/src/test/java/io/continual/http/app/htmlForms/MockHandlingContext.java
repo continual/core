@@ -16,22 +16,30 @@
 
 package io.continual.http.app.htmlForms;
 
-import io.continual.http.service.framework.CHttpConnection;
-import io.continual.http.service.framework.CHttpServlet;
+import io.continual.builder.Builder.BuildFailure;
+import io.continual.http.service.framework.CHttpSession;
+import io.continual.http.service.framework.context.CHttpRequest;
 import io.continual.http.service.framework.context.CHttpRequestContext;
+import io.continual.http.service.framework.context.CHttpResponse;
 
-public class MockHandlingContext<C extends CHttpConnection> extends CHttpRequestContext
+public class MockHandlingContext<C extends CHttpSession> extends CHttpRequestContext
 {
-	public MockHandlingContext ()
+	public MockHandlingContext () throws BuildFailure
 	{
-		super ( new mockWebServlet (), null, null, null, null, null );
+		super ( null, null );
 	}
-	
-	private static class mockWebServlet extends CHttpServlet
+
+	@Override
+	public CHttpRequest request ()
 	{
-		public mockWebServlet ()
-		{
-		}
-		private static final long serialVersionUID = 1L;
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public CHttpResponse response ()
+	{
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

@@ -15,6 +15,8 @@
  */
 package io.continual.util.naming;
 
+import java.util.Objects;
+
 /**
  * A name is a component of a path. It may not contain a path separator.
  */
@@ -54,6 +56,21 @@ public class Name implements Comparable<Name>
 	public String toString ()
 	{
 		return fName;
+	}
+
+	@Override
+	public int hashCode ()
+	{
+		return fName.hashCode ();
+	}
+
+	@Override
+	public boolean equals ( Object that )
+	{
+		if ( this == that ) return true;
+		if ( that == null ) return false;
+		if ( getClass () != that.getClass () ) return false;
+		return Objects.equals ( fName, ((Name)that).fName );
 	}
 
 	Name ( String name )

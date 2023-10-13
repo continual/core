@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.2.52</version>
+		<version>0.3.0</version>
 		<artifactId>continualService</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -31,33 +31,20 @@
 
 		<dependency>
 			<groupId>io.continual</groupId>
+			<artifactId>continualIam</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.continual</groupId>
 			<artifactId>continualMetrics</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
-		<!-- https://mvnrepository.com/artifact/javax.servlet/javax.servlet-api -->
 		<dependency>
-			<groupId>javax.servlet</groupId>
-			<artifactId>javax.servlet-api</artifactId>
-			<version>3.1.0</version>
-			<scope>provided</scope>
-		</dependency>
-
-		<!-- Tomcat, which gets embedded -->
-		<dependency>
-			<groupId>org.apache.tomcat</groupId>
-			<artifactId>tomcat-catalina</artifactId>
-			<version>${tomcatVersion}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.tomcat</groupId>
-			<artifactId>tomcat-util</artifactId>
-			<version>${tomcatVersion}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.tomcat.embed</groupId>
-			<artifactId>tomcat-embed-core</artifactId>
-			<version>${tomcatVersion}</version>
+			<groupId>io.continual</groupId>
+			<artifactId>continualTemplatingCore</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 
 		<dependency>

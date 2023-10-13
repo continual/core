@@ -19,8 +19,6 @@ package io.continual.http.service.framework.routing;
 
 import java.util.Map;
 
-import io.continual.http.service.framework.CHttpConnection;
-
 /**
  * A route source is a collection of routes that are requested by verb (e.g. GET) and
  * a path. An app can have any number of route sources. During request handling,
@@ -33,9 +31,9 @@ public interface CHttpRouteSource
 	 * Return the route handler for a given verb and path or null.
 	 * @param verb
 	 * @param path
-	 * @return
+	 * @return a route invocation or null
 	 */
-	CHttpRouteInvocation getRouteFor ( String verb, String path, CHttpConnection forSession );
+	CHttpRouteInvocation getRouteFor ( String verb, String path );
 
 	/**
 	 * Code in this system can create a URL to get to a specific class + method by asking
@@ -45,8 +43,7 @@ public interface CHttpRouteSource
 	 * @param c
 	 * @param staticMethodName
 	 * @param args
-	 * @param forSession, which can be null
 	 * @return null, or a URL to get to the entry point
 	 */
-	String getRouteTo ( Class<?> c, String staticMethodName, Map<String, Object> args, CHttpConnection forSession );
+	String getRouteTo ( Class<?> c, String staticMethodName, Map<String, Object> args );
 }

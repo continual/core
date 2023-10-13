@@ -21,7 +21,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.Map;
 
-import io.continual.http.service.framework.CHttpConnection;
+import io.continual.util.standards.HttpHeaders;
 
 /**
  * A response to a request.
@@ -62,7 +62,20 @@ public interface CHttpResponse
 	 * @param content
 	 * @param mimeType
 	 */
-	void sendErrorAndBody ( int err, String content, String mimeType );
+	@Deprecated
+	default void sendErrorAndBody ( int err, String content, String mimeType )
+	{
+		sendStatusAndBody ( err, content, mimeType );
+	}
+
+	/**
+	 * send a status code and the given body
+	 * 
+	 * @param statusCode
+	 * @param content
+	 * @param mimeType
+	 */
+	void sendStatusAndBody ( int statusCode, String content, String mimeType );
 
 	/**
 	 * Get a stream (PrintWriter) for a text response using the text/html content type
@@ -115,7 +128,17 @@ public interface CHttpResponse
 
 	CHttpResponse writeHeader ( String headerName, String headerValue );
 
+	default CHttpResponse writeHeader ( HttpHeaders headerName, String headerValue )
+	{
+		return writeHeader ( headerName.toString (), headerValue );
+	}
+
 	CHttpResponse writeHeader ( String headerName, String headerValue, boolean overwrite );
+
+	default CHttpResponse writeHeader ( HttpHeaders headerName, String headerValue, boolean overwrite )
+	{
+		return writeHeader ( headerName.toString (), headerValue, overwrite );
+	}
 
 	/**
 	 * redirect the to the app-relative url
@@ -124,9 +147,9 @@ public interface CHttpResponse
 	 */
 	void redirect ( String url );
 
-	void redirect ( Class<?> cls, String method, CHttpConnection forSession );
+	void redirect ( Class<?> cls, String method );
 
-	void redirect ( Class<?> cls, String method, Map<String, Object> args, CHttpConnection forSession );
+	void redirect ( Class<?> cls, String method, Map<String, Object> args );
 
 	/**
 	 * redirect to the exact url

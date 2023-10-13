@@ -11,9 +11,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.ServletInputStream;
-import javax.servlet.ServletOutputStream;
-
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -177,7 +174,7 @@ public class CHttpTrxObserver extends SimpleService implements CHttpObserverMgr
 		}
 
 		@Override
-		public InputStream wrap ( ServletInputStream inputStream )
+		public InputStream wrap ( InputStream inputStream )
 		{
 			fInStream = new TracingInputStream ( inputStream, fOut );
 			return fInStream;
@@ -191,7 +188,7 @@ public class CHttpTrxObserver extends SimpleService implements CHttpObserverMgr
 		}
 
 		@Override
-		public OutputStream wrap ( ServletOutputStream outputStream )
+		public OutputStream wrap ( OutputStream outputStream )
 		{
 			fOutStream = new TracingOutputStream ( outputStream, fOut );
 			return outputStream;

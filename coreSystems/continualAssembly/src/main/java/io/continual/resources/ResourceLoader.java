@@ -26,6 +26,7 @@ import io.continual.resources.sources.FileLoader;
 import io.continual.resources.sources.HttpLoader;
 import io.continual.resources.sources.JvmClassLoaderResourceLoader;
 import io.continual.resources.sources.JvmSystemResourceLoader;
+import io.continual.resources.sources.JvmThreadContextClassLoader;
 import io.continual.util.data.TypeConvertor;
 
 /**
@@ -103,6 +104,7 @@ public class ResourceLoader
 
 		// system resources...
 		usingSource ( new JvmSystemResourceLoader () );
+		usingSource ( new JvmThreadContextClassLoader () );
 
 		return this;
 	}

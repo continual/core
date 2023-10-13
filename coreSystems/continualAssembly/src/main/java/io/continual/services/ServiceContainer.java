@@ -170,6 +170,8 @@ public class ServiceContainer
 	@SuppressWarnings("unchecked")
 	public synchronized <T> T get ( String name, Class<T> asClass )
 	{
+		if ( name == null ) return null;
+
 		final List<Service> svcs = fServiceByName.get ( name );
 		if ( svcs != null )
 		{
@@ -182,6 +184,44 @@ public class ServiceContainer
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Get a named service, throwing BuildFailure if it's not found.
+	 * @param <T> the target class
+	 * @param name the service name
+	 * @param asClass the target class
+	 * @return an instance of the target class
+	 * @throws BuildFailure
+	 */
+	public synchronized <T> T getReqd ( String name, Class<T> asClass ) throws BuildFailure
+	{
+		T result = get ( name, asClass );
+		if ( result == null )
+		{
+			throw new BuildFailure ( "Couldn't locate a " + asClass.getName () + " named " + name );
+		}
+		return result;
+	}
+
+	/**
+	 * Get a named service, throwing BuildFailure if it's not found and name is not null.
+	 * @param <T> the target class
+	 * @param name the service name
+	 * @param asClass the target class
+	 * @return an instance of the target class
+	 * @throws BuildFailure
+	 */
+	public synchronized <T> T getReqdIfNotNull ( String name, Class<T> asClass ) throws BuildFailure
+	{
+		if ( name == null ) return null;
+
+		T result = get ( name, asClass );
+		if ( result == null )
+		{
+			throw new BuildFailure ( "Couldn't locate a " + asClass.getName () + " named " + name );
+		}
+		return result;
 	}
 
 	public void startAll () throws Service.FailedToStart

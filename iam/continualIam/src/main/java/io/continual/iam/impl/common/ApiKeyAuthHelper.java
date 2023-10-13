@@ -15,9 +15,10 @@
  */
 package io.continual.iam.impl.common;
 
+import org.json.JSONObject;
+
 import io.continual.iam.IamAuthLog;
 import io.continual.iam.credentials.ApiKeyCredential;
-import io.continual.util.nv.NvReadable;
 
 /**
  * Web systems implementing RESTful APIs with API keys can use this helper class to
@@ -41,9 +42,9 @@ public class ApiKeyAuthHelper
 	 * @param serviceName the name of the service fpr signed content
 	 * @return an API key credential, or null if the header is malformed, etc.
 	 */
-	public static ApiKeyCredential readApiKeyCredential ( NvReadable settings, HeaderReader hr, String serviceName )
+	public static ApiKeyCredential readApiKeyCredential ( JSONObject settings, HeaderReader hr, String serviceName )
 	{
-		final String authHeader = settings.getString ( kSetting_AuthLineHeader, kDefault_AuthLineHeader );
+		final String authHeader = settings.optString ( kSetting_AuthLineHeader, kDefault_AuthLineHeader );
 		final String authLine = hr.getFirstHeader ( authHeader );
 		if ( authLine == null )
 		{
@@ -53,8 +54,8 @@ public class ApiKeyAuthHelper
 
 		final String signedContent = SignedContentReader.getSignedContent ( 
 			hr.getFirstHeader ( "Date" ),
-			hr.getFirstHeader ( settings.getString ( kSetting_DateLineHeader, kDefault_DateLineHeader )), 
-			hr.getFirstHeader ( settings.getString ( kSetting_MagicLineHeader, kDefault_MagicLineHeader )),
+			hr.getFirstHeader ( settings.optString ( kSetting_DateLineHeader, kDefault_DateLineHeader )), 
+			hr.getFirstHeader ( settings.optString ( kSetting_MagicLineHeader, kDefault_MagicLineHeader )),
 			serviceName );
 		if ( signedContent == null )
 		{

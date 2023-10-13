@@ -23,10 +23,9 @@ import java.util.Map;
 
 import org.slf4j.LoggerFactory;
 
-import io.continual.http.service.framework.CHttpConnection;
 import io.continual.http.service.framework.CHttpErrorHandler;
-import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.http.service.framework.context.CHttpRequest;
+import io.continual.http.service.framework.context.CHttpRequestContext;
 
 /**
  * A request router is configured with route sources and error handlers, then
@@ -114,7 +113,7 @@ public class CHttpRequestRouter
 	 * @return a matching handler
 	 * @throws noMatchingRoute
 	 */
-	public synchronized CHttpRouteInvocation route ( CHttpRequest req, CHttpConnection forSession ) throws noMatchingRoute
+	public synchronized CHttpRouteInvocation route ( CHttpRequest req ) throws noMatchingRoute
 	{
 		final String verbIn = req.getMethod ();
 		final String verb = verbIn.equalsIgnoreCase("HEAD")?"GET":verbIn;	// HEAD is GET without an entity response
@@ -124,7 +123,7 @@ public class CHttpRequestRouter
 		CHttpRouteInvocation route = null;
 		for ( CHttpRouteSource src : fSources )
 		{
-			route = src.getRouteFor ( verb, path, forSession );
+			route = src.getRouteFor ( verb, path );
 			if ( route != null )
 			{
 				break;
@@ -170,21 +169,7 @@ public class CHttpRequestRouter
 	 */
 	public synchronized String reverseRoute ( Class<?> c, String staticMethodName )
 	{
-		return reverseRoute ( c, staticMethodName, null );
-	}
-
-	/**
-	 * Given a handler class and the name of one of its static methods, return a
-	 * registered route to it.
-	 * 
-	 * @param c
-	 * @param staticMethodName
-	 * @param forSession
-	 * @return
-	 */
-	public synchronized String reverseRoute ( Class<?> c, String staticMethodName, CHttpConnection forSession )
-	{
-		return reverseRoute ( c, staticMethodName, new HashMap<String,Object> (), forSession );
+		return reverseRoute ( c, staticMethodName, new HashMap<String,Object> () );
 	}
 
 	/**
@@ -194,15 +179,14 @@ public class CHttpRequestRouter
 	 * @param c
 	 * @param staticMethodName
 	 * @param args
-	 * @param forSession - a session, which can be null
 	 * @return
 	 */
-	public synchronized String reverseRoute ( Class<?> c, String staticMethodName, Map<String,Object> args, CHttpConnection forSession )
+	public synchronized String reverseRoute ( Class<?> c, String staticMethodName, Map<String,Object> args )
 	{
 		String route = null;
 		for ( CHttpRouteSource src : fSources )
 		{
-			route = src.getRouteTo ( c, staticMethodName, args, forSession );
+			route = src.getRouteTo ( c, staticMethodName, args );
 			if ( route != null )
 			{
 				break;

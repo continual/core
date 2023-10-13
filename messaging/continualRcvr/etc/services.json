@@ -24,7 +24,7 @@
 		// basic http presence
 		{
 			"name":"httpService",
-			"class":"io.continual.restHttp.HttpService",
+			"class":"io.continual.http.service.framework.TomcatHttpService",
 
 			"accountService": "accounts",
 

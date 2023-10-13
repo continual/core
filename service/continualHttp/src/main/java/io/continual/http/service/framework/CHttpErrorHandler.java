@@ -17,8 +17,9 @@
 
 package io.continual.http.service.framework;
 
-import io.continual.http.service.framework.context.CHttpRequestContext;
+import org.slf4j.Logger;
 
+import io.continual.http.service.framework.context.CHttpRequestContext;
 
 /**
  * You can register an error handler with the request router.
@@ -31,4 +32,32 @@ public interface CHttpErrorHandler
 	 * @param cause
 	 */
 	void handle ( CHttpRequestContext ctx, Throwable cause );
+
+	/**
+	 * Instantiate a redirecting error handler
+	 * @param path
+	 * @return an error handler that redirects to the given path
+	 */
+	static CHttpErrorHandler redirect ( final String path ) { return redirect ( path, null ); }
+
+	/**
+	 * Instantiate a redirecting error handler
+	 * @param path
+	 * @param warningTo
+	 * @return an error handler that redirects to the given path
+	 */
+	static CHttpErrorHandler redirect ( final String path, Logger warningTo )
+	{
+		return new CHttpErrorHandler ()
+		{
+			public void handle ( CHttpRequestContext ctx, Throwable cause )
+			{
+				ctx.response ().redirect ( path );
+				if ( warningTo != null )
+				{
+					warningTo.warn ( cause.getMessage (), cause );
+				}
+			}
+		};
+	}
 }

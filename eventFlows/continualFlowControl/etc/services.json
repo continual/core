@@ -4,7 +4,7 @@
 		// Metrics service
 		{
 			"name": "metrics",
-			"class": "io.continual.metrics.MetricsService",
+			"class": "io.continual.metrics.DropWizardMetricsService"
 		},
 
 		//
@@ -72,7 +72,7 @@
 		//
 		{
 			"name": "HttpService",
-			"class":"io.continual.restHttp.HttpService",
+			"class":"io.continual.http.service.framework.TomcatHttpService",
 			"port": "8080"
 		},
 

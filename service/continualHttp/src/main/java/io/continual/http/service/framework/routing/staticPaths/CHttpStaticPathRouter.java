@@ -27,16 +27,15 @@ import java.util.Map;
 
 import org.slf4j.LoggerFactory;
 
-import io.continual.http.service.framework.CHttpConnection;
 import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.http.service.framework.routing.CHttpRouteInvocation;
 import io.continual.http.service.framework.routing.CHttpRouteSource;
 import io.continual.http.service.framework.routing.playish.StaticDirHandler;
 import io.continual.http.service.framework.routing.playish.StaticFileHandler;
-import io.continual.http.util.http.standards.HttpMethods;
 import io.continual.util.data.StreamTools;
 import io.continual.util.naming.Name;
 import io.continual.util.naming.Path;
+import io.continual.util.standards.HttpMethods;
 
 /**
  * A static entry point routing source is a collection of routing entries for
@@ -44,15 +43,17 @@ import io.continual.util.naming.Path;
  */
 public class CHttpStaticPathRouter implements CHttpRouteSource
 {
-	public static String kMaxAge = StaticFileHandler.kMaxAge;
+	public static String kMaxAge = StaticFileHandler.kSetting_CacheMaxAge;
 
-	public CHttpStaticPathRouter ( File baseDir ) throws IOException
+	public CHttpStaticPathRouter ( File baseDir, int cacheMaxAge ) throws IOException
 	{
 		fBaseDir = baseDir.getCanonicalFile ();
 		if ( !fBaseDir.exists () || !fBaseDir.isDirectory () )
 		{
 			throw new IllegalArgumentException ( baseDir + " is not a directory." );
 		}
+
+		fCacheMaxAge = cacheMaxAge;
 	}
 
 	/**
@@ -60,7 +61,7 @@ public class CHttpStaticPathRouter implements CHttpRouteSource
 	 * directory. It handles GET/HEAD only, and rejects paths that are outside the base directory.
 	 */
 	@Override
-	public synchronized CHttpRouteInvocation getRouteFor ( String verb, final String path, CHttpConnection forSession )
+	public synchronized CHttpRouteInvocation getRouteFor ( String verb, final String path )
 	{
 		// only support GET (and HEAD)
 		if ( !verb.equalsIgnoreCase ( HttpMethods.GET ) && !verb.equalsIgnoreCase ( HttpMethods.HEAD ) )
@@ -92,12 +93,11 @@ public class CHttpStaticPathRouter implements CHttpRouteSource
 					context.response ().sendError ( 404, path + " was not found on this server." );
 					return;
 				}
-				
+
 				// expiry. currently global.
-				final int cacheMaxAge = context.systemSettings ().getInt ( kMaxAge, -1 );
-				if ( cacheMaxAge > 0 )
+				if ( fCacheMaxAge > 0 )
 				{
-					context.response ().writeHeader ( "Cache-Control", "max-age=" + cacheMaxAge, true );
+					context.response ().writeHeader ( "Cache-Control", "max-age=" + fCacheMaxAge, true );
 				}
 
 				final String contentType = StaticDirHandler.mapToContentType ( in.getName () );
@@ -125,7 +125,10 @@ public class CHttpStaticPathRouter implements CHttpRouteSource
 			{
 				return Path.getRootPath ()
 					.makeChildItem ( Name.fromString ( verb ) )
-					.makeChildItem ( Name.fromString ( path.replaceAll ( "\\.", "%2E" ) ) )
+					.makeChildItem ( Name.fromString ( path
+						.replaceAll ( "\\.", "%2E" )
+						.replaceAll ( "/", "%2F" )
+					))
 				;
 			}
 		};
@@ -135,7 +138,7 @@ public class CHttpStaticPathRouter implements CHttpRouteSource
 	 * Reverse routing to entry points doesn't apply here. Always returns null.
 	 */
 	@Override
-	public String getRouteTo ( Class<?> c, String staticMethodName, Map<String, Object> args, CHttpConnection forSession )
+	public String getRouteTo ( Class<?> c, String staticMethodName, Map<String, Object> args )
 	{
 		return null;
 	}
@@ -143,4 +146,5 @@ public class CHttpStaticPathRouter implements CHttpRouteSource
 	private static final org.slf4j.Logger log = LoggerFactory.getLogger ( CHttpStaticPathRouter.class );
 
 	private final File fBaseDir;
+	private final int fCacheMaxAge;
 }

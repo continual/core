@@ -1,6 +1,7 @@
 package io.continual.flowcontrol.impl.controller.k8s;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -29,11 +30,12 @@ import io.continual.flowcontrol.jobapi.FlowControlJob;
 import io.continual.resources.ResourceLoader;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
-import io.continual.util.data.StreamTools;
+import io.continual.templating.ContinualTemplateContext;
+import io.continual.templating.ContinualTemplateEngine;
+import io.continual.templating.ContinualTemplateSource;
+import io.continual.templating.ContinualTemplateSource.TemplateNotFoundException;
+import io.continual.templating.impl.dollarEval.DollarEvalTemplateEngine;
 import io.continual.util.data.TypeConvertor;
-import io.continual.util.data.exprEval.EnvDataSource;
-import io.continual.util.data.exprEval.ExpressionEvaluator;
-import io.continual.util.data.exprEval.JsonDataSource;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.standards.HttpStatusCodes;
 import io.fabric8.kubernetes.api.model.Container;
@@ -41,6 +43,7 @@ import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarSource;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.api.model.PodSpec;
@@ -59,8 +62,8 @@ import io.fabric8.kubernetes.api.model.apps.StatefulSetList;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetSpec;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetStatus;
 import io.fabric8.kubernetes.client.Config;
-import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.dsl.PodResource;
 
@@ -100,22 +103,23 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	static final String kSetting_DefaultPersistDiskSize = "defaultPersistDiskSize";
 	static final String kSetting_DefaultLogDiskSize = "defaultLogDiskSize";
 
+	static final String kSetting_TemplateEngine = "templateEngine";
+
 	public K8sController ( ServiceContainer sc, JSONObject rawConfig ) throws BuildFailure
 	{
 		final JSONObject config = sc.getExprEval ().evaluateJsonObject ( rawConfig );
 
-		fConfigTransfer = sc.get ( config.optString ( kSetting_ConfigTransfer, "configTransfer" ), ConfigTransferService.class );
-		if ( fConfigTransfer == null ) throw new BuildFailure ( "No configTransfer service" );
+		fConfigTransfer = sc.getReqd ( config.optString ( kSetting_ConfigTransfer, "configTransfer" ), ConfigTransferService.class );
 
 		final String contextName = config.optString ( kSetting_k8sContext, null );
 		if ( contextName != null && contextName.length () > 0 )
 		{
 			final Config cfgWithContext = Config.autoConfigure ( contextName );
-			fApiClient = new DefaultKubernetesClient ( cfgWithContext );
+			fApiClient = new KubernetesClientBuilder().withConfig ( cfgWithContext ).build ();
 		}
 		else
 		{
-			fApiClient = new DefaultKubernetesClient ();
+			fApiClient = new KubernetesClientBuilder().build();
 		}
 		fNamespace = config.getString ( kSetting_Namespace );
 		fConfigMountLoc = config.optString ( kSetting_ConfigMountLoc, kDefault_ConfigMountLoc );
@@ -146,6 +150,17 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		fDefMemLimit = config.optString ( kSetting_DefaultMemLimit, null );
 		fDefPersistDiskSize = config.optString ( kSetting_DefaultPersistDiskSize, null );
 		fDefLogDiskSize = config.optString ( kSetting_DefaultLogDiskSize, null );
+
+		final String templateEngineSpec = config.optString ( kSetting_TemplateEngine, null );
+		if ( templateEngineSpec != null )
+		{
+			fTemplateEngine = sc.getReqd ( templateEngineSpec, ContinualTemplateEngine.class );
+		}
+		else
+		{
+			log.info ( "No templating engine specified; defaulting to ${} evals." );
+			fTemplateEngine = new DollarEvalTemplateEngine ( sc, new JSONObject () );
+		}
 	}
 
 	@Override
@@ -216,7 +231,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 			}
 			if ( anyInternalSecrets )
 			{
-				fApiClient.secrets ().inNamespace ( fNamespace ).createOrReplace ( sb.build () );
+				fApiClient.secrets ().inNamespace ( fNamespace ).resource ( sb.build () ).serverSideApply ();
 			}
 
 			// Get deployment installed.  
@@ -276,7 +291,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 				fApiClient
 					.resourceList ( items )
 					.inNamespace ( fNamespace )
-					.createOrReplace ()
+					.serverSideApply ()
 				;
 			}
 			catch ( IOException e )
@@ -333,8 +348,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 			final K8sDeployWrapper dw = getDeployment ( deploymentId );
 			if ( dw == null ) return null;
 			
-			final String jobId = dw.getMetadata ().getLabels ().get ( "flowcontroljob" );
-			return new IntDeployment ( dw.getMetadata ().getName (), jobId == null ? "(unknown)" : jobId );
+			return new IntDeployment ( dw.getMetadata ().getName (), getJobIdFrom ( dw, "(unknown)" ) );
 		}
 		catch ( KubernetesClientException x )
 		{
@@ -362,8 +376,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		{
 			for ( K8sDeployWrapper dw : getK8sDeployments () )
 			{
-				final String jobId = dw.getMetadata ().getLabels ().get ( "flowcontroljob" );
-				result.add ( new IntDeployment ( dw.getMetadata ().getName (), jobId == null ? "(unknown)" : jobId ) );
+				result.add ( new IntDeployment ( dw.getMetadata ().getName (), getJobIdFrom ( dw, "(unknown)" ) ) );
 			}
 		}
 		catch ( KubernetesClientException x )
@@ -381,7 +394,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		{
 			for ( K8sDeployWrapper dw : getK8sDeployments () )
 			{
-				final String thisJobId = dw.getMetadata ().getLabels ().get ( "flowcontroljob" );
+				final String thisJobId = getJobIdFrom ( dw, null );
 				if ( jobId.equals ( thisJobId ) )
 				{
 					result.add ( new IntDeployment ( dw.getMetadata ().getName (), thisJobId ) );
@@ -396,6 +409,8 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	}
 
 	private final ConfigTransferService fConfigTransfer;
+	private final ContinualTemplateEngine fTemplateEngine;
+
 	private final KubernetesClient fApiClient;
 	private final String fNamespace;
 	private final String fConfigMountLoc;
@@ -740,7 +755,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 			final LinkedList<String> result = new LinkedList<> ();
 			try
 			{
-				final PodResource<Pod> pod = fApiClient.pods ()
+				final PodResource pod = fApiClient.pods ()
 					.inNamespace ( fNamespace )
 					.withName ( instanceId )
 				;
@@ -845,17 +860,28 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		return pl.getItems ();
 	}
 
-	// this is intended for small scale stream handling only
 	private String replaceAllTokens ( InputStream src, JSONObject replacements ) throws IOException
 	{
-		final byte[] bytes = StreamTools.readBytes ( src );
-		final String origText = new String ( bytes, StandardCharsets.UTF_8 );
+		try
+		{
+			// supply our sources to the template engine
+			final ContinualTemplateContext templateCtx = fTemplateEngine.createContext ();
+			templateCtx.putAll ( System.getenv () );
+			templateCtx.putAll ( JsonVisitor.objectToMap ( replacements ) );
+			templateCtx.putAll ( JsonVisitor.objectToMap ( fInitYamlSettings ) );
 
-		return ExpressionEvaluator.evaluateText ( origText,
-			new JsonDataSource ( fInitYamlSettings ),
-			new JsonDataSource ( replacements ),
-			new EnvDataSource ()
-		);
+			// expand the template into our output stream
+			final ByteArrayOutputStream baos = new ByteArrayOutputStream ();
+			fTemplateEngine.renderTemplate ( ContinualTemplateSource.fromInputStream ( src ), templateCtx, baos );
+
+			// return the updated template
+			return new String ( baos.toByteArray (), StandardCharsets.UTF_8 );
+		}
+		catch ( TemplateNotFoundException x )
+		{
+			// this shouldn't be possible given that we've handed the input stream to the engine
+			throw new IOException ( x );
+		}
 	}
 
 	private class LocalDeploymentSpecBuilder implements DeploymentSpecBuilder
@@ -1003,7 +1029,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	{
 		return i == null ? 0 : i;
 	}
-	
+
 	private static String selectValue ( String... values )
 	{
 		for ( String val : values )
@@ -1014,5 +1040,27 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 			}
 		}
 		return null;
+	}
+
+	private static String getJobIdFrom ( K8sDeployWrapper dw, String defval )
+	{
+		// make no assumptions about the existence of structures here!
+		if ( dw != null )
+		{
+			final ObjectMeta om = dw.getMetadata ();
+			if ( om != null )
+			{
+				final Map<String,String> labels = om.getLabels ();
+				if ( labels != null )
+				{
+					final String jobId = labels.get ( "flowcontroljob" );
+					if ( jobId != null )
+					{
+						return jobId;
+					}
+				}
+			}
+		}
+		return defval;
 	}
 }

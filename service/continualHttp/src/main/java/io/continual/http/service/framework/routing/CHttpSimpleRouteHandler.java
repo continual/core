@@ -20,20 +20,20 @@ package io.continual.http.service.framework.routing;
 import java.io.IOException;
 import java.util.Map;
 
-import io.continual.http.service.framework.CHttpConnection;
+import io.continual.http.service.framework.CHttpSession;
 import io.continual.http.service.framework.context.CHttpRequestContext;
 
 /**
  * A basic route handler provided for convenience in creating simple handlers.
  */
-public abstract class CHttpSimpleRouteHandler<C extends CHttpConnection> implements CHttpRouteSource, CHttpRouteInvocation
+public abstract class CHttpSimpleRouteHandler<C extends CHttpSession> implements CHttpRouteSource, CHttpRouteInvocation
 {
-	public CHttpRouteInvocation getRouteFor ( String verb, String path, CHttpConnection forSession )
+	public CHttpRouteInvocation getRouteFor ( String verb, String path, CHttpSession forSession )
 	{
 		return this;
 	}
 
-	public String getRouteTo ( Class<?> c, String staticMethodName, Map<String, Object> args, CHttpConnection forSession )
+	public String getRouteTo ( Class<?> c, String staticMethodName, Map<String, Object> args, CHttpSession forSession )
 	{
 		return null;
 	}

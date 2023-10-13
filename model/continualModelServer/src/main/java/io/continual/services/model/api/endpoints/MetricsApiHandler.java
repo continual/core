@@ -18,13 +18,22 @@ package io.continual.services.model.api.endpoints;
 
 import java.io.IOException;
 
+import org.json.JSONObject;
+
+import io.continual.builder.Builder.BuildFailure;
+import io.continual.http.app.servers.endpoints.TypicalRestApiEndpoint;
 import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.iam.identity.Identity;
-import io.continual.restHttp.ApiContextHelper;
+import io.continual.services.ServiceContainer;
 import io.continual.util.standards.HttpStatusCodes;
 
-public class MetricsApiHandler extends ApiContextHelper<Identity>
+public class MetricsApiHandler extends TypicalRestApiEndpoint<Identity>
 {
+	public MetricsApiHandler ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	{
+		super ( sc, config );
+	}
+	
 	public static void getLiveness ( CHttpRequestContext context ) throws IOException
 	{
 		context.response ()

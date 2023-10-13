@@ -25,6 +25,7 @@ import org.json.JSONObject;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.iam.exceptions.IamSvcException;
+import io.continual.services.ServiceContainer;
 import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelRelation;
@@ -46,25 +47,9 @@ import io.continual.util.standards.HttpStatusCodes;
 
 public class ModelApi extends ModelApiContextHelper
 {
-	public ModelApi ( ModelService ms )
+	public ModelApi ( ServiceContainer sc, JSONObject settings, ModelService ms ) throws BuildFailure
 	{
-		super ( ms );
-	}
-
-	public void getModelListForAccount ( CHttpRequestContext context ) throws IOException, ModelRequestException
-	{
-		handleModelRequest ( context, null, null, new ModelApiHandler ()
-		{
-			@Override
-			public void handle ( ModelApiContext modelApiContext ) throws IOException, JSONException
-			{
-				modelApiContext.respondOk ( new JSONObject ()
-					.put ( "status", HttpStatusCodes.k200_ok )
-					.put ( "and...", "not really implemented in transition" )
-				);
-//					.put ( "models", JsonVisitor.listToArray ( modelApiContext.getModelSession ().getModelMounts () ) ) )
-			}
-		} );
+		super ( sc, settings, ms );
 	}
 
 	public void getModelIndexes ( CHttpRequestContext context, final String acctId, final String modelName ) throws IOException, ModelRequestException

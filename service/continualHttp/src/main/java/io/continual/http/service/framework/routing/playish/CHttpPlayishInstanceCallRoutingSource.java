@@ -31,7 +31,6 @@ import java.util.StringTokenizer;
 
 import org.slf4j.LoggerFactory;
 
-import io.continual.http.service.framework.CHttpConnection;
 import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.http.service.framework.routing.CHttpRouteInvocation;
 import io.continual.http.service.framework.routing.CHttpRouteSource;
@@ -86,7 +85,7 @@ public class CHttpPlayishInstanceCallRoutingSource<T> implements CHttpRouteSourc
 	 * Get a route invocation for a given verb+path, or null.
 	 */
 	@Override
-	public synchronized CHttpRouteInvocation getRouteFor ( String verb, String path, CHttpConnection forSession )
+	public synchronized CHttpRouteInvocation getRouteFor ( String verb, String path )
 	{
 		CHttpRouteInvocation selected = null;
 		for ( CHttpPathInfo pe : fPathList )
@@ -105,7 +104,7 @@ public class CHttpPlayishInstanceCallRoutingSource<T> implements CHttpRouteSourc
 	 * Get the URL that reaches a given static method with the given arguments. 
 	 */
 	@Override
-	public String getRouteTo ( Class<?> c, String staticMethodName, Map<String, Object> args, CHttpConnection forSession )
+	public String getRouteTo ( Class<?> c, String staticMethodName, Map<String, Object> args )
 	{
 		final String fullname = c.getName() + "." + staticMethodName;
 		for ( CHttpPathInfo pe : fPathList )

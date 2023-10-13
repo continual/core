@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.2.52</version>
+		<version>0.3.0</version>
 		<artifactId>continualEventFlows</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -27,7 +27,7 @@
 
 		<dependency>
 			<groupId>io.continual</groupId>
-			<artifactId>continualMetrics</artifactId>
+			<artifactId>continualMetricsDropWiz</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
@@ -45,7 +45,13 @@
 
 		<dependency>
 			<groupId>io.continual</groupId>
-			<artifactId>continualRestHttp</artifactId>
+			<artifactId>continualHttp</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualHttpTomcat</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
@@ -76,7 +82,7 @@
 		<dependency>
 			<groupId>io.fabric8</groupId>
 			<artifactId>kubernetes-client</artifactId>
-			<version>5.11.1</version>
+			<version>6.8.1</version>
 		</dependency>
 
 	</dependencies>

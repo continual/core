@@ -25,27 +25,26 @@ import io.continual.flowcontrol.jobapi.FlowControlJobConfig;
 import io.continual.flowcontrol.jobapi.FlowControlJobDb;
 import io.continual.flowcontrol.jobapi.FlowControlJobDb.RequestException;
 import io.continual.flowcontrol.jobapi.FlowControlJobDb.ServiceException;
+import io.continual.http.app.servers.endpoints.TypicalRestApiEndpoint;
 import io.continual.http.service.framework.context.CHttpRequestContext;
-import io.continual.iam.IamServiceManager;
 import io.continual.iam.access.AccessControlEntry;
 import io.continual.iam.access.AccessControlList;
 import io.continual.iam.access.AccessException;
 import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.Identity;
 import io.continual.iam.identity.UserContext;
-import io.continual.restHttp.ApiContextHelper;
-import io.continual.restHttp.HttpServlet;
+import io.continual.services.ServiceContainer;
 import io.continual.util.data.json.CommentedJsonTokener;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.data.json.JsonVisitor.ObjectVisitor;
-import io.continual.util.standards.MimeTypes;
 import io.continual.util.standards.HttpStatusCodes;
+import io.continual.util.standards.MimeTypes;
 
-public class FlowControlRoutes<I extends Identity> extends ApiContextHelper<I>
+public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoint<I>
 {
-	public FlowControlRoutes ( IamServiceManager<I, ?> accts, FlowControlService fcs )
+	public FlowControlRoutes ( ServiceContainer sc, JSONObject config, FlowControlService fcs ) throws BuildFailure
 	{
-		super ( accts );
+		super ( sc, config );
 
 		fFlowControl = fcs;
 	}
@@ -55,7 +54,7 @@ public class FlowControlRoutes<I extends Identity> extends ApiContextHelper<I>
 		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<I> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -85,7 +84,7 @@ public class FlowControlRoutes<I extends Identity> extends ApiContextHelper<I>
 		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<I> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -120,7 +119,7 @@ public class FlowControlRoutes<I extends Identity> extends ApiContextHelper<I>
 		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<I> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -167,7 +166,7 @@ public class FlowControlRoutes<I extends Identity> extends ApiContextHelper<I>
 		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<I> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -214,7 +213,7 @@ public class FlowControlRoutes<I extends Identity> extends ApiContextHelper<I>
 		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<I> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -278,7 +277,7 @@ public class FlowControlRoutes<I extends Identity> extends ApiContextHelper<I>
 		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<I> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -383,7 +382,7 @@ public class FlowControlRoutes<I extends Identity> extends ApiContextHelper<I>
 		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<I> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -415,7 +414,7 @@ public class FlowControlRoutes<I extends Identity> extends ApiContextHelper<I>
 		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<I> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -473,7 +472,7 @@ public class FlowControlRoutes<I extends Identity> extends ApiContextHelper<I>
 		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<I> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -511,7 +510,7 @@ public class FlowControlRoutes<I extends Identity> extends ApiContextHelper<I>
 		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<I> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -545,7 +544,7 @@ public class FlowControlRoutes<I extends Identity> extends ApiContextHelper<I>
 		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<I> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -592,7 +591,7 @@ public class FlowControlRoutes<I extends Identity> extends ApiContextHelper<I>
 		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<I> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{

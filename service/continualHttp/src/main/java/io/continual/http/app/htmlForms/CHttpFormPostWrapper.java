@@ -33,10 +33,10 @@ import io.continual.http.app.htmlForms.mime.CHttpMimePart;
 import io.continual.http.app.htmlForms.mime.CHttpMimePartFactory;
 import io.continual.http.app.htmlForms.mime.CHttpMimePartsReader;
 import io.continual.http.service.framework.context.CHttpRequest;
-import io.continual.http.util.http.standards.HttpMethods;
 import io.continual.util.collections.MultiMap;
 import io.continual.util.data.TypeConvertor;
 import io.continual.util.data.TypeConvertor.conversionError;
+import io.continual.util.standards.HttpMethods;
 
 /**
  * A form post wrapper provides form related methods over a CHttpRequest. 

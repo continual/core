@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.2.52</version>
+		<version>0.3.0</version>
 		<artifactId>continual</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -17,8 +17,8 @@
 
 	<modules>
 		<module>continualHttp</module>
-		<module>continualRestHttp</module>
 		<module>continualMetricsProm</module>
+		<module>continualHttpTomcat</module>
 	</modules>
 
 </project>

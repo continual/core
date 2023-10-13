@@ -4,9 +4,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 
-import javax.servlet.ServletInputStream;
-import javax.servlet.ServletOutputStream;
-
 import io.continual.http.service.framework.inspection.CHttpObserver;
 
 public class NoopInspector implements CHttpObserver
@@ -27,7 +24,7 @@ public class NoopInspector implements CHttpObserver
 	public CHttpObserver contentLengthRequest ( int length ) { return this; }
 
 	@Override
-	public InputStream wrap ( ServletInputStream inputStream ) { return inputStream; }
+	public InputStream wrap ( InputStream inputStream ) { return inputStream; }
 
 	@Override
 	public CHttpObserver withHeaders ( HeaderLister hl ) { return this; }
@@ -48,5 +45,5 @@ public class NoopInspector implements CHttpObserver
 	public PrintWriter wrap ( PrintWriter writer ) { return writer; }
 
 	@Override
-	public OutputStream wrap ( ServletOutputStream outputStream ) { return outputStream; }
+	public OutputStream wrap ( OutputStream outputStream ) { return outputStream; }
 }

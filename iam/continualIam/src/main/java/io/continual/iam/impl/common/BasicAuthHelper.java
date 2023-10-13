@@ -18,7 +18,6 @@ package io.continual.iam.impl.common;
 import io.continual.iam.IamAuthLog;
 import io.continual.iam.credentials.UsernamePasswordCredential;
 import io.continual.util.data.TypeConvertor;
-import io.continual.util.nv.NvReadable;
 
 /**
  * Web systems implementing RESTful APIs with basic auth can use this helper class to
@@ -31,11 +30,10 @@ public class BasicAuthHelper
 	/**
 	 * Build an UsernamePasswordCredential from an inbound HTTP header.
 	 * 
-	 * @param settings a settings source
 	 * @param hr a header reader to isolate this code from the web technology
 	 * @return username password credential or null if the header is malformed, etc.
 	 */
-	public static UsernamePasswordCredential readUsernamePasswordCredential ( NvReadable settings, HeaderReader hr )
+	public static UsernamePasswordCredential readUsernamePasswordCredential ( HeaderReader hr )
 	{
 		final String authLine = hr.getFirstHeader ( kSetting_AuthHeader );
 		if ( authLine == null )

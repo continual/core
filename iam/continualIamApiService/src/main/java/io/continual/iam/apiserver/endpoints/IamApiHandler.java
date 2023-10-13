@@ -9,6 +9,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import io.continual.builder.Builder.BuildFailure;
+import io.continual.http.app.servers.endpoints.TypicalRestApiEndpoint;
 import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.iam.IamServiceManager;
 import io.continual.iam.access.AccessControlList;
@@ -20,27 +22,29 @@ import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.Group;
 import io.continual.iam.identity.Identity;
 import io.continual.iam.identity.UserContext;
-import io.continual.restHttp.ApiContextHelper;
-import io.continual.restHttp.HttpServlet;
+import io.continual.services.ServiceContainer;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.standards.HttpStatusCodes;
 
-public class IamApiHandler extends ApiContextHelper<Identity>
+public class IamApiHandler<I extends Identity> extends TypicalRestApiEndpoint<I>
 {
-	public IamApiHandler ( IamServiceManager<?, ?> accts, String acctResourceId )
+	public IamApiHandler ( ServiceContainer sc, JSONObject config ) throws BuildFailure
 	{
-		fAccts = accts;
+		super ( sc, config );
 
+		fAccts = sc.getReqd ( getAcctsSvcName ( config ), IamServiceManager.class );
+
+		final String acctResourceId = config.getString ( "accessRequired" );
 		fAcctReader = new ResourceAccess ( acctResourceId, AccessControlList.READ );
 		fAcctWriter = new ResourceAccess ( acctResourceId, AccessControlList.UPDATE );
 	}
 
 	public void getUsers ( CHttpRequestContext context ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -58,10 +62,10 @@ public class IamApiHandler extends ApiContextHelper<Identity>
 
 	public void getUser ( CHttpRequestContext context, String userId ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -85,10 +89,10 @@ public class IamApiHandler extends ApiContextHelper<Identity>
 
 	public void createUser ( CHttpRequestContext context ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -134,10 +138,10 @@ public class IamApiHandler extends ApiContextHelper<Identity>
 
 	public void setPassword ( CHttpRequestContext context, String userId ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -169,10 +173,10 @@ public class IamApiHandler extends ApiContextHelper<Identity>
 
 	public void setData ( CHttpRequestContext context, String userId, String dataKey ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -204,10 +208,10 @@ public class IamApiHandler extends ApiContextHelper<Identity>
 
 	public void removeData ( CHttpRequestContext context, String userId, String dataKey ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -237,10 +241,10 @@ public class IamApiHandler extends ApiContextHelper<Identity>
 
 	public void removeDataSet ( CHttpRequestContext context, String userId ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -276,10 +280,10 @@ public class IamApiHandler extends ApiContextHelper<Identity>
 
 	public void setEnabled ( CHttpRequestContext context, String userId ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -310,10 +314,10 @@ public class IamApiHandler extends ApiContextHelper<Identity>
 
 	public void createGroup ( CHttpRequestContext context ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -336,10 +340,10 @@ public class IamApiHandler extends ApiContextHelper<Identity>
 
 	public void getGroups ( CHttpRequestContext context ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -357,10 +361,10 @@ public class IamApiHandler extends ApiContextHelper<Identity>
 
 	public void getGroup ( CHttpRequestContext context, String groupId ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -384,10 +388,10 @@ public class IamApiHandler extends ApiContextHelper<Identity>
 
 	public void addUserToGroup ( CHttpRequestContext context, String groupId, String userId ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -419,10 +423,10 @@ public class IamApiHandler extends ApiContextHelper<Identity>
 
 	public void deleteUserFromGroup ( CHttpRequestContext context, String groupId, String userId ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{
@@ -454,10 +458,10 @@ public class IamApiHandler extends ApiContextHelper<Identity>
 
 	public void deleteUsersFromGroup ( CHttpRequestContext context ) throws IamSvcException
 	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler<Identity> ()
+		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, UserContext<Identity> uc )  throws IOException
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
 				try
 				{

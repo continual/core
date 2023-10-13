@@ -22,4 +22,14 @@ package io.continual.iam.access;
 public interface Resource
 {
 	String getId ();
+
+	/**
+	 * Make a simple resource reference with the given name
+	 * @param named
+	 * @return a resource
+	 */
+	static Resource fromName ( String named )
+	{
+		return new Resource () { @Override public String getId () { return named; } };
+	}
 }

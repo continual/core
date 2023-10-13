@@ -1,5 +1,7 @@
 package io.continual.util.naming;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.List;
 
 import org.junit.Assert;
@@ -190,17 +192,15 @@ public class PathTest2
     }
 	
 	@Test
-    public void depth(){
-		Path path = Path.fromString("/");
-		int depth = path.depth();
-		Assert.assertEquals(1, depth);
-    }
+    public void depth ()
+	{
+		assertEquals ( 0, Path.fromString ( "/" ).depth () );
+	}
 	
 	@Test
-    public void depth2(){
-		Path path = Path.fromString("/dev/test");
-		int depth = path.depth();
-		Assert.assertEquals(3, depth);
+    public void depth2 ()
+	{
+		assertEquals ( 2, Path.fromString ( "/dev/test" ).depth () );
     }
 	
 	@Test(expected = IllegalArgumentException.class)

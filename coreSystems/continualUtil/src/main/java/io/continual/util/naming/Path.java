@@ -153,7 +153,7 @@ public class Path implements Comparable<Path>
 		final String substr = toString ().substring ( parentPath.toString ().length () );
 		return substr.length () == 0 ? getRootPath() : Path.fromString ( substr );
 	}
-	
+
 	/**
 	 * Break a path into its name segments. /foo/bar = [ "foo", "bar" ] and
 	 * the root path (/) = [].
@@ -181,13 +181,23 @@ public class Path implements Comparable<Path>
 	}
 
 	/**
-	 * Get the number of name segments in this path. "/foo" = 1, "/foo/bar" = 2
+	 * Get the i'th segment of the path. In path "/foo/bar", segment[0]=foo, segment[1]=bar
+	 * @return a Name
+	 * @throws ArrayIndexOutOfBoundsException
+	 */
+	public Name getSegment ( int i ) throws ArrayIndexOutOfBoundsException
+	{
+		return getSegments () [i];
+	}
+
+	/**
+	 * Get the depth of this path. "/" = 0, "/foo" = 1, "/foo/bar" = 2.
 	 * @return the number of name segments in this path
 	 */
 	public int depth ()
 	{
 		final Path parent = getParentPath ();
-		if ( parent == null ) return 1;
+		if ( parent == null ) return 0;
 		return 1 + parent.depth ();
 	}
 

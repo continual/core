@@ -15,9 +15,9 @@ import org.json.JSONObject;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.http.app.htmlForms.CHttpFormPostWrapper;
 import io.continual.http.app.htmlForms.CHttpFormPostWrapper.ParseException;
+import io.continual.http.app.servers.endpoints.TypicalRestApiEndpoint;
 import io.continual.http.service.framework.context.CHttpRequest;
 import io.continual.http.service.framework.context.CHttpRequestContext;
-import io.continual.iam.IamService;
 import io.continual.iam.identity.Identity;
 import io.continual.iam.identity.UserContext;
 import io.continual.messaging.ContinualMessage;
@@ -25,8 +25,6 @@ import io.continual.messaging.ContinualMessagePublisher;
 import io.continual.messaging.ContinualMessagePublisher.TopicUnavailableException;
 import io.continual.messaging.ContinualMessageSink;
 import io.continual.messaging.ContinualMessageStream;
-import io.continual.restHttp.ApiContextHelper;
-import io.continual.restHttp.HttpServlet;
 import io.continual.services.ServiceContainer;
 import io.continual.util.data.StreamTools;
 import io.continual.util.data.csv.CsvCallbackReader;
@@ -39,7 +37,7 @@ import io.continual.util.standards.MimeTypes;
 /**
  * Handle inbound user events.
  */
-public class ReceiverApi<I extends Identity> extends ApiContextHelper<I>
+public class ReceiverApi<I extends Identity> extends TypicalRestApiEndpoint<I>
 {
 	public static final String kSetting_MaxSenderStreamSize = "receiver.events.io.maxInboundMessageSize";
 	public static final int kDefault_MaxSenderStreamSize = 1024*1024*4;	// 4 MB
@@ -49,14 +47,9 @@ public class ReceiverApi<I extends Identity> extends ApiContextHelper<I>
 
 	public ReceiverApi ( ServiceContainer sc, JSONObject prefs ) throws BuildFailure
 	{
-		fNodeId = sfProcessId;
+		super ( sc, prefs );
 
-		final String acctSvcName = prefs.optString ( "accountsService", "accounts" );
-		fAccts = sc.get ( acctSvcName, IamService.class );
-		if ( fAccts == null ) 
-		{
-			throw new BuildFailure ( "ReceiverApi couldn't find accounts service (" + acctSvcName + ")" );
-		}
+		fNodeId = sfProcessId;
 
 		final String pubSvcName = prefs.optString ( "publisherService", "publisher" );
 		fMsgPublisher = sc.get ( pubSvcName, ContinualMessagePublisher.class );
@@ -73,11 +66,15 @@ public class ReceiverApi<I extends Identity> extends ApiContextHelper<I>
 			throw new BuildFailure ( "ReceiverApi couldn't open topic " + NotifierTopics.USER_EVENTS, e );
 		}
 
+		fContentTypeHandlers = new HashMap<> ();
+		fRequestReadLimit = prefs.optInt ( kSetting_MaxSenderStreamSize, kDefault_MaxSenderStreamSize );
+
+		setupContentHandlers ();
 	}
 
 	public void usage ( CHttpRequestContext context )
 	{
-		ApiContextHelper.sendStatusOk ( context, "Please review the API documentation for the receiver service. :-)" );
+		sendStatusOk ( context, "Please review the API documentation for the receiver service. :-)" );
 	}
 
 	public void postEvents ( CHttpRequestContext context )
@@ -95,7 +92,7 @@ public class ReceiverApi<I extends Identity> extends ApiContextHelper<I>
 		handleWithApiAuth ( context, new ApiHandler<I> ()
 		{
 			@Override
-			public void handle ( CHttpRequestContext context, HttpServlet servlet, final UserContext<I> user )
+			public void handle ( CHttpRequestContext context, final UserContext<I> user )
 			{
 				final Counter count = new Counter ();
 
@@ -105,7 +102,7 @@ public class ReceiverApi<I extends Identity> extends ApiContextHelper<I>
 					final List<JSONObject> incoming = readPayloadForMessages ( context );
 					if ( incoming == null )
 					{
-						ApiContextHelper.sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, 
+						sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, 
 							"Unsupported content type: " + context.request ().getContentType () + " or there was a problem reading the payload." );
 						return;
 					}
@@ -117,7 +114,7 @@ public class ReceiverApi<I extends Identity> extends ApiContextHelper<I>
 					// own topics.
 					if ( !acctIdAndTopic[0].equals ( user.getEffectiveUserId () ) )
 					{
-						ApiContextHelper.sendStatusCodeAndMessage ( context, HttpStatusCodes.k401_unauthorized, "You cannot post to this stream." );
+						sendStatusCodeAndMessage ( context, HttpStatusCodes.k401_unauthorized, "You cannot post to this stream." );
 						return;
 					}
 
@@ -153,11 +150,11 @@ public class ReceiverApi<I extends Identity> extends ApiContextHelper<I>
 				}
 				catch ( IOException e )
 				{
-					ApiContextHelper.sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, e.getMessage() );
+					sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, e.getMessage() );
 				}
 				catch ( JSONException e )
 				{
-					ApiContextHelper.sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, e.getMessage() );
+					sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, e.getMessage() );
 				}
 			}
 		} );
@@ -233,10 +230,9 @@ public class ReceiverApi<I extends Identity> extends ApiContextHelper<I>
 		return cth.handle ( context );
 	}
 
-	private static String readRequestBody ( CHttpRequestContext context ) throws IOException
+	private String readRequestBody ( CHttpRequestContext context ) throws IOException
 	{
-		final byte[] inData = StreamTools.readBytes ( context.request().getBodyStream (), 8192,
-			context.systemSettings ().getInt ( kSetting_MaxSenderStreamSize, kDefault_MaxSenderStreamSize ) );
+		final byte[] inData = StreamTools.readBytes ( context.request().getBodyStream (), 8192, fRequestReadLimit );
 		return new String ( inData );
 	}
 
@@ -247,9 +243,10 @@ public class ReceiverApi<I extends Identity> extends ApiContextHelper<I>
 	// 9,223,372,036,854,775,807 events before we need to worry about rollover
 	private static AtomicLong sfCounter = new AtomicLong ( 0 );
 
-	private final IamService<?,?> fAccts;
 	private final ContinualMessagePublisher fMsgPublisher;
 	private final ContinualMessageSink fSink;
+	private final int fRequestReadLimit;
+	private final HashMap<String,ContentTypeHandler> fContentTypeHandlers;
 
 	private interface ContentTypeHandler
 	{
@@ -278,9 +275,8 @@ public class ReceiverApi<I extends Identity> extends ApiContextHelper<I>
 		}
 		return result;
 	}
-	
-	private static HashMap<String,ContentTypeHandler> fContentTypeHandlers = new HashMap<> ();
-	static
+
+	private void setupContentHandlers ()
 	{
 		// JSON content
 		fContentTypeHandlers.put ( MimeTypes.kAppJson, new ContentTypeHandler ()

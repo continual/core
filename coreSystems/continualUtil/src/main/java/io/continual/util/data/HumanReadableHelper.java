@@ -331,6 +331,19 @@ public class HumanReadableHelper
 			final double asMs = value * (60.0 * 1000.0);
 			return Math.round ( asMs );
 		}
+		else if ( duration.endsWith ( "s" ) || duration.endsWith ( "sec" ) || duration.endsWith ( "secs" ) )
+		{
+			final String valueStr = duration.substring ( 0, duration.indexOf ( "s" ) );
+			final double value = Double.parseDouble ( valueStr );
+			final double asMs = value * (1000.0);
+			return Math.round ( asMs );
+		}
+		else if ( duration.endsWith ( "ms" ) || duration.endsWith ( "msec" ) || duration.endsWith ( "millis" ) )
+		{
+			final String valueStr = duration.substring ( 0, duration.indexOf ( "m" ) );
+			final double value = Double.parseDouble ( valueStr );
+			return Math.round ( value );
+		}
 		else
 		{
 			throw new NumberFormatException ( "Can't parse duration [" + duration + "]" );

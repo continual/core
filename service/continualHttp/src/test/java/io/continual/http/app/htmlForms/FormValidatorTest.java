@@ -20,14 +20,15 @@ import java.util.HashMap;
 
 import org.junit.Test;
 
+import io.continual.builder.Builder.BuildFailure;
 import io.continual.http.app.htmlForms.CHttpFormPostWrapper.ParseException;
-import io.continual.http.service.framework.CHttpConnection;
+import io.continual.http.service.framework.CHttpSession;
 import junit.framework.TestCase;
 
-public class FormValidatorTest<C extends CHttpConnection> extends TestCase
+public class FormValidatorTest<C extends CHttpSession> extends TestCase
 {
 	@Test
-	public void testRequiredField () throws CHttpInvalidFormException, ParseException
+	public void testRequiredField () throws CHttpInvalidFormException, ParseException, BuildFailure
 	{
 		final CHttpFormValidator v = new CHttpFormValidator ();
 		v.field ( "test" ).matches ( ".*", "anything" ).defaultValue ( "hiya" );
@@ -41,7 +42,7 @@ public class FormValidatorTest<C extends CHttpConnection> extends TestCase
 	}
 
 	@Test
-	public void testValidation () throws CHttpInvalidFormException
+	public void testValidation () throws CHttpInvalidFormException, BuildFailure
 	{
 		final CHttpFormValidator v = new CHttpFormValidator ();
 		v.field ( "test" ).required ("").matches ( ".*", "anything" ).defaultValue ( "hiya" );
@@ -55,7 +56,7 @@ public class FormValidatorTest<C extends CHttpConnection> extends TestCase
 	}
 
 	@Test
-	public void testMissingField ()
+	public void testMissingField () throws BuildFailure
 	{
 		final CHttpFormValidator v = new CHttpFormValidator ();
 		v.field ( "test" ).required ("");
@@ -77,7 +78,7 @@ public class FormValidatorTest<C extends CHttpConnection> extends TestCase
 	}
 
 	@Test
-	public void testMissingFieldWithDefault ()
+	public void testMissingFieldWithDefault () throws BuildFailure
 	{
 		final CHttpFormValidator v = new CHttpFormValidator ();
 		v.field ( "test" ).defaultValue ( "hiya" );
@@ -97,7 +98,7 @@ public class FormValidatorTest<C extends CHttpConnection> extends TestCase
 	}
 
 	@Test
-	public void testRegexMatches ()
+	public void testRegexMatches () throws BuildFailure
 	{
 		final CHttpFormValidator v = new CHttpFormValidator ();
 		v.field ( "test" ).matches ( "bar|bee", "Test must be bar or bee." );
@@ -118,7 +119,7 @@ public class FormValidatorTest<C extends CHttpConnection> extends TestCase
 	}
 
 	@Test
-	public void testRegexDoesntMatch ()
+	public void testRegexDoesntMatch () throws BuildFailure
 	{
 		final CHttpFormValidator v = new CHttpFormValidator ();
 		v.field ( "test" ).matches ( "bar|bee", "Test must be bar or bee." );

@@ -35,38 +35,6 @@ import io.continual.iam.exceptions.IamSvcException;
 public interface IdentityManager<I extends Identity> extends IdentityDb<I>
 {
 	/**
-	 * Find out if a given user exists.
-	 * @param userId a user ID
-	 * @return true if the user exists in the identity manager.
-	 * @throws IamSvcException when the call cannot be completed due to a service error
-	 */
-	boolean userExists ( String userId ) throws IamSvcException;
-
-	/**
-	 * Find out if a given user or alias exists.
-	 * @param userIdOrAlias the user ID or an alias
-	 * @return true if the user exists by userId or alias in the identity manager.
-	 * @throws IamSvcException when the call cannot be completed due to a service error
-	 */
-	boolean userOrAliasExists ( String userIdOrAlias ) throws IamSvcException;
-
-	/**
-	 * Load a user from the identity manager. 
-	 * @param userId a user ID
-	 * @return a user or null if the user doesn't exist
-	 * @throws IamSvcException when the call cannot be completed due to a service error
-	 */
-	I loadUser ( String userId ) throws IamSvcException;
-
-	/**
-	 * Load a user from the identity manager. 
-	 * @param userIdOrAlias the actual userId or an alias
-	 * @return a user or null if the user doesn't exist
-	 * @throws IamSvcException when the call cannot be completed due to a service error
-	 */
-	I loadUserOrAlias ( String userIdOrAlias ) throws IamSvcException;
-
-	/**
 	 * Find users with a user ID that starts with the given string
 	 * @param startingWith a prefix for users
 	 * @return a list of 0 or more matching user IDs

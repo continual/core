@@ -18,25 +18,30 @@
 package io.continual.http.service.framework.routing.playish;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 
 import org.slf4j.LoggerFactory;
 
 import io.continual.http.service.framework.context.CHttpRequestContext;
+import io.continual.resources.ResourceLoader;
 import io.continual.util.data.StreamTools;
+import io.continual.util.standards.HttpStatusCodes;
 import io.continual.util.standards.MimeTypes;
 
 public class StaticDirHandler implements CHttpPlayishRouteHandler
 {
-	public static final String kMaxAge = StaticFileHandler.kMaxAge;
+	public static final String kSetting_CacheMaxAge = StaticFileHandler.kSetting_CacheMaxAge;
+	public static final int kDefault_CacheMaxAge = StaticFileHandler.kDefault_CacheMaxAge;
 
 	public StaticDirHandler ( String routedPath, String staticDirInfo )
+	{
+		this ( routedPath, staticDirInfo, kDefault_CacheMaxAge );
+	}
+
+	public StaticDirHandler ( String routedPath, String staticDirInfo, int maxCacheAge )
 	{
 		// the format of staticDirInfo is "dir;defaultpage"
 		final String[] parts = staticDirInfo.split ( ";" );
@@ -52,23 +57,25 @@ public class StaticDirHandler implements CHttpPlayishRouteHandler
 		{
 			fDefaultPage = null;
 		}
+
+		fCacheMaxAge = maxCacheAge;
 	}
 
 	@Override
-	public void handle ( CHttpRequestContext context, List<String> args )
+	public void handle ( CHttpRequestContext context, List<String> args ) throws IOException
 	{
 		final String path = context.request ().getPathInContext ();
 		if ( path == null || path.length() == 0 )
 		{
-			log.warn ( "404 [" + path + "] no path provided" );
-			context.response ().sendError ( 404, "no path provided" );
+			log.warn ( "[" + path + "] no path provided" );
+			context.response ().sendError ( HttpStatusCodes.k404_notFound, "no path provided" );
 			return;
 		}
 
 		if ( path.contains ( ".." ) )
 		{
-			log.warn ( "404 [" + path + "] contains parent directory accessor" );
-			context.response ().sendError ( 404, path + " was not found on this server." );
+			log.warn ( "[" + path + "] contains parent directory accessor" );
+			context.response ().sendError ( HttpStatusCodes.k400_badRequest, path + " was not found on this server." );
 			return;
 		}
 
@@ -76,8 +83,8 @@ public class StaticDirHandler implements CHttpPlayishRouteHandler
 		// that with the local dir
 		if ( !path.startsWith ( fRoutedPath ))
 		{
-			log.warn ( "404 [" + path + "] does not start with routed path [" + fRoutedPath + "]" );
-			context.response ().sendError ( 404, path + " is not a matching path" );
+			log.warn ( "[" + path + "] does not start with routed path [" + fRoutedPath + "]" );
+			context.response ().sendError ( HttpStatusCodes.k500_internalServerError, path + " is not a matching path" );
 			return;
 		}
 
@@ -87,39 +94,35 @@ public class StaticDirHandler implements CHttpPlayishRouteHandler
 			fDir + File.separator + fDefaultPage:
 			fDir + File.separator + relPath;
 
-		final URL in = context.getServlet ().findStream ( newPath );
+		log.info ( "finding stream [" + newPath + "]" );
+		final InputStream is = new ResourceLoader()
+			.usingStandardSources ( true, this.getClass () )
+			.named ( newPath )
+			.load ()
+		;
 
-		log.info ( "Path [" + path + "] ==> [" + ( in == null ? "<not found>" : in.toString () ) + "]." );
-		if ( in == null )
+		log.info ( "Path [" + path + "] ==> [" + ( is == null ? "<not found>" : newPath ) + "]." );
+		if ( is == null )
 		{
-			context.response ().sendError ( 404, path + " was not found on this server." );
+			context.response ().sendError ( HttpStatusCodes.k404_notFound, path + " was not found on this server." );
 		}
 		else
 		{
-			final String contentType = mapToContentType ( in.toString () );
+			final String contentType = mapToContentType ( newPath );
 
-			// expiry. currently global.
-			final int cacheMaxAge = context.systemSettings ().getInt ( kMaxAge, -1 );
-			if ( cacheMaxAge > 0 )
+			// cache expiration
+			if ( fCacheMaxAge > 0 )
 			{
-				context.response().writeHeader ( "Cache-Control", "max-age=" + cacheMaxAge, true );
+				context.response().writeHeader ( "Cache-Control", "max-age=" + fCacheMaxAge, true );
 			}
 			
 			try
 			{
-				final InputStream is = in.openStream ();
-				final OutputStream os = context.response ().getStreamForBinaryResponse ( contentType );
-				StreamTools.copyStream ( is, os );
+				StreamTools.copyStream ( is, context.response ().getStreamForBinaryResponse ( contentType ) );
 			}
-			catch ( FileNotFoundException e )
+			finally
 			{
-				log.warn ( "404 [" + path + "]==>[" + path + "] (" + in.toString () + ")" );
-				context.response ().sendError ( 404, path + " was not found on this server." );
-			}
-			catch ( IOException e )
-			{
-				log.warn ( "500 [" + in.toString () + "]: " + e.getMessage () );
-				context.response ().sendError ( 500, e.getMessage () );
+				is.close ();
 			}
 		}
 	}
@@ -127,6 +130,7 @@ public class StaticDirHandler implements CHttpPlayishRouteHandler
 	private final String fRoutedPath;
 	private final String fDir;
 	private final String fDefaultPage;
+	private final int fCacheMaxAge;
 
 	private static final org.slf4j.Logger log = LoggerFactory.getLogger ( StaticDirHandler.class );
 
@@ -143,7 +147,11 @@ public class StaticDirHandler implements CHttpPlayishRouteHandler
 		sfContentTypes.put ( "htm", MimeTypes.kHtml );
 		sfContentTypes.put ( "html", MimeTypes.kHtml );
 
+		sfContentTypes.put ( "txt", MimeTypes.kPlainText );
+		sfContentTypes.put ( "log", MimeTypes.kPlainText );
+
 		sfContentTypes.put ( "js", MimeTypes.kAppJavascript );
+		sfContentTypes.put ( "json", MimeTypes.kAppJson );
 
 		sfContentTypes.put ( "eot", MimeTypes.kFontEot );
 		sfContentTypes.put ( "woff", MimeTypes.kFontWoff );
@@ -168,7 +176,7 @@ public class StaticDirHandler implements CHttpPlayishRouteHandler
 		if ( result == null )
 		{
 			log.warn ( "Unknown content type [" + name + "]. Sending text/plain. (See " + StaticDirHandler.class.getSimpleName () + "::sfContentTypes)" );
-			result = "text/plain";
+			result = MimeTypes.kPlainText;
 		}
 		return result;
 	}

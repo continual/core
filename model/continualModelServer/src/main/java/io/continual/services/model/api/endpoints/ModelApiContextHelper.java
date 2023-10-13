@@ -18,20 +18,20 @@ package io.continual.services.model.api.endpoints;
 
 import java.io.IOException;
 
-import io.continual.iam.IamService;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
+import io.continual.http.app.servers.CorsOptionsRouter;
+import io.continual.http.app.servers.endpoints.TypicalRestApiEndpoint;
 import io.continual.http.service.framework.context.CHttpRequestContext;
-import io.continual.iam.IamServiceManager;
+import io.continual.iam.IamService;
 import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.Identity;
 import io.continual.iam.identity.UserContext;
-import io.continual.restHttp.ApiContextHelper;
-import io.continual.restHttp.HttpServlet;
+import io.continual.services.ServiceContainer;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.model.service.ModelService;
@@ -40,18 +40,18 @@ import io.continual.util.naming.Path;
 import io.continual.util.standards.HttpStatusCodes;
 import io.continual.util.standards.MimeTypes;
 
-public class ModelApiContextHelper extends ApiContextHelper<Identity>
+public class ModelApiContextHelper extends TypicalRestApiEndpoint<Identity>
 {
-	public ModelApiContextHelper ( ModelService ms )
+	public ModelApiContextHelper ( ServiceContainer sc, JSONObject config, ModelService ms ) throws BuildFailure
 	{
+		super ( sc, config );
+
 		fModelService = ms;
 	}
 
 	public interface ModelApiContext
 	{
 		CHttpRequestContext getHttpContext ();
-
-		HttpServlet getHttpServlet ();
 
 		UserContext<?> getUserContext ();
 
@@ -104,12 +104,11 @@ public class ModelApiContextHelper extends ApiContextHelper<Identity>
 	{
 		try
 		{
-			final HttpServlet servlet = (HttpServlet) context.getServlet ();
-			final IamServiceManager<?,?> as = getAccountsSvc ( context );
+			final IamService<?,?> as = getInternalAccts ();
 
-			setupCorsHeaders ( context );
+			CorsOptionsRouter.setupCorsHeaders ( context );
 
-			final UserContext<?> userContext = getUser ( as, context );
+			final UserContext<?> userContext = getUser ( context );
 			if ( userContext == null )
 			{
 				sendNotAuth ( context );
@@ -123,9 +122,6 @@ public class ModelApiContextHelper extends ApiContextHelper<Identity>
 			{
 				@Override
 				public CHttpRequestContext getHttpContext () { return context; }
-
-				@Override
-				public HttpServlet getHttpServlet () { return servlet; }
 
 				@Override
 				public UserContext<?> getUserContext () { return userContext; }

@@ -5,12 +5,12 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.continual.iam.credentials.ApiKeyCredential;
-import io.continual.util.nv.impl.nvReadableTable;
 import junit.framework.TestCase;
 
 public class ApiKeyAuthHelperTest extends TestCase
@@ -30,7 +30,7 @@ public class ApiKeyAuthHelperTest extends TestCase
 	@Test
 	public void testReadApiKeyCredential_Valid ()
 	{
-		final ApiKeyCredential akc = ApiKeyAuthHelper.readApiKeyCredential ( new nvReadableTable () , thr , "continual" );
+		final ApiKeyCredential akc = ApiKeyAuthHelper.readApiKeyCredential ( new JSONObject () , thr , "continual" );
 		assertNotNull ( akc );
 		assertEquals ( "continual" , akc.getApiKey () );
 		assertEquals ( "continual" , akc.getSignature () );
@@ -42,13 +42,13 @@ public class ApiKeyAuthHelperTest extends TestCase
 	{
 		final TestHeaderReader invalidThr = new TestHeaderReader ();
 		invalidThr.put ( ApiKeyAuthHelper.kDefault_AuthLineHeader , "continual:continual" );
-		assertNull ( ApiKeyAuthHelper.readApiKeyCredential ( new nvReadableTable () , invalidThr , null ) );
+		assertNull ( ApiKeyAuthHelper.readApiKeyCredential ( new JSONObject () , invalidThr , null ) );
 	}
 
 	@Test
 	public void testReadApiKeyCredential_SignedContent ()
 	{
-		assertNull ( ApiKeyAuthHelper.readApiKeyCredential ( new nvReadableTable () , new TestHeaderReader () , null ) );
+		assertNull ( ApiKeyAuthHelper.readApiKeyCredential ( new JSONObject () , new TestHeaderReader () , null ) );
 	}
 
 	@Test
@@ -58,7 +58,7 @@ public class ApiKeyAuthHelperTest extends TestCase
 		invalidThr.put ( ApiKeyAuthHelper.kDefault_AuthLineHeader , "continual_continual" );
 		invalidThr.put ( ApiKeyAuthHelper.kDefault_DateLineHeader , new SimpleDateFormat ( 
 				SignedContentReader.kPreferredDateFormat , Locale.US ).format( new java.util.Date () ) );
-		assertNull ( ApiKeyAuthHelper.readApiKeyCredential ( new nvReadableTable () , invalidThr , null ) );
+		assertNull ( ApiKeyAuthHelper.readApiKeyCredential ( new JSONObject () , invalidThr , null ) );
 	}
 
 	@Test

@@ -16,17 +16,27 @@
 
 package io.continual.services.model.api.endpoints;
 
+import org.json.JSONObject;
+
+import io.continual.builder.Builder.BuildFailure;
+import io.continual.http.app.servers.CorsOptionsRouter;
+import io.continual.http.app.servers.endpoints.TypicalRestApiEndpoint;
 import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.http.service.framework.context.CHttpResponse;
 import io.continual.iam.identity.Identity;
-import io.continual.restHttp.ApiContextHelper;
+import io.continual.services.ServiceContainer;
 import io.continual.util.standards.HttpStatusCodes;
 
-public class Options extends ApiContextHelper<Identity>
+public class Options extends TypicalRestApiEndpoint<Identity>
 {
+	public Options ( ServiceContainer sc, JSONObject settings ) throws BuildFailure
+	{
+		super ( sc, settings );
+	}
+
 	public static void listOptions ( CHttpRequestContext context, final String path )
 	{
-		setupCorsHeaders ( context );
+		CorsOptionsRouter.setupCorsHeaders ( context );
 
 		final CHttpResponse reply = context.response ();
 		reply.setStatus ( HttpStatusCodes.k204_noContent );

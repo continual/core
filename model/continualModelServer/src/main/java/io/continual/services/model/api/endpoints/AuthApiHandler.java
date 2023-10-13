@@ -7,31 +7,38 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.continual.builder.Builder.BuildFailure;
 import io.continual.email.impl.SimpleEmailService;
+import io.continual.http.app.servers.endpoints.TypicalRestApiEndpoint;
 import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.iam.IamServiceManager;
 import io.continual.iam.credentials.UsernamePasswordCredential;
 import io.continual.iam.exceptions.IamBadRequestException;
 import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.Identity;
+import io.continual.iam.identity.IdentityDb;
 import io.continual.iam.identity.UserContext;
-import io.continual.restHttp.ApiContextHelper;
-import io.continual.restHttp.HttpServlet;
 import io.continual.services.ServiceContainer;
-import io.continual.util.nv.NvReadable;
-import io.continual.util.time.Clock;
 import io.continual.util.standards.HttpStatusCodes;
+import io.continual.util.time.Clock;
 
 /**
  * Auth API
+ * @deprecated Identity management should be centralized in the IAM service
  */
-public class AuthApiHandler extends ApiContextHelper<Identity>
+@Deprecated
+public class AuthApiHandler extends TypicalRestApiEndpoint<Identity>
 {
 	private static final String kSetting_PwResetLink = "passwordResetLinkBase";
 	private static final String kDefault_PwResetLink = "https://docs.cfgex.com/pwr";
 
-	public AuthApiHandler ( ServiceContainer sc, JSONObject config )
+	private static final String kSetting_Emailer = "emailer";
+	private static final String kDefault_Emailer = "emailer";
+
+	public AuthApiHandler ( ServiceContainer sc, JSONObject config ) throws BuildFailure
 	{
+		super ( sc, config );
+
 		final String baseUrlConfig = config.optString ( kSetting_PwResetLink, kDefault_PwResetLink );
 		String baseUrlEvaled = sc.getExprEval ().evaluateText ( baseUrlConfig );
 		if ( baseUrlEvaled == null || baseUrlEvaled.length () == 0 )
@@ -40,18 +47,11 @@ public class AuthApiHandler extends ApiContextHelper<Identity>
 			baseUrlEvaled = kDefault_PwResetLink;
 		}
 		fResetUrl = sc.getExprEval ().evaluateText ( config.optString ( kSetting_PwResetLink, kDefault_PwResetLink ) );
-	}
 
-	public AuthApiHandler ( ServiceContainer sc, NvReadable config )
-	{
-		final String baseUrlConfig = config.getString ( kSetting_PwResetLink, kDefault_PwResetLink );
-		String baseUrlEvaled = sc.getExprEval ().evaluateText ( baseUrlConfig );
-		if ( baseUrlEvaled == null || baseUrlEvaled.length () == 0 )
-		{
-			log.warn ( "Password reset link config eval'd to an empty string. Using default." );
-			baseUrlEvaled = kDefault_PwResetLink;
-		}
-		fResetUrl = sc.getExprEval ().evaluateText ( config.getString ( kSetting_PwResetLink, kDefault_PwResetLink ) );
+		fEmailSvc = sc.getReqd ( sc.getExprEval ().evaluateText ( config.optString ( kSetting_Emailer, kDefault_Emailer ) ), SimpleEmailService.class );
+
+		// we need an accts mgr (vs simple identity db) here for password resets
+		fAcctsMgr = sc.getReqd ( getAcctsSvcName ( config ), IamServiceManager.class );
 	}
 
 	public void login ( CHttpRequestContext context ) throws IamSvcException, IOException
@@ -62,11 +62,11 @@ public class AuthApiHandler extends ApiContextHelper<Identity>
 			final String username = body.getString ( "username" );
 			final String password = body.getString ( "password" );
 
-			final IamServiceManager<?,?> am = HttpServlet.getServices ( context ).get ( "accounts", IamServiceManager.class );
-			final Identity ii = am.getIdentityDb ().authenticate ( new UsernamePasswordCredential ( username, password ) );
+			final IdentityDb<Identity> idb = getInternalAccts().getIdentityDb ();
+			final Identity ii = idb.authenticate ( new UsernamePasswordCredential ( username, password ) );
 			if ( ii != null )
 			{
-				final String token = am.getIdentityDb ().createJwtToken ( ii );
+				final String token = idb.createJwtToken ( ii );
 
 				sendJson ( context, new JSONObject ()
 					.put ( "status", "ok" )
@@ -90,15 +90,14 @@ public class AuthApiHandler extends ApiContextHelper<Identity>
 		final UserContext<Identity> user = getUser ( context );
 		if ( user != null )
 		{
-			final IamServiceManager<?,?> am = HttpServlet.getServices ( context ).get ( "accounts", IamServiceManager.class );
-
 			final String authHeader = context.request ().getFirstHeader ( "Authorization" );
 			if ( authHeader != null && authHeader.startsWith ( "Bearer " ) )
 			{
 				final String[] parts = authHeader.split ( " " );
 				if ( parts.length == 2 )
 				{
-					am.getIdentityDb ().invalidateJwtToken ( parts[1] );
+					final IdentityDb<Identity> idb = getInternalAccts().getIdentityDb ();
+					idb.invalidateJwtToken ( parts[1] );
 				}
 			}
 		}
@@ -119,8 +118,8 @@ public class AuthApiHandler extends ApiContextHelper<Identity>
 		final String password = body.getString ( "currentPassword" );
 		final String newPassword = body.getString ( "newPassword" );
 
-		final IamServiceManager<?,?> am = HttpServlet.getServices ( context ).get ( "accounts", IamServiceManager.class );
-		final Identity ii = am.getIdentityDb ().authenticate ( new UsernamePasswordCredential ( username, password ) );
+		final IdentityDb<Identity> idb = getInternalAccts().getIdentityDb ();
+		final Identity ii = idb.authenticate ( new UsernamePasswordCredential ( username, password ) );
 		if ( ii == null )
 		{
 			sendNotAuth ( context );
@@ -137,29 +136,28 @@ public class AuthApiHandler extends ApiContextHelper<Identity>
 	{
 		try
 		{
-			final IamServiceManager<?,?> am = HttpServlet.getServices ( context ).get ( "accounts", IamServiceManager.class );
-			final SimpleEmailService emailSvc = HttpServlet.getServices ( context ).get ( "emailer", SimpleEmailService.class );
-
 			final JSONObject body = readBody ( context );
 			final String email = body.optString ( "email", null );
 			final String tag = body.optString ( "tag", null );
 			final String newPassword = body.optString ( "newPassword", null );
 
+			final IdentityDb<Identity> idb = getInternalAccts().getIdentityDb ();
+
 			if ( email != null )
 			{
-				final Identity ii = am.getIdentityManager ().loadUser ( email );
+				final Identity ii = idb.loadUser ( email );
 				if ( ii != null )
 				{
 					final String newTag = ii.requestPasswordReset ( 60 * 60 * 24, "cfgex.docs.app." + Clock.now () );
 					final String msg = buildResetMsg ( email, newTag );
-					emailSvc.mail ( email, "Password reset instructions", msg );
+					fEmailSvc.mail ( email, "Password reset instructions", msg );
 				}
 			}
 			else if ( tag != null && newPassword != null )
 			{
 				try
 				{
-					if ( !am.getIdentityManager ().completePasswordReset ( tag, newPassword ) )
+					if ( !fAcctsMgr.getIdentityManager ().completePasswordReset ( tag, newPassword ) )
 					{
 						sendJson ( context, HttpStatusCodes.k400_badRequest, new JSONObject ().put ( "status", "error" ) );
 						return;
@@ -205,6 +203,8 @@ public class AuthApiHandler extends ApiContextHelper<Identity>
 	}
 
 	private final String fResetUrl;
+	private final SimpleEmailService fEmailSvc;
+	private final IamServiceManager<?,?> fAcctsMgr;
 
 	private static final Logger log = LoggerFactory.getLogger ( AuthApiHandler.class );
 }

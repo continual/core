@@ -22,6 +22,8 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
+import io.continual.util.standards.HttpHeaders;
+
 /**
  * A request made to a servlet.
  */
@@ -59,11 +61,31 @@ public interface CHttpRequest
 	String getFirstHeader ( String header );
 
 	/**
+	 * Get the first value (of 1 or more) for a given header name.
+	 * @param header
+	 * @return null if the header does not exist, or the first value otherwise
+	 */
+	default String getFirstHeader ( HttpHeaders header )
+	{
+		return getFirstHeader ( header.toString () );
+	}
+
+	/**
 	 * Get all values for a given header.
 	 * @param header
 	 * @return a list of 0 or more values
 	 */
 	List<String> getHeader ( String header );
+
+	/**
+	 * Get all values for a given header.
+	 * @param header
+	 * @return a list of 0 or more values
+	 */
+	default List<String> getHeader ( HttpHeaders header )
+	{
+		return getHeader ( header.toString () );
+	}
 
 	/**
 	 * Get all headers.
@@ -180,7 +202,16 @@ public interface CHttpRequest
 	 */
 	String getBestRemoteAddress ();
 
+	/**
+	 * Get the actual connected port number
+	 * @return the actual connected client port number
+	 */
 	int getActualRemotePort ();
+
+	/**
+	 * Get the best connected port number, respecting standard proxy headers
+	 * @return a client port number
+	 */
 	int getBestRemotePort ();
 	
 	/**

@@ -5,32 +5,39 @@ import java.io.IOException;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import io.continual.builder.Builder.BuildFailure;
+import io.continual.http.app.servers.CorsOptionsRouter;
+import io.continual.http.app.servers.endpoints.TypicalRestApiEndpoint;
 import io.continual.http.service.framework.context.CHttpRequestContext;
-import io.continual.iam.IamServiceManager;
+import io.continual.iam.IamService;
 import io.continual.iam.credentials.UsernamePasswordCredential;
 import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.Identity;
 import io.continual.iam.identity.UserContext;
-import io.continual.restHttp.ApiContextHelper;
-import io.continual.restHttp.HttpServlet;
+import io.continual.services.ServiceContainer;
 import io.continual.util.standards.HttpStatusCodes;
 
 /**
  * Auth API
  */
-public class AuthApiHandler extends ApiContextHelper<Identity>
+public class AuthApiHandler<I extends Identity> extends TypicalRestApiEndpoint<I>
 {
+	public AuthApiHandler ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	{
+		super ( sc, config );
+	}
+
 	public void login ( CHttpRequestContext context ) throws IamSvcException, IOException
 	{
 		try
 		{
-			setupCorsHeaders ( context );
+			CorsOptionsRouter.setupCorsHeaders ( context );
 
 			final JSONObject body = readBody ( context );
 			final String username = readJsonString ( body, "username" );
 			final String password = readJsonString ( body, "password" );
 
-			final IamServiceManager<?,?> am = HttpServlet.getServices ( context ).get ( "accounts", IamServiceManager.class );
+			final IamService<?,?> am = super.getInternalAccts ();
 			final Identity ii = am.getIdentityDb ().authenticate ( new UsernamePasswordCredential ( username, password ) );
 			if ( ii != null )
 			{
@@ -57,12 +64,12 @@ public class AuthApiHandler extends ApiContextHelper<Identity>
 
 	public void logout ( CHttpRequestContext context ) throws IamSvcException, IOException
 	{
-		setupCorsHeaders ( context );
+		CorsOptionsRouter.setupCorsHeaders ( context );
 
-		final UserContext<Identity> user = getUser ( context );
+		final UserContext<I> user = getUser ( context );
 		if ( user != null )
 		{
-			final IamServiceManager<?,?> am = HttpServlet.getServices ( context ).get ( "accounts", IamServiceManager.class );
+			final IamService<?,?> am = super.getInternalAccts ();
 
 			final String authHeader = context.request ().getFirstHeader ( "Authorization" );
 			if ( authHeader != null && authHeader.startsWith ( "Bearer " ) )
@@ -78,9 +85,9 @@ public class AuthApiHandler extends ApiContextHelper<Identity>
 
 	public void changePassword ( CHttpRequestContext context ) throws IamSvcException, IOException
 	{
-		setupCorsHeaders ( context );
+		CorsOptionsRouter.setupCorsHeaders ( context );
 
-		final UserContext<Identity> user = getUser ( context );
+		final UserContext<I> user = getUser ( context );
 		if ( user == null )
 		{
 			sendNotAuth ( context );
@@ -93,7 +100,7 @@ public class AuthApiHandler extends ApiContextHelper<Identity>
 		final String password = body.getString ( "currentPassword" );
 		final String newPassword = body.getString ( "newPassword" );
 
-		final IamServiceManager<?,?> am = HttpServlet.getServices ( context ).get ( "accounts", IamServiceManager.class );
+		final IamService<?,?> am = super.getInternalAccts ();
 		final Identity ii = am.getIdentityDb ().authenticate ( new UsernamePasswordCredential ( username, password ) );
 		if ( ii == null )
 		{

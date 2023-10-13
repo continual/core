@@ -18,6 +18,8 @@ package io.continual.util.legal;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.continual.util.version.CVersionInfo;
+
 public class CopyrightGenerator
 {
 	public static CopyrightGenerator getStandardNotice ()
@@ -76,7 +78,7 @@ public class CopyrightGenerator
 
 	private static int thisYear ()
 	{
-		return StdCopyrightInfo.kBuildYear;
+		return CVersionInfo.getBuildYear ();
 	}
 
 	private class HolderInfo

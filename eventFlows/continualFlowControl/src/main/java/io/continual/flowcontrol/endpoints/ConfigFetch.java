@@ -4,20 +4,26 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import org.json.JSONObject;
+
+import io.continual.builder.Builder.BuildFailure;
 import io.continual.flowcontrol.controlapi.ConfigTransferService;
 import io.continual.flowcontrol.controlapi.ConfigTransferService.ServiceException;
+import io.continual.http.app.servers.endpoints.TypicalRestApiEndpoint;
 import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.http.service.framework.context.CHttpResponse;
 import io.continual.iam.identity.Identity;
-import io.continual.restHttp.ApiContextHelper;
+import io.continual.services.ServiceContainer;
 import io.continual.util.data.StreamTools;
-import io.continual.util.standards.MimeTypes;
 import io.continual.util.standards.HttpStatusCodes;
+import io.continual.util.standards.MimeTypes;
 
-public class ConfigFetch<I extends Identity> extends ApiContextHelper<I>
+public class ConfigFetch<I extends Identity> extends TypicalRestApiEndpoint<I>
 {
-	public ConfigFetch ( ConfigTransferService configTransfer )
+	public ConfigFetch ( ServiceContainer sc, JSONObject config, ConfigTransferService configTransfer ) throws BuildFailure
 	{
+		super ( sc, config );
+
 		fConfigTransfer = configTransfer;
 	}
 

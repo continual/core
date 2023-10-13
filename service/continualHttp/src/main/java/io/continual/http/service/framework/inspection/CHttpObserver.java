@@ -6,9 +6,6 @@ import java.io.PrintWriter;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.ServletInputStream;
-import javax.servlet.ServletOutputStream;
-
 public interface CHttpObserver
 {
 	CHttpObserver method ( String method );
@@ -21,7 +18,7 @@ public interface CHttpObserver
 
 	CHttpObserver contentLengthRequest ( int length );
 
-	InputStream wrap ( ServletInputStream inputStream );
+	InputStream wrap ( InputStream inputStream );
 
 	interface HeaderLister
 	{
@@ -39,5 +36,5 @@ public interface CHttpObserver
 
 	PrintWriter wrap ( PrintWriter writer );
 
-	OutputStream wrap ( ServletOutputStream outputStream );
+	OutputStream wrap ( OutputStream outputStream );
 }

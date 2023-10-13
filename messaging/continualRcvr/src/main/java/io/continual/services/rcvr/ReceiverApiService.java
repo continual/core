@@ -1,53 +1,23 @@
 package io.continual.services.rcvr;
 
-import java.io.IOException;
-
 import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.http.service.framework.routing.CHttpRequestRouter;
-import io.continual.http.service.framework.routing.playish.CHttpPlayishInstanceCallRoutingSource;
+import io.continual.http.app.servers.routeInstallers.TypicalApiServiceRouteInstaller;
+import io.continual.http.service.framework.CHttpService;
 import io.continual.iam.identity.Identity;
-import io.continual.resources.ResourceLoader;
-import io.continual.restHttp.BaseApiServiceRouter;
-import io.continual.restHttp.HttpService;
-import io.continual.restHttp.HttpServlet;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
-import io.continual.util.nv.NvReadable;
 
 public class ReceiverApiService<I extends Identity> extends SimpleService
 {
 	public ReceiverApiService ( ServiceContainer sc, JSONObject config ) throws BuildFailure
 	{
-		final HttpService server = sc.get ( config.optString ( "httpService", "httpService" ), HttpService.class );
-		server.addRouter (
-			"rcvrApi",
-			new BaseApiServiceRouter ()
-			{
-				@Override
-				public void setupRouter ( HttpServlet servlet, CHttpRequestRouter rr, NvReadable p ) throws IOException, BuildFailure
-				{
-					super.setupExceptionHandlers ( servlet, rr, p );
+		final CHttpService http = sc.getReqd ( config.optString ( "httpService", "httpService" ), CHttpService.class );
 
-					// setup routes
-					for ( String routeFile : new String[]
-						{
-							"rcvrRoutes.conf"
-						} )
-					{
-						log.debug ( "Loading routes from " + routeFile );
-						rr.addRouteSource ( new CHttpPlayishInstanceCallRoutingSource<ReceiverApi<I>> (
-							new ReceiverApi<I> ( sc, config ),
-							ResourceLoader.load ( routeFile ) )
-						);
-					}
-				}
-			}
+		http.addRouteInstaller (
+			new TypicalApiServiceRouteInstaller ()
+				.registerRoutes ( "rcvrRoutes.conf", new ReceiverApi<I> ( sc, config ) )
 		);
 	}
-
-	private static final Logger log = LoggerFactory.getLogger ( ReceiverApiService.class );
 }

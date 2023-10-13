@@ -1,5 +1,8 @@
 package io.continual.util.legal;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -29,10 +32,10 @@ public class CopyrightGeneratorTest {
 		Assert.assertTrue(copyright.getCopyrightNotices().size() == 2);
 		
 		Assert.assertNotNull(copyright.getCopyrightNotices().get(0));
-		Assert.assertEquals("(c) 1984-2022, hold", copyright.getCopyrightNotices().get(0));
+		Assert.assertEquals("(c) 1984-" + thisYear() + ", hold", copyright.getCopyrightNotices().get(0));
 		
 		Assert.assertNotNull(copyright.getCopyrightNotices().get(1));
-		Assert.assertEquals("(c) 2004-2022, Continual.io Corporation", copyright.getCopyrightNotices().get(1));
+		Assert.assertEquals("(c) 2004-" + thisYear() + ", Continual.io Corporation", copyright.getCopyrightNotices().get(1));
 	}
 	
 	@Test
@@ -40,7 +43,7 @@ public class CopyrightGeneratorTest {
 		String copyright = CopyrightGenerator.getCopyrightNotice();
 		Assert.assertNotNull(copyright);
 		Assert.assertFalse(copyright.isEmpty());
-		Assert.assertEquals("(c) 2004-2022, Continual.io Corporation", copyright);
+		Assert.assertEquals("(c) 2004-" + thisYear() + ", Continual.io Corporation", copyright);
 	}
 	
 	@Test
@@ -48,7 +51,7 @@ public class CopyrightGeneratorTest {
 		String copyright = CopyrightGenerator.getCopyrightNotice("hold", 1984);
 		Assert.assertNotNull(copyright);
 		Assert.assertFalse(copyright.isEmpty());
-		Assert.assertEquals("(c) 1984-2022, hold", copyright);
+		Assert.assertEquals("(c) 1984-" + thisYear() + ", hold", copyright);
 	}
 	
 	@Test
@@ -67,4 +70,8 @@ public class CopyrightGeneratorTest {
 		Assert.assertEquals("1984", copyright);
 	}
 	
+	private static String thisYear ()
+	{
+		return new SimpleDateFormat ( "YYYY" ).format ( new Date () );
+	}
 }
