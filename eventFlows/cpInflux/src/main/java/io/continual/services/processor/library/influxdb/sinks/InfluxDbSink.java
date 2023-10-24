@@ -142,6 +142,7 @@ public class InfluxDbSink extends IdbConnector implements Sink
 	{
 		final long timeMs = context.evalExpression ( fTimeExpr, Long.class );
 
+		@SuppressWarnings("null")
 		Point p = Point
 			.measurement ( context.evalExpression ( fMeasurementExpr ) )
 			.time ( Instant.ofEpochMilli ( timeMs ), WritePrecision.MS )
@@ -149,6 +150,7 @@ public class InfluxDbSink extends IdbConnector implements Sink
 
 		JsonVisitor.forEachElement ( fDataFields, new ObjectVisitor<JSONObject,NumberFormatException> ()
 		{
+			@SuppressWarnings("null")
 			@Override
 			public boolean visit ( String key, JSONObject entry ) throws JSONException, NumberFormatException
 			{
@@ -184,6 +186,7 @@ public class InfluxDbSink extends IdbConnector implements Sink
 
 		JsonVisitor.forEachElement ( fTags, new ObjectVisitor<String,JSONException> ()
 		{
+			@SuppressWarnings("null")
 			@Override
 			public boolean visit ( String key, String t ) throws JSONException
 			{

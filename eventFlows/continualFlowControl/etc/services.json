@@ -28,7 +28,7 @@
 				"class": "io.continual.services.model.impl.files.FileSystemModel",
 				"acctId": "none",
 				"modelId": "jobDb",
-				"baseDir": "/Users/peter/vols/code/continual/private/continual_private/eventFlows/continualFlowControl/etc/jobdb"
+				"baseDir": "/tmp/flowControlJobDb"
 			},
 
 			"secretEncryptKey": "fuga.key.123"
@@ -48,11 +48,20 @@
 		},
 
 		//
+		//	template engine
+		//
+		{
+			"name": "goTemplateEngine",
+			"class": "io.continual.templating.impl.golang.GoTemplateEngine"
+		},
+
+		//
 		//	controller
 		//
 		{
 			"name": "controller",
 			"class": "io.continual.flowcontrol.impl.controller.k8s.K8sController",
+			"dumpInitYaml": true,	// debugging
 
 			"configTransfer": "configTransfer",
 
@@ -63,6 +72,8 @@
 
 //			"context": "do-nyc3-rr-k8s-do-nyc3",
 //			"storageClass": "do-block-storage",
+
+			"templateEngine": "goTemplateEngine",
 
 			"namespace": "flowcontrol"
 		},

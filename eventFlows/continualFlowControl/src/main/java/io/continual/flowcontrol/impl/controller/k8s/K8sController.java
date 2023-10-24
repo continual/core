@@ -32,6 +32,7 @@ import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.templating.ContinualTemplateContext;
 import io.continual.templating.ContinualTemplateEngine;
+import io.continual.templating.ContinualTemplateEngine.TemplateParseException;
 import io.continual.templating.ContinualTemplateSource;
 import io.continual.templating.ContinualTemplateSource.TemplateNotFoundException;
 import io.continual.templating.impl.dollarEval.DollarEvalTemplateEngine;
@@ -103,6 +104,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	static final String kSetting_DefaultPersistDiskSize = "defaultPersistDiskSize";
 	static final String kSetting_DefaultLogDiskSize = "defaultLogDiskSize";
 
+	static final String kSetting_DeploySpecCtxPop = "deploymentSpecToContext";
 	static final String kSetting_TemplateEngine = "templateEngine";
 
 	public K8sController ( ServiceContainer sc, JSONObject rawConfig ) throws BuildFailure
@@ -151,6 +153,17 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		fDefPersistDiskSize = config.optString ( kSetting_DefaultPersistDiskSize, null );
 		fDefLogDiskSize = config.optString ( kSetting_DefaultLogDiskSize, null );
 
+		final String deploySpecCtxPopSpec = config.optString ( kSetting_DeploySpecCtxPop, null );
+		if ( deploySpecCtxPopSpec != null )
+		{
+			fDeploySpecPopulator = sc.getReqd ( deploySpecCtxPopSpec, DeploySpecTranslator.class );
+		}
+		else
+		{
+			log.info ( "No deployment spec to context translator specified; defaulting to {}.", StdDeploySpecTranslator.class.getSimpleName () );
+			fDeploySpecPopulator = new StdDeploySpecTranslator ( sc, new JSONObject () );
+		}
+		
 		final String templateEngineSpec = config.optString ( kSetting_TemplateEngine, null );
 		if ( templateEngineSpec != null )
 		{
@@ -189,23 +202,6 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 
 			final String targetConfigFile = fConfigMountLoc + "/jobConfig.json";
 
-			final JSONObject replacements = new JSONObject ()
-				.put ( "CONFIG_URL", "${CONFIG_URL}" )	// this is to restore the evaluation text that's required during actual deployment
-				.put ( "FC_DEPLOYMENT_NAME", tag )
-				.put ( "FC_JOB_TAG", "job-" + tag )
-				.put ( "FC_JOB_ID", jobId )
-				.put ( "FC_INSTANCE_COUNT", "" + ds.getInstanceCount () )
-				.put ( "FC_RUNTIME_IMAGE", fImageMapper.getImageName ( ds.getJob ().getRuntimeSpec () ) )
-				.put ( "FC_CONFIG_MOUNT", fConfigMountLoc )
-				.put ( "FC_PERSISTENCE_MOUNT", fPersistMountLoc )
-				.put ( "FC_LOGS_MOUNT", fLogsMountLoc )
-				.put ( "FC_CONFIG_FILE", targetConfigFile )
-				.put ( "FC_STORAGE_CLASS", fInitYamlStorageClass )
-				.put ( "FC_STORAGE_SIZE", ds.getResourceSpecs().persistDiskSize () )
-				.put ( "FC_LOGS_SIZE", ds.getResourceSpecs().logDiskSize () )
-			;
-//			replacements.put ( "FC_IMAGE_PULL_SECRET", "regcred" );
-
 			// place any secrets from this job
 			final String secretsName = tagToSecret ( tag );
 
@@ -217,6 +213,8 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 					.withName ( secretsName )
 				.endMetadata ()
 			;
+
+			// iterate through registered secrets and add them to the secret builder
 			boolean anyInternalSecrets = false;
 			for ( Map.Entry<String,String> secret : secrets.entrySet () )
 			{
@@ -243,7 +241,33 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 			{
 				if ( deployTemplate == null ) throw new ServiceException ( "Couldn't load " + fInitYamlResource );
 
-				final String deployYaml = replaceAllTokens ( deployTemplate, replacements );
+				// get a template context and initialize it with basic information
+				final ContinualTemplateContext templateCtx = fTemplateEngine.createContext ();
+				templateCtx
+					.putAll ( System.getenv () )
+					.put ( "CONFIG_URL", "${CONFIG_URL}" )	// this is to restore the evaluation text that's required during actual deployment
+					.put ( "FC_DEPLOYMENT_NAME", tag )
+					.put ( "FC_JOB_TAG", "job-" + tag )
+					.put ( "FC_JOB_ID", jobId )
+					.put ( "FC_CONFIG_MOUNT", fConfigMountLoc )
+					.put ( "FC_PERSISTENCE_MOUNT", fPersistMountLoc )
+					.put ( "FC_LOGS_MOUNT", fLogsMountLoc )
+					.put ( "FC_CONFIG_FILE", targetConfigFile )
+					.put ( "FC_RUNTIME_IMAGE", fImageMapper.getImageName ( ds.getJob ().getRuntimeSpec () ) )
+					.put ( "FC_STORAGE_CLASS", fInitYamlStorageClass )
+//					.put ( "FC_IMAGE_PULL_SECRET", "regcred" )
+				;
+
+				// allow our deployment spec populator to add to the context
+				fDeploySpecPopulator.populate ( ds, templateCtx );
+
+				// add init yaml settings (these are fixed)
+				templateCtx.putAll ( JsonVisitor.objectToMap ( fInitYamlSettings ) );
+
+				// expand the template into our output stream
+				final ByteArrayOutputStream baos = new ByteArrayOutputStream ();
+				fTemplateEngine.renderTemplate ( ContinualTemplateSource.fromInputStream ( deployTemplate ), templateCtx, baos );
+				final String deployYaml = new String ( baos.toByteArray (), StandardCharsets.UTF_8 );
 				final ByteArrayInputStream bais = new ByteArrayInputStream ( deployYaml.getBytes ( StandardCharsets.UTF_8 ) );
 
 				dumpYaml ( tag, deployYaml );
@@ -294,7 +318,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 					.serverSideApply ()
 				;
 			}
-			catch ( IOException e )
+			catch ( IOException | TemplateNotFoundException | TemplateParseException e )
 			{
 				throw new ServiceException ( e );
 			}
@@ -314,7 +338,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 			throw new ServiceException ( x );
 		}
 	}
-	
+
 	@Override
 	public void undeploy ( FlowControlCallContext ctx, String deploymentId ) throws ServiceException
 	{
@@ -418,6 +442,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	private final String fLogsMountLoc;
 	private final ContainerImageMapper fImageMapper;
 	private final String fInitYamlResource;
+	private final DeploySpecTranslator fDeploySpecPopulator;
 	private final JSONObject fInitYamlSettings;
 	private final String fInitYamlStorageClass;
 	private final String fInstallationName;
@@ -858,30 +883,6 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 			.list ()
 		;
 		return pl.getItems ();
-	}
-
-	private String replaceAllTokens ( InputStream src, JSONObject replacements ) throws IOException
-	{
-		try
-		{
-			// supply our sources to the template engine
-			final ContinualTemplateContext templateCtx = fTemplateEngine.createContext ();
-			templateCtx.putAll ( System.getenv () );
-			templateCtx.putAll ( JsonVisitor.objectToMap ( replacements ) );
-			templateCtx.putAll ( JsonVisitor.objectToMap ( fInitYamlSettings ) );
-
-			// expand the template into our output stream
-			final ByteArrayOutputStream baos = new ByteArrayOutputStream ();
-			fTemplateEngine.renderTemplate ( ContinualTemplateSource.fromInputStream ( src ), templateCtx, baos );
-
-			// return the updated template
-			return new String ( baos.toByteArray (), StandardCharsets.UTF_8 );
-		}
-		catch ( TemplateNotFoundException x )
-		{
-			// this shouldn't be possible given that we've handed the input stream to the engine
-			throw new IOException ( x );
-		}
 	}
 
 	private class LocalDeploymentSpecBuilder implements DeploymentSpecBuilder

@@ -23,6 +23,7 @@ import io.continual.http.app.servers.endpoints.TypicalUiEndpoint.NoLoginExceptio
 import io.continual.http.service.framework.CHttpErrorHandler;
 import io.continual.http.service.framework.routing.CHttpRequestRouter;
 import io.continual.iam.exceptions.IamSvcException;
+import io.continual.templating.ContinualTemplateEngine.TemplateParseException;
 import io.continual.templating.ContinualTemplateSource.TemplateNotFoundException;
 
 public class TypicalUiServiceRouteInstaller extends BaseRouteInstaller
@@ -35,7 +36,8 @@ public class TypicalUiServiceRouteInstaller extends BaseRouteInstaller
 
 		registerErrorHandler ( CHttpRequestRouter.noMatchingRoute.class, CHttpErrorHandler.redirect ( "/" ) );
 		registerErrorHandler ( NoLoginException.class, CHttpErrorHandler.redirect ( "/" ) );
-		registerErrorHandler ( TemplateNotFoundException.class, CHttpErrorHandler.redirect ( "/", log ) );
+		registerErrorHandler ( TemplateNotFoundException.class, CHttpErrorHandler.redirect ( "/" ) );
+		registerErrorHandler ( TemplateParseException.class, CHttpErrorHandler.redirect ( "/" ) );
 		registerErrorHandler ( IamSvcException.class, CHttpErrorHandler.redirect ( "/", log ) );
 		registerErrorHandler ( Throwable.class, CHttpErrorHandler.redirect ( "/", log ) );
 	}

@@ -34,6 +34,7 @@ import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.service.ModelService;
 import io.continual.util.standards.HttpStatusCodes;
 
+@SuppressWarnings("deprecation")
 public class ModelApiService extends SimpleService
 {
 	private static final String kSetting_HttpServiceName = "httpService";

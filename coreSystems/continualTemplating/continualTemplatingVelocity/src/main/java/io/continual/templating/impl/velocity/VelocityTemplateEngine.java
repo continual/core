@@ -6,13 +6,15 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Properties;
 
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.app.event.EventCartridge;
-import org.apache.velocity.app.event.implement.IncludeRelativePath;
+import org.apache.velocity.app.event.IncludeEventHandler;
+import org.apache.velocity.context.Context;
 import org.apache.velocity.exception.ResourceNotFoundException;
 import org.apache.velocity.runtime.RuntimeConstants;
 import org.apache.velocity.runtime.resource.Resource;
@@ -20,6 +22,8 @@ import org.apache.velocity.runtime.resource.loader.ResourceLoader;
 import org.apache.velocity.util.ExtProperties;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.ServiceContainer;
@@ -60,8 +64,9 @@ public class VelocityTemplateEngine extends SimpleService implements ContinualTe
 		// enable relative template finding
 		{
 			final EventCartridge ec = new EventCartridge ();
-			ec.addEventHandler ( new IncludeRelativePath () );
+			ec.addEventHandler ( new InternalIncludeRelativePath () );
 			ec.attachToContext ( fBaseContext );
+			log.info ( "Registered InternalIncludeRelativePath for relative template path handling." );
 		}
 
 		// compatibility for some older drumlin-based systems
@@ -111,6 +116,8 @@ public class VelocityTemplateEngine extends SimpleService implements ContinualTe
 	private final VelocityEngine fEngine;
 	private final VelocityContext fBaseContext;
 	private final ContinualTemplateCatalog fTemplateCatalog;
+
+	private static final Logger log = LoggerFactory.getLogger ( VelocityTemplateEngine.class );
 
 	private static class ContextWrapper implements ContinualTemplateContext 
 	{
@@ -190,5 +197,64 @@ public class VelocityTemplateEngine extends SimpleService implements ContinualTe
 		{
 			return 0;
 		}
+	}
+
+	// taken from Velocity's IncludeRelativePath, simplified and outfitted with logging
+	private class InternalIncludeRelativePath implements IncludeEventHandler
+	{
+		/**
+		 * @param context
+		 * @param includeResourcePath is the path requested in the include statement
+		 * @param currentResourcePath is the path of the current resource (that's including the requested template)
+		 * @param directoveName
+		 */
+	    @Override
+	    public String includeEvent ( Context context, String includeResourcePath, String currentResourcePath, String directiveName )
+	    {
+	        // if the resource name starts with a slash, it's not a relative path
+			if ( includeResourcePath.startsWith ( "/" ) ) return includeResourcePath;
+
+			// get the last slash
+			final int lastslashpos = currentResourcePath.lastIndexOf ( "/" );
+
+	        // root of resource tree
+	        if (lastslashpos == -1) return includeResourcePath;
+
+	        // prepend path to the include path
+	        StringBuilder sb = new StringBuilder ()
+	        	.append ( currentResourcePath.substring ( 0, lastslashpos ) )
+	        	.append ( "/" )
+	        	.append ( includeResourcePath )
+	        ;
+	        final String result = sb.toString ();
+
+			// remove parent refs
+			final String[] components = result.split ( "/" );
+			final LinkedList<String> keepers = new LinkedList<> ();
+			for ( String component : components )
+			{
+				if ( component.equals ( ".." ) )
+				{
+					keepers.remove ( keepers.size () - 1 );
+				}
+				else
+				{
+					keepers.add ( component );
+				}
+			}
+
+			sb = new StringBuilder ();
+			for ( String keeper : keepers )
+			{
+				if ( sb.length () > 0 )
+				{
+					sb.append ( "/" );
+				}
+				sb.append ( keeper );
+			}
+
+	        log.debug ( "** Loading relative path {}", sb.toString () );
+	        return sb.toString ();
+	    }
 	}
 }

@@ -8,6 +8,13 @@ import io.continual.templating.ContinualTemplateSource.TemplateNotFoundException
 
 public interface ContinualTemplateEngine extends Service
 {
+	public static class TemplateParseException extends Exception
+	{
+		public TemplateParseException ( String msg ) { super ( msg ); }
+		public TemplateParseException ( Throwable t ) { super ( t ); }
+		private static final long serialVersionUID = 1L;
+	};
+
 	/**
 	 * Create a template context for this engine.
 	 * @return a template context
@@ -23,5 +30,5 @@ public interface ContinualTemplateEngine extends Service
 	 * @throws TemplateNotFoundException 
 	 * @throws IOException 
 	 */
-	void renderTemplate ( ContinualTemplateSource templateSrc, ContinualTemplateContext context, OutputStream outTo ) throws TemplateNotFoundException, IOException;
+	void renderTemplate ( ContinualTemplateSource templateSrc, ContinualTemplateContext context, OutputStream outTo ) throws TemplateNotFoundException, TemplateParseException, IOException;
 }

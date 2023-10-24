@@ -12,6 +12,7 @@ import io.continual.services.ServiceContainer;
 import io.continual.templating.ContinualTemplateCatalog;
 import io.continual.templating.ContinualTemplateContext;
 import io.continual.templating.ContinualTemplateEngine;
+import io.continual.templating.ContinualTemplateEngine.TemplateParseException;
 import io.continual.templating.ContinualTemplateSource;
 import io.continual.templating.ContinualTemplateSource.TemplateNotFoundException;
 import io.continual.util.standards.MimeTypes;
@@ -27,12 +28,12 @@ public class PageRenderer<I extends Identity> extends TypicalUiEndpoint<I>
 		fRequiredSuffix = config.optString ( "reqdSuffix", null );
 	}
 
-	public void getIndex ( CHttpRequestContext context ) throws TemplateNotFoundException, IOException
+	public void getIndex ( CHttpRequestContext context ) throws TemplateNotFoundException, IOException, TemplateParseException
 	{
 		getPage ( context, "index.html" );
 	}
 
-	public void getPage ( CHttpRequestContext context, String path ) throws TemplateNotFoundException, IOException
+	public void getPage ( CHttpRequestContext context, String path ) throws TemplateNotFoundException, IOException, TemplateParseException
 	{
 		final ContinualTemplateContext templateCtx = fTemplates.createContext ();
 		CHttpUserSession.getSession ( context ).populateTemplateContext ( templateCtx );

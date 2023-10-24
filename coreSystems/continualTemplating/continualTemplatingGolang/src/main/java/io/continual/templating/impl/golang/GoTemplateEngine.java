@@ -2,8 +2,6 @@ package io.continual.templating.impl.golang;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.util.Map;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -17,10 +15,12 @@ import io.continual.templating.ContinualTemplateSource;
 import io.continual.templating.ContinualTemplateSource.TemplateNotFoundException;
 import io.continual.templating.impl.BasicContext;
 import io.continual.util.collections.LruCache;
-import io.github.verils.gotemplate.GoTemplate;
-import io.github.verils.gotemplate.GoTemplateFactory;
-import io.github.verils.gotemplate.TemplateExecutionException;
-import io.github.verils.gotemplate.TemplateParseException;
+import io.continual.util.data.TypeConvertor;
+import ru.proninyaroslav.template.FuncMap;
+import ru.proninyaroslav.template.Template;
+import ru.proninyaroslav.template.exceptions.ExecException;
+import ru.proninyaroslav.template.exceptions.InternalException;
+import ru.proninyaroslav.template.exceptions.ParseException;
 
 public class GoTemplateEngine extends SimpleService implements ContinualTemplateEngine
 {
@@ -29,7 +29,7 @@ public class GoTemplateEngine extends SimpleService implements ContinualTemplate
 	
 	public GoTemplateEngine ( ServiceContainer sc, JSONObject config )
 	{
-		fTemplateCache = new LruCache<String,GoTemplate> ( sc.getExprEval ().evaluateTextToLong ( config.opt ( kSetting_TemplateCacheSize ), kDefault_TemplateCacheSize ) );
+		fTemplateCache = new LruCache<String,Template> ( sc.getExprEval ().evaluateTextToLong ( config.opt ( kSetting_TemplateCacheSize ), kDefault_TemplateCacheSize ) );
 	}
 
 	@Override
@@ -39,7 +39,7 @@ public class GoTemplateEngine extends SimpleService implements ContinualTemplate
 	}
 
 	@Override
-	public void renderTemplate ( ContinualTemplateSource templateSrc, ContinualTemplateContext context, OutputStream outTo ) throws TemplateNotFoundException, IOException
+	public void renderTemplate ( ContinualTemplateSource templateSrc, ContinualTemplateContext context, OutputStream outTo ) throws TemplateNotFoundException, IOException, TemplateParseException
 	{
 		if ( ! ( context instanceof BasicContext ) )
 		{
@@ -48,56 +48,87 @@ public class GoTemplateEngine extends SimpleService implements ContinualTemplate
 
 		try
 		{
-			final GoTemplate goTemplate = getTemplate ( templateSrc );
-
-			final OutputStreamWriter writer = new OutputStreamWriter ( outTo );
-			final Map<String,Object> data = ((BasicContext)context).getAsMap ();
-			goTemplate.execute ( data, writer );
+			final Template goTemplate = getTemplate ( templateSrc );
+			goTemplate.execute ( outTo, context );
 	
 			// flush stream
-			writer.flush ();
+			outTo.flush ();
 		}
-		catch ( io.github.verils.gotemplate.TemplateNotFoundException x )
-		{
-			// this really shouldn't happen
-			throw new TemplateNotFoundException ( x );
-		}
-		catch ( TemplateExecutionException x )
+		catch ( ExecException x )
 		{
 			log.warn ( x.getMessage () );
 			throw new IOException ( x );
 		}
 	}
 
-	private GoTemplate getTemplate ( ContinualTemplateSource templateSrc ) throws TemplateNotFoundException, IOException
+	private Template getTemplate ( ContinualTemplateSource templateSrc ) throws TemplateNotFoundException, IOException, TemplateParseException
 	{
 		final String key = templateSrc.getName ();
-		GoTemplate result = fTemplateCache.get ( key );
+		Template result = fTemplateCache.get ( key );
 		if ( result == null )
 		{
 			try
 			{
-				final GoTemplateFactory goTemplateFactory = new GoTemplateFactory ();
-				goTemplateFactory.parse ( templateSrc.getName (), templateSrc.getTemplate () );
-	
-				result = goTemplateFactory.getTemplate ( templateSrc.getName () );
-	
+				result = new Template ( templateSrc.getName () );
+				result.addFuncs ( kFnMap );
+				result.parse ( templateSrc.getTemplate () );
 				fTemplateCache.put ( key, result );
 			}
-			catch ( io.github.verils.gotemplate.TemplateNotFoundException x )
-			{
-				// this really shouldn't happen
-				throw new TemplateNotFoundException ( x );
-			}
-			catch ( TemplateParseException x )
+			catch ( ParseException | InternalException x )
 			{
 				log.warn ( x.getMessage () );
-				throw new IOException ( x );
+				throw new TemplateParseException ( x );
 			}
 		}
 		return result;
 	}
+
+	private final LruCache<String,Template> fTemplateCache; 
+
+	private static final FuncMap kFnMap = new FuncMap ();
+	static
+	{
+		kFnMap.put ( "default", "fnDefault", GoTemplateEngine.class );
+		kFnMap.put ( "quote", "fnQuote", GoTemplateEngine.class );
+	}
+
+	public static Object fnDefault ( Object... args )
+	{
+		if ( args.length < 1 || args.length > 2 )
+		{
+			throw new IllegalArgumentException ( "'default' takes two arguments (including last value)" );
+		}
+		
+		final Object defval = args[0];
+		final Object curval = args.length == 2 ? args[1] : null;
+		
+		if ( curval == null ) return defval;
+		if ( curval instanceof Number && ((Number)curval).doubleValue () == 0.0 ) return defval;
+		if ( curval instanceof String && ((String)curval).length () == 0 ) return defval;
+		if ( curval instanceof Boolean && ( !(Boolean)curval) ) return defval;
+
+//		Lists: []
+//		Dicts: {}
+		
+		return curval;
+	}
 	
-	private final LruCache<String,GoTemplate> fTemplateCache; 
+	public static String fnQuote ( Object... args )
+	{
+		if ( args.length != 1 ) return null;
+
+		final Object val = args[0];
+		final String sval = val == null ? "" : val.toString ();
+		final boolean isQuoted = sval.startsWith ( "\"" ) && sval.endsWith ( "\"" );
+		if ( !isQuoted )
+		{
+			return "\"" + TypeConvertor.encode ( sval, '\\', new char[] { '"' }, new char[] { '"' } ) + "\"";
+		}
+		else
+		{
+			return sval;
+		}
+	}
+
 	private static final Logger log = LoggerFactory.getLogger ( GoTemplateEngine.class );
 }

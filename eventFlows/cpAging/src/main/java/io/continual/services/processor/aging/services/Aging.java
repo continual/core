@@ -40,7 +40,7 @@ public class Aging extends SimpleProcessingService
 		fThread = new ServiceThread ();
 
 		fOnComplete = config.optString ( "onComplete", null );
-		fOnCancel = config.optString ( "onCancel", null );
+//		fOnCancel = config.optString ( "onCancel", null );
 	}
 
 	public void startAging ( MessageProcessingContext mpc, long lengthOfTime, TimeUnit timeUnits )
@@ -57,7 +57,7 @@ public class Aging extends SimpleProcessingService
 	private final DelayQueue<MessageContainer> fPending;
 	private final ServiceThread fThread;
 	private final String fOnComplete;
-	private final String fOnCancel;
+//	private final String fOnCancel;
 
 	@Override
 	public boolean isRunning ()

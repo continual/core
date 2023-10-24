@@ -132,6 +132,7 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 					final FlowControlJobDb jobDb = fFlowControl.getJobDb ( fccc );
 					final FlowControlJob job = jobDb.createJob ( fccc )
 						.withName ( name )
+						.withOwner ( uc.getUser ().getId () )
 						.build ()
 					;
 

@@ -140,6 +140,7 @@ public class StaticDirHandler implements CHttpPlayishRouteHandler
 		sfContentTypes.put ( "css", MimeTypes.kCss );
 
 		sfContentTypes.put ( "jpg", MimeTypes.kImageJpg );
+		sfContentTypes.put ( "jpeg", MimeTypes.kImageJpg );
 		sfContentTypes.put ( "gif", MimeTypes.kImageGif );
 		sfContentTypes.put ( "png", MimeTypes.kImagePng );
 		sfContentTypes.put ( "ico", MimeTypes.kImageIco );

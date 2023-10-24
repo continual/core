@@ -11,6 +11,8 @@ import java.util.LinkedList;
 
 import org.slf4j.LoggerFactory;
 
+import com.github.f4b6a3.ulid.Ulid;
+
 import io.continual.resources.ResourceLoader;
 
 public interface ContinualTemplateSource extends AutoCloseable
@@ -160,25 +162,27 @@ public interface ContinualTemplateSource extends AutoCloseable
 	 */
 	public static ContinualTemplateSource fromInputStream ( final InputStream is )
 	{
+		// we return a manufactured unique name so that the input stream isn't inadvertently cached by name 
+		return fromInputStream ( is, "input stream " + Ulid.fast ().toLowerCase () );
+	}
+
+	/**
+	 * Build a template source from an input stream
+	 * @param is
+	 * @return a template source
+	 */
+	public static ContinualTemplateSource fromInputStream ( final InputStream is, String uniqueName )
+	{
 		return new ContinualTemplateSource ()
 		{
 			@Override
-			public String getName ()
-			{
-				return "input stream";
-			}
+			public String getName () { return uniqueName; }
 
 			@Override
-			public InputStream getTemplate ()
-			{
-				return is;
-			}
+			public InputStream getTemplate () { return is; }
 
 			@Override
-			public void close () throws IOException
-			{
-				is.close ();
-			}
+			public void close () throws IOException { is.close (); }
 		};
 	}
 

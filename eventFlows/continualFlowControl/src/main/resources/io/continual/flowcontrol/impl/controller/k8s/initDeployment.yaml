@@ -5,33 +5,33 @@ metadata:
 data:
   sysprep: |
     #!/bin/sh
-    echo "Pulling job config from ${CONFIG_URL}..."
-    curl --fail-with-body -v -o ${FC_CONFIG_FILE} "${CONFIG_URL}"
+    echo "Pulling job config from {{ .CONFIG_URL }}..."
+    curl --fail-with-body -v -o {{ .FC_CONFIG_FILE }} "{{ .CONFIG_URL }}"
     if [ $? -ne 0 ]; then
         echo "Error: curl call failed."
         exit 1
     fi
     echo
     echo
-    cat ${FC_CONFIG_FILE}
+    cat {{ .FC_CONFIG_FILE }}
     echo
 ---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: ${FC_DEPLOYMENT_NAME}
+  name: {{ .FC_DEPLOYMENT_NAME }}
   labels:
-    app: ${FC_JOB_TAG}
-    flowcontroljob: ${FC_JOB_ID}
+    app: {{ .FC_JOB_TAG }}
+    flowcontroljob: {{ .FC_JOB_ID }}
 spec:
-  replicas: ${FC_INSTANCE_COUNT}
+  replicas: {{ .FC_INSTANCE_COUNT }}
   selector:
     matchLabels:
-      app: ${FC_JOB_TAG}
+      app: {{ .FC_JOB_TAG }}
   template:
     metadata:
       labels:
-        app: ${FC_JOB_TAG}
+        app: {{ .FC_JOB_TAG }}
     spec:
 
       # image pull secrets are added based on controller config
@@ -54,11 +54,11 @@ spec:
       # init the pod by pulling the config file
       initContainers:
       - name: initializer
-        image: ${FC_INITER_IMAGE|curlimages/curl:7.87.0}
+        image: {{ .FC_INITER_IMAGE | default "curlimages/curl:7.87.0" }}
 
         volumeMounts:
         - name: configdisk
-          mountPath: "${FC_CONFIG_MOUNT|/var/flowcontrol/config}"
+          mountPath: {{ .FC_CONFIG_MOUNT | default "/var/flowcontrol/config" }}
         - name: sysprep
           mountPath: /usr/local/bin
         command: ['/usr/local/bin/sysprep']
@@ -67,15 +67,15 @@ spec:
       # run the pod's work
       containers:
       - name: processor
-        image: ${FC_RUNTIME_IMAGE}
+        image: {{ .FC_RUNTIME_IMAGE }}
 
         volumeMounts:
         - name: configdisk
-          mountPath: "${FC_CONFIG_MOUNT|/var/flowcontrol/config}"
+          mountPath: {{ .FC_CONFIG_MOUNT | default "/var/flowcontrol/config" }}
         - name: persistence
-          mountPath: "${FC_PERSISTENCE_MOUNT|/var/flowcontrol/persistence}"
+          mountPath: {{ .FC_PERSISTENCE_MOUNT | default "/var/flowcontrol/persistence" }}
         - name: logging
-          mountPath: "${FC_LOGS_MOUNT|/var/flowcontrol/logs}"
+          mountPath: {{ .FC_LOGS_MOUNT | default "/var/flowcontrol/logs" }}
 
         # resources are set by the controller
 
@@ -88,8 +88,8 @@ spec:
         - ReadWriteOnce
       resources:
         requests:
-          storage: "${FC_STORAGE_SIZE|8Gi}"
-      storageClassName: "${FC_STORAGE_CLASS|standard}"
+          storage: {{ .FC_STORAGE_SIZE | default "8Gi" | quote }}
+      storageClassName: {{ .FC_STORAGE_CLASS | default "standard" }}
   - metadata:
       name: logging
     spec:
@@ -97,5 +97,5 @@ spec:
         - ReadWriteOnce
       resources:
         requests:
-          storage: "${FC_LOGS_SIZE|8Gi}"
-      storageClassName: "${FC_STORAGE_CLASS|standard}"
+          storage: {{ .FC_LOGS_SIZE | default "8Gi" | quote }}
+      storageClassName: {{ .FC_STORAGE_CLASS | default "standard" }}

@@ -29,8 +29,10 @@ public class BasicContext implements ContinualTemplateContext
 	public ContinualTemplateContext put ( String key, Object o )
 	{
 		if ( key == null ) throw new NullPointerException ( "Cannot put a null key." );
-		if ( o == null ) throw new NullPointerException ( "Cannot put a null value." );
-		fMap.put ( key, o );
+		if ( o != null )
+		{
+			fMap.put ( key, o );
+		}
 		return this;
 	}
 

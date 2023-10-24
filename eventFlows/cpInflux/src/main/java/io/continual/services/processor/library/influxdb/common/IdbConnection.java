@@ -13,18 +13,25 @@ import io.continual.util.data.exprEval.ExpressionEvaluator;
 
 public class IdbConnection
 {
+	@SuppressWarnings("null")
 	public IdbConnection ( JSONObject config, ExpressionEvaluator ee ) throws BuildFailure
 	{
 		try
 		{
-			fUrl = getValue ( ee, config, new String[] { "url", "host" }, "localhost:8086", true ); 
+			fUrl = getValue ( ee, config, new String[] { "url", "host" }, "localhost:8086", true );
+			final String token = getValue ( ee, config, new String[] { "token" }, null, true ); 
+
 			final String org = getValue ( ee, config, new String[] { "org" }, null, true ); 
 			final String bucket = getValue ( ee, config, new String[] { "bucket" }, null, true ); 
-			final String token = getValue ( ee, config, new String[] { "token" }, null, true ); 
+
+			if ( fUrl == null || token == null )
+			{
+				throw new BuildFailure ( "'url' and 'token' are required for IdbConnection." );
+			}
 
 //			fDbUser = config.optString ( "dbUser", null );
 //			fDbPwd = config.optString ( "dbPwd", null );
-	
+
 			fDb = InfluxDBClientFactory.create ( fUrl, token.toCharArray (), org, bucket );
 
 			log.info ( "Creating InfluxDB connection using URL {}", fUrl );

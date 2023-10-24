@@ -1,6 +1,8 @@
 package io.continual.templating.impl.catalogs.resource;
 
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
@@ -30,9 +32,12 @@ public class ContinualTemplateResourceCatalog extends SimpleService implements C
 				res = fBasePkg + "/" + names[i];
 			}
 			srcs[i] = ContinualTemplateSource.fromResource ( res, names[i] );
+			log.debug ( "src[{}]={} from {}", i, res, names[i] );
 		}
 		return ContinualTemplateSource.combinedStreams ( srcs );
 	}
 
 	private final String fBasePkg;
+
+	private static final Logger log = LoggerFactory.getLogger ( ContinualTemplateResourceCatalog.class );
 }
