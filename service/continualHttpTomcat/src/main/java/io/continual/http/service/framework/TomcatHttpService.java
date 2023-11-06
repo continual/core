@@ -59,6 +59,9 @@ public class TomcatHttpService extends CHttpService
 	
 	private final String kSetting_KeystoreFile = "file";
 
+	private final String kSetting_KeystoreType = "type";
+	private final String kDefault_KeystoreType = "JKS";
+
 	private final String kSetting_KeystoreAlias = "alias";
 	private final String kDefault_KeystoreAlias = "tomcat";
 
@@ -182,6 +185,8 @@ public class TomcatHttpService extends CHttpService
 						}
 					}
 
+					final String keystoreType = keystoreConfig.optString ( kSetting_KeystoreType, kDefault_KeystoreType );
+
 					// the keystore alias can be delivered directly in configuration, or determined by a scan of the keystore
 					String keystoreAlias = kDefault_KeystoreAlias;
 					if ( keystoreConfig.has ( kSetting_KeystoreAlias ) )
@@ -190,20 +195,21 @@ public class TomcatHttpService extends CHttpService
 					}
 					else if ( keystoreConfig.optBoolean ( kSetting_KeystoreAliasScan, false ) )
 					{
-						keystoreAlias = scanKeystoreForPrivateKey ( keystoreFilename, keystorePassword );
+						keystoreAlias = scanKeystoreForPrivateKey ( keystoreFilename, keystorePassword, keystoreType );
 					}
 
 					connector.setScheme ( "https" );
 					connector.setSecure ( true );
 					connector.setProperty ( "keystoreFile", keystoreFilename );
 					connector.setProperty ( "keystorePass", keystorePassword );
+					connector.setProperty ( "keystoreType", keystoreType );
 					connector.setProperty ( "keyAlias", keystoreAlias );
 					connector.setProperty ( "clientAuth", "false" );
 					connector.setProperty ( "sslProtocol", "TLS" );
 					connector.setProperty ( "SSLEnabled", "true" );
 					connector.setPort ( port );
 
-					transferConnectorAttributes ( connector, httpConfig.optJSONObject ( "tomcat" ) );
+					transferConnectorAttributes ( connector, httpsConfig.optJSONObject ( "tomcat" ) );
 
 					fTomcat.getService ().addConnector ( connector );
 		
@@ -317,13 +323,13 @@ public class TomcatHttpService extends CHttpService
 		} );
 	}
 
-	private static String scanKeystoreForPrivateKey ( String keystoreFilename, String keystorePassword )
+	private static String scanKeystoreForPrivateKey ( String keystoreFilename, String keystorePassword, String keystoreType )
 	{
 		try
 		{
 			log.info ( "Scanning {} for its first private key...", keystoreFilename );
 
-			final KeyStore ks = KeyStore.getInstance ( "JKS" );
+			final KeyStore ks = KeyStore.getInstance ( keystoreType );
 			ks.load ( new FileInputStream ( keystoreFilename ), keystorePassword.toCharArray () );
 
 			log.info ( "Keystore {} loaded...", keystoreFilename );

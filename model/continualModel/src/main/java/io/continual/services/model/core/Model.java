@@ -41,6 +41,11 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	 */
 	interface ModelRequestContextBuilder
 	{
+		/**
+		 * Associated an identity in this model request context
+		 * @param user
+		 * @return this context
+		 */
 		ModelRequestContextBuilder forUser ( Identity user );
 
 		ModelRequestContextBuilder mountedAt ( Path mountPoint );
@@ -49,6 +54,11 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 
 		ModelRequestContextBuilder withNotificationsTo ( ModelNotificationService notifications );
 
+		/**
+		 * Build the request context
+		 * @return a request context
+		 * @throws BuildFailure
+		 */
 		ModelRequestContext build () throws BuildFailure;
 	};
 

@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.3.1</version>
+		<version>0.3.2</version>
 		<artifactId>continualService</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -18,7 +18,9 @@
 	<url>https://continual.io</url>
 
 	<properties>
-		<tomcatVersion>8.5.65</tomcatVersion>
+		<!-- note that Tomcat 10 adopts Jakarta EE and changes the servlet package name -->
+		<tomcatVersion>9.0.80</tomcatVersion>
+		<!--<tomcatVersion>10.0.26</tomcatVersion>-->
 	</properties>
 
 	<dependencies>
@@ -43,16 +45,6 @@
 		</dependency>
 
 		<!-- Tomcat, which gets embedded -->
-		<dependency>
-			<groupId>org.apache.tomcat</groupId>
-			<artifactId>tomcat-catalina</artifactId>
-			<version>${tomcatVersion}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.tomcat</groupId>
-			<artifactId>tomcat-util</artifactId>
-			<version>${tomcatVersion}</version>
-		</dependency>
 		<dependency>
 			<groupId>org.apache.tomcat.embed</groupId>
 			<artifactId>tomcat-embed-core</artifactId>

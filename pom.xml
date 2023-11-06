@@ -8,7 +8,7 @@
 
 	<!-- When changing version, also change parent version number in sub-pom files -->
 	<!-- You can run versionUpdate.sh in this directory to do this. -->
-	<version>0.3.1</version>
+	<version>0.3.2</version>
 	<packaging>pom</packaging>
 
 	<name>ContinualIO</name>
@@ -74,14 +74,14 @@
 			<dependency>
 				<groupId>junit</groupId>
 				<artifactId>junit</artifactId>
-				<version>4.11</version>
+				<version>4.13.2</version>
 				<scope>test</scope>
 			</dependency>
 
 			<dependency>
 				<groupId>org.json</groupId>
 				<artifactId>json</artifactId>
-				<version>20230618</version>
+				<version>20231013</version>
 			</dependency>
 
 			<dependency>
@@ -93,7 +93,7 @@
 			<dependency>
 				<groupId>ch.qos.logback</groupId>
 				<artifactId>logback-classic</artifactId>
-				<version>1.2.11</version>
+				<version>1.2.12</version>
 			</dependency>
 
 			<!-- OK HTTP client -->
@@ -120,7 +120,7 @@
 			<dependency>
 				<groupId>com.amazonaws</groupId>
 				<artifactId>aws-java-sdk-s3</artifactId>
-				<version>1.12.505</version>
+				<version>1.12.573</version>
 			</dependency>
 
 			<!-- https://mvnrepository.com/artifact/javax.servlet/javax.servlet-api -->

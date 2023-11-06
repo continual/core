@@ -8,6 +8,12 @@ public class ScriptEvaluationException extends Exception
 		fReason = t;
 	}
 
+	public ScriptEvaluationException ( Throwable t )
+	{
+		super ( t );
+		fReason = t.getMessage ();
+	}
+
 	public ScriptEvaluationException ( String t, Throwable cause )
 	{
 		super ( t, cause );
