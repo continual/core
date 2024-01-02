@@ -222,13 +222,13 @@ public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends Common
 	}
 
 	@Override
-	public String createJwtToken ( Identity ii ) throws IamSvcException
+	public String createJwtToken ( Identity ii, long duration, TimeUnit tu ) throws IamSvcException
 	{
 		if ( fJwtTokenFactory == null )
 		{
 			throw new IamSvcException ( "This identity manager does not have a JWT token factory." );
 		}
-		return fJwtTokenFactory.createJwtToken ( ii );
+		return fJwtTokenFactory.createJwtToken ( ii, duration, tu );
 	}
 
 	@Override
@@ -303,19 +303,8 @@ public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends Common
 			return null;
 		}
 
-		final String salt = user.getPasswordSalt ();
-		if ( salt == null || salt.length () == 0 )
+		if ( !checkPassword ( upc, user ) )
 		{
-			authLog ( "User " + upc.getUsername () + " does not have a password." );
-			return null;
-		}
-
-		final String hashedPassword = OneWayHasher.pbkdf2HashToString ( attemptedPassword, salt );
-
-		final String hash = user.getPasswordHash ();
-		if ( hash == null || !hash.equals ( hashedPassword ) )
-		{
-			authLog ( "Password for " + upc.getUsername () + " doesn't match." );
 			return null;
 		}
 
@@ -661,6 +650,28 @@ public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends Common
 	private final LinkedList<JwtValidator> fJwtValidators;
 	
 	static final int kSaltChars = 64;
+
+	protected boolean checkPassword ( UsernamePasswordCredential upc, I user )
+	{
+		final String salt = user.getPasswordSalt ();
+		if ( salt == null || salt.length () == 0 )
+		{
+			authLog ( "User " + upc.getUsername () + " does not have a password." );
+			return false;
+		}
+
+		final String attemptedPassword = upc.getPassword ();
+		final String hashedPassword = OneWayHasher.pbkdf2HashToString ( attemptedPassword, salt );
+
+		final String hash = user.getPasswordHash ();
+		if ( hash == null || !hash.equals ( hashedPassword ) )
+		{
+			authLog ( "Password for " + upc.getUsername () + " doesn't match." );
+			return false;
+		}
+
+		return true;
+	}
 
 	private static final Logger log = LoggerFactory.getLogger ( CommonJsonDb.class );
 	private static final boolean skAuthLogging = true;

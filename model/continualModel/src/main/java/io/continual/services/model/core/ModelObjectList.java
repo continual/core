@@ -19,44 +19,14 @@ package io.continual.services.model.core;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
  * A list of model objects. This list could be thousands of entries long and is therefore
  * presented only as an iterator.
  */
-public interface ModelObjectList extends Iterable<ModelObject>
+public interface ModelObjectList extends ModelItemList<ModelObject>
 {
-	/**
-	 * Filter this list with the given filter
-	 * @param mof
-	 * @return a filtered list
-	 */
-	default ModelObjectList filter ( ModelObjectFilter mof )
-	{
-		final LinkedList<ModelObject> result = new LinkedList<> ();
-
-		final Iterator<ModelObject> it = this.iterator ();
-		while ( it.hasNext () )
-		{
-			final ModelObject mo = it.next ();
-			if ( mof.matches ( mo ) )
-			{
-				result.add ( mo );
-			}
-		}
-
-		return new ModelObjectList ()
-		{
-			@Override
-			public Iterator<ModelObject> iterator ()
-			{
-				return result.iterator ();
-			}
-		};
-	}
-
 	/**
 	 * Construct an empty object list
 	 * @return an empty list
@@ -70,9 +40,9 @@ public interface ModelObjectList extends Iterable<ModelObject>
 	 * Convenience method for creating a small list of objects.
 	 * @return a list of objects
 	 */
-	static ModelObjectList simpleList ( ModelObject... modelObjects )
+	static ModelObjectList simpleList ( ModelObject... instances )
 	{
-		final List<ModelObject> list = Arrays.asList ( modelObjects );
+		final List<ModelObject> list = Arrays.asList ( instances );
 		return new ModelObjectList ()
 		{
 			@Override
@@ -84,17 +54,18 @@ public interface ModelObjectList extends Iterable<ModelObject>
 	}
 
 	/**
-	 * Convenience method for creating a small list of objects.
+	 * Convenience method for creating a list from a collection
+	 * @param instances
 	 * @return a list of objects
 	 */
-	static ModelObjectList simpleListOfCollection ( Collection<ModelObject> modelObjects )
+	static ModelObjectList simpleListOfCollection ( Collection<ModelObject> instances )
 	{
 		return new ModelObjectList ()
 		{
 			@Override
 			public Iterator<ModelObject> iterator ()
 			{
-				return modelObjects.iterator ();
+				return instances.iterator ();
 			}
 		};
 	}

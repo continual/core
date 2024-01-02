@@ -28,8 +28,6 @@ import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
-import io.continual.services.model.impl.common.BasicModelRelnInstance;
-import io.continual.services.model.impl.common.BasicModelRequestContextBuilder;
 import io.continual.services.model.impl.common.SimpleModelQuery;
 import io.continual.services.model.impl.json.CommonJsonDbModel;
 import io.continual.services.model.impl.json.CommonJsonDbObject;
@@ -94,12 +92,6 @@ public class SingleFileModel extends CommonJsonDbModel
 	}
 
 	@Override
-	public ModelRequestContextBuilder getRequestContextBuilder ()
-	{
-		return new BasicModelRequestContextBuilder ();
-	}
-
-	@Override
 	public ModelPathList listChildrenOfPath ( ModelRequestContext context, Path parentPath ) throws ModelServiceException, ModelRequestException
 	{
 		JSONObject current = getDataRoot ();
@@ -156,7 +148,7 @@ public class SingleFileModel extends CommonJsonDbModel
 
 			flush ();
 
-			return new BasicModelRelnInstance ( reln );
+			return ModelRelationInstance.from ( reln );
 		}
 		catch ( ModelServiceException x )
 		{
@@ -202,7 +194,7 @@ public class SingleFileModel extends CommonJsonDbModel
 	{
 		try
 		{
-			final BasicModelRelnInstance mr = BasicModelRelnInstance.fromId ( relnId );
+			final ModelRelationInstance mr = ModelRelationInstance.from ( relnId );
 			return unrelate ( context, mr );
 		}
 		catch ( IllegalArgumentException x )
@@ -226,7 +218,7 @@ public class SingleFileModel extends CommonJsonDbModel
 					@Override
 					public boolean visit ( String toPathText ) throws JSONException
 					{
-						result.add ( new BasicModelRelnInstance ( fromObject, relnName, Path.fromString ( toPathText ) ) );
+						result.add ( ModelRelationInstance.from ( fromObject, relnName, Path.fromString ( toPathText ) ) );
 						return true;
 					}
 				} );
@@ -247,7 +239,7 @@ public class SingleFileModel extends CommonJsonDbModel
 		{
 			for ( Path fromObj : revRelns.get ( named ) )
 			{
-				result.add ( new BasicModelRelnInstance ( fromObj, named, toObject ) );
+				result.add ( ModelRelationInstance.from ( fromObj, named, toObject ) );
 			}
 		}
 

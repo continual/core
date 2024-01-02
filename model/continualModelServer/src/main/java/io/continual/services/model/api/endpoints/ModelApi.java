@@ -19,6 +19,7 @@ package io.continual.services.model.api.endpoints;
 import java.io.IOException;
 import java.util.List;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -30,6 +31,7 @@ import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
+import io.continual.services.model.core.ModelRelationList;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
@@ -54,7 +56,7 @@ public class ModelApi extends ModelApiContextHelper
 
 	public void getModelIndexes ( CHttpRequestContext context, final String acctId, final String modelName ) throws IOException, ModelRequestException
 	{
-		handleModelRequest ( context, acctId, null, new ModelApiHandler ()
+		handleModelRequest ( context, acctId, new ModelApiHandler ()
 		{
 			@Override
 			public void handle ( ModelApiContext modelApiContext )
@@ -67,7 +69,7 @@ public class ModelApi extends ModelApiContextHelper
 
 	public void getModelIndex ( CHttpRequestContext context, final String acctId, final String modelName, final String indexName ) throws IOException, ModelRequestException
 	{
-		handleModelRequest ( context, acctId, null, new ModelApiHandler ()
+		handleModelRequest ( context, acctId, new ModelApiHandler ()
 		{
 			@Override
 			public void handle ( ModelApiContext modelApiContext )
@@ -80,7 +82,7 @@ public class ModelApi extends ModelApiContextHelper
 
 	public void createModelIndex ( CHttpRequestContext context, final String acctId, final String modelName, final String indexName ) throws IOException, ModelRequestException
 	{
-		handleModelRequest ( context, acctId, null, new ModelApiHandler ()
+		handleModelRequest ( context, acctId, new ModelApiHandler ()
 		{
 			@Override
 			public void handle ( ModelApiContext modelApiContext )
@@ -93,7 +95,7 @@ public class ModelApi extends ModelApiContextHelper
 
 	public void dropModelIndex ( CHttpRequestContext context, final String acctId, final String modelName, final String indexName ) throws IOException, ModelRequestException
 	{
-		handleModelRequest ( context, acctId, null, new ModelApiHandler ()
+		handleModelRequest ( context, acctId, new ModelApiHandler ()
 		{
 			@Override
 			public void handle ( ModelApiContext modelApiContext )
@@ -145,13 +147,13 @@ public class ModelApi extends ModelApiContextHelper
 	
 	public void getObject ( CHttpRequestContext context, final String objectPath ) throws IOException, ModelRequestException
 	{
-		handleModelRequest ( context, null, objectPath, new ModelApiHandler ()
+		handleModelRequest ( context, null, new ModelApiHandler ()
 		{
 			@Override
 			public void handle ( ModelApiContext modelApiContext ) throws IOException, JSONException, IamSvcException, ModelItemDoesNotExistException, ModelRequestException, BuildFailure, ModelServiceException
 			{
 				final ModelSession ms = modelApiContext.getModelSession ();
-				final Path requestedPath = modelApiContext.getRequestedPath ();
+				final Path requestedPath = fixupPath ( objectPath );
 				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
 
 				final IncludeOptions io = userTextToOption ( 
@@ -180,7 +182,7 @@ public class ModelApi extends ModelApiContextHelper
 
 					if ( io == IncludeOptions.RELS || io == IncludeOptions.BOTH )
 					{
-						or.withRelations ( ms.getModel ().getRelations ( mrc, requestedPath ) );
+						or.withRelations ( ms.getModel ().selectRelations ( requestedPath ).getRelations ( mrc ) );
 					}
 
 					response.put ( "object", or.render () );
@@ -223,7 +225,7 @@ public class ModelApi extends ModelApiContextHelper
 
 	public void putObject ( CHttpRequestContext context, final String objectPath ) throws IOException, ModelRequestException
 	{
-		handleModelRequest ( context, null, objectPath, new ModelApiHandler ()
+		handleModelRequest ( context, null, new ModelApiHandler ()
 		{
 			@Override
 			public void handle ( ModelApiContext modelApiContext ) throws IOException, JSONException, ModelServiceException, IamSvcException, ModelItemDoesNotExistException, ModelRequestException, BuildFailure
@@ -231,7 +233,7 @@ public class ModelApi extends ModelApiContextHelper
 				final JSONObject obj = readPayload ( context );
 
 				final ModelSession ms = modelApiContext.getModelSession ();
-				final Path requestedPath = modelApiContext.getRequestedPath ();
+				final Path requestedPath = fixupPath ( objectPath );
 				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
 
 				ms.getModel ().store ( mrc, requestedPath, new DataOverwrite ( obj ) );
@@ -242,7 +244,7 @@ public class ModelApi extends ModelApiContextHelper
 
 	public void patchObject ( CHttpRequestContext context, final String objectPath ) throws IOException, ModelRequestException
 	{
-		handleModelRequest ( context, null, objectPath, new ModelApiHandler ()
+		handleModelRequest ( context, null, new ModelApiHandler ()
 		{
 			@Override
 			public void handle ( ModelApiContext modelApiContext ) throws IOException, JSONException, ModelServiceException, IamSvcException, ModelItemDoesNotExistException, ModelRequestException, BuildFailure
@@ -250,7 +252,7 @@ public class ModelApi extends ModelApiContextHelper
 				final JSONObject obj = readPayload ( context );
 
 				final ModelSession ms = modelApiContext.getModelSession ();
-				final Path requestedPath = modelApiContext.getRequestedPath ();
+				final Path requestedPath = fixupPath ( objectPath );
 				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
 
 				ms.getModel ().store ( mrc, requestedPath, new DataMerge ( obj ) );
@@ -261,13 +263,13 @@ public class ModelApi extends ModelApiContextHelper
 
 	public void deleteObject ( CHttpRequestContext context, final String objectPath ) throws IOException, ModelRequestException
 	{
-		handleModelRequest ( context, null, objectPath, new ModelApiHandler ()
+		handleModelRequest ( context, null, new ModelApiHandler ()
 		{
 			@Override
 			public void handle ( ModelApiContext modelApiContext ) throws IOException, JSONException, ModelServiceException, IamSvcException, ModelItemDoesNotExistException, ModelRequestException, BuildFailure
 			{
 				final ModelSession ms = modelApiContext.getModelSession ();
-				final Path requestedPath = modelApiContext.getRequestedPath ();
+				final Path requestedPath = fixupPath ( objectPath );
 				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
 
 				final boolean removal = ms.getModel ().remove ( mrc, requestedPath );
@@ -276,61 +278,55 @@ public class ModelApi extends ModelApiContextHelper
 		} );
 	}
 
-	public void putRelation ( CHttpRequestContext context, final String fromObjPath, final String relation, final String toObjPath ) throws IOException, ModelRequestException
+	public void postRelations ( CHttpRequestContext context ) throws IOException, ModelRequestException
 	{
-		handleModelRequest ( context, null, fromObjPath, new ModelApiHandler ()
+		handleModelRequest ( context, null, new ModelApiHandler ()
 		{
 			@Override
 			public void handle ( ModelApiContext modelApiContext ) throws IOException, JSONException, ModelServiceException, IamSvcException, ModelItemDoesNotExistException, ModelRequestException, BuildFailure
 			{
-				final Path toPath = fixupPath ( toObjPath );
+				final JSONObject result = new JSONObject ();
+				final JSONArray resultRelns = new JSONArray ();
+				result.put ( "relations", resultRelns );
 
 				final ModelSession ms = modelApiContext.getModelSession ();
-				final Path requestedPath = modelApiContext.getRequestedPath ();
 				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
 
-				ms.getModel().relate ( mrc, new ModelRelation ()
+				final JSONObject payload = readPayload ( context );
+				final JSONArray relns = payload.getJSONArray ( "relations" );
+				for ( int i=0; i<relns.length (); i++ )
 				{
-					@Override
-					public Path getFrom () { return requestedPath; }
+					final JSONObject reln = relns.getJSONObject ( i );
 
-					@Override
-					public Path getTo () { return toPath; }
+					final Path fromPath = Path.fromString ( reln.getString ( "from" ) );
+					final Path toPath = Path.fromString ( reln.getString ( "to" ) );
+					final String name = reln.getString ( "name" );
 
-					@Override
-					public String getName () { return relation; }
-				} );
+					final ModelRelationInstance mri = ms.getModel ().relate ( mrc, ModelRelation.from ( fromPath, name, toPath ) );
+					resultRelns.put ( new JSONObject ()
+						.put ( "id", mri.getId () )
+						.put ( "from", mri.getFrom ().toString () )
+						.put ( "name", mri.getName () )
+						.put ( "to", mri.getTo ().toString () )
+					);
+				}
 
-				modelApiContext.respondWithStatus ( HttpStatusCodes.k204_noContent, null );
+				modelApiContext.respondWithStatus ( HttpStatusCodes.k200_ok, result );
 			}
 		} );
 	}
 
-	public void deleteRelation ( CHttpRequestContext context, final String fromObjPath, final String relation, final String toObjPath ) throws IOException, ModelRequestException
+	public void deleteRelation ( CHttpRequestContext context, final String relnId ) throws IOException, ModelRequestException
 	{
-		handleModelRequest ( context, null, fromObjPath, new ModelApiHandler ()
+		handleModelRequest ( context, null, new ModelApiHandler ()
 		{
 			@Override
 			public void handle ( ModelApiContext modelApiContext ) throws IOException, JSONException, ModelServiceException, IamSvcException, ModelItemDoesNotExistException, ModelRequestException, BuildFailure
 			{
-				final Path toPath = fixupPath ( toObjPath );
-
 				final ModelSession ms = modelApiContext.getModelSession ();
-				final Path requestedPath = modelApiContext.getRequestedPath ();
 				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
 
-				final boolean removal = ms.getModel().unrelate ( mrc, new ModelRelation ()
-				{
-					@Override
-					public Path getFrom () { return requestedPath; }
-
-					@Override
-					public Path getTo () { return toPath; }
-
-					@Override
-					public String getName () { return relation; }
-				} );
-
+				final boolean removal = ms.getModel ().unrelate ( mrc, relnId );
 				modelApiContext.respondWithStatus ( HttpStatusCodes.k200_ok, new JSONObject ().put ( "removal", removal ));
 			}
 		} );
@@ -338,16 +334,20 @@ public class ModelApi extends ModelApiContextHelper
 
 	public void getOutboundRelations ( CHttpRequestContext context, final String objectPath ) throws IOException, ModelRequestException
 	{
-		handleModelRequest ( context, null, objectPath, new ModelApiHandler ()
+		handleModelRequest ( context, null, new ModelApiHandler ()
 		{
 			@Override
 			public void handle ( ModelApiContext modelApiContext ) throws IOException, JSONException, ModelServiceException, IamSvcException, ModelItemDoesNotExistException, ModelRequestException, BuildFailure
 			{
 				final ModelSession ms = modelApiContext.getModelSession ();
-				final Path requestedPath = modelApiContext.getRequestedPath ();
+				final Path requestedPath = fixupPath ( objectPath );
 				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
 
-				final List<ModelRelationInstance> relns = ms.getModel().getOutboundRelationsNamed ( mrc, requestedPath, context.request ().getParameter ( "rn", null ) );
+				final ModelRelationList relns = ms.getModel ().selectRelations ( requestedPath )
+					.outboundOnly ()
+					.named ( context.request ().getParameter ( "rn", null ) )
+					.getRelations ( mrc )
+				;
 
 				modelApiContext.respondOk ( new JSONObject ()
 					.put ( "status", HttpStatusCodes.k200_ok )
@@ -362,16 +362,20 @@ public class ModelApi extends ModelApiContextHelper
 
 	public void getInboundRelations ( CHttpRequestContext context, final String objectPath ) throws IOException, ModelRequestException
 	{
-		handleModelRequest ( context, null, objectPath, new ModelApiHandler ()
+		handleModelRequest ( context, null, new ModelApiHandler ()
 		{
 			@Override
 			public void handle ( ModelApiContext modelApiContext ) throws IOException, JSONException, ModelServiceException, IamSvcException, ModelItemDoesNotExistException, ModelRequestException, BuildFailure
 			{
 				final ModelSession ms = modelApiContext.getModelSession ();
-				final Path requestedPath = modelApiContext.getRequestedPath ();
+				final Path requestedPath = fixupPath ( objectPath );
 				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
 
-				final List<ModelRelationInstance> relns = ms.getModel().getInboundRelationsNamed ( mrc, requestedPath, context.request ().getParameter ( "rn", null ) );
+				final ModelRelationList relns = ms.getModel ().selectRelations ( requestedPath )
+					.inboundOnly ()
+					.named ( context.request ().getParameter ( "rn", null ) )
+					.getRelations ( mrc )
+				;
 
 				modelApiContext.respondOk ( new JSONObject ()
 					.put ( "status", HttpStatusCodes.k200_ok )
@@ -386,18 +390,24 @@ public class ModelApi extends ModelApiContextHelper
 
 	public void getAllRelations ( CHttpRequestContext context, final String objectPath ) throws IOException, ModelRequestException
 	{
-		handleModelRequest ( context, null, objectPath, new ModelApiHandler ()
+		handleModelRequest ( context, null, new ModelApiHandler ()
 		{
 			@Override
 			public void handle ( ModelApiContext modelApiContext ) throws IOException, JSONException, ModelServiceException, IamSvcException, ModelItemDoesNotExistException, ModelRequestException, BuildFailure
 			{
 				final ModelSession ms = modelApiContext.getModelSession ();
-				final Path requestedPath = modelApiContext.getRequestedPath ();
+				final Path requestedPath = fixupPath ( objectPath );
 				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
 
-				final List<ModelRelationInstance> inRelns = ms.getModel().getInboundRelations ( mrc, requestedPath );
-				final List<ModelRelationInstance> outRelns = ms.getModel().getOutboundRelations ( mrc, requestedPath );
-				
+				final ModelRelationList inRelns = ms.getModel ().selectRelations ( requestedPath )
+					.inboundOnly ()
+					.getRelations ( mrc )
+				;
+				final ModelRelationList outRelns = ms.getModel ().selectRelations ( requestedPath )
+					.outboundOnly ()
+					.getRelations ( mrc )
+				;
+
 				modelApiContext.respondOk ( new JSONObject ()
 					.put ( "status", HttpStatusCodes.k200_ok )
 					.put ( "request", requestedPath.toString () )
@@ -422,7 +432,7 @@ public class ModelApi extends ModelApiContextHelper
 		}
 	}
 
-	private static JSONObject renderRelnSet ( List<ModelRelationInstance> relns, boolean fromSide )
+	private static JSONObject renderRelnSet ( ModelRelationList relns, boolean fromSide )
 	{
 		final MultiMap<String,Path> relnMap = new MultiMap<> ();
 		for ( ModelRelation mr : relns )

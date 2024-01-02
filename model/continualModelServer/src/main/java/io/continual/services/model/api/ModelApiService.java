@@ -21,10 +21,10 @@ import org.json.JSONObject;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.http.app.servers.routeInstallers.TypicalApiServiceRouteInstaller;
 import io.continual.http.service.framework.CHttpService;
-import io.continual.http.service.framework.routing.playish.CHttpPlayishStaticEntryPointRoutingSource;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.services.model.api.endpoints.AuthApiHandler;
+import io.continual.services.model.api.endpoints.Health;
 import io.continual.services.model.api.endpoints.MetricsApiHandler;
 import io.continual.services.model.api.endpoints.ModelApi;
 import io.continual.services.model.api.endpoints.Options;
@@ -53,14 +53,11 @@ public class ModelApiService extends SimpleService
 
 		server.addRouteInstaller (
 			new TypicalApiServiceRouteInstaller ()
-				.registerRoutes ( "authRoutes.conf", authApi )
-				.registerRoutes ( "modelApi.conf", modelApi )
-				.registerRoutes ( "metrics.conf", new MetricsApiHandler ( sc, settings ) )
-				.registerRoutes ( "options.conf", new Options ( sc, settings ) )
-				.registerRouteSource (
-					new CHttpPlayishStaticEntryPointRoutingSource ()
-						.addRoute ( "GET", "/guide", "staticDir:com/rathravane/labels/guide;index.html" )
-				)
+				.registerRoutes ( "authRoutes.conf", ModelApiService.class, authApi )
+				.registerRoutes ( "modelApi.conf", ModelApiService.class, modelApi )
+				.registerRoutes ( "metrics.conf", ModelApiService.class, new MetricsApiHandler ( sc, settings ) )
+				.registerRoutes ( "options.conf", ModelApiService.class, new Options ( sc, settings ) )
+				.registerRoutes ( "health.conf", ModelApiService.class, new Health ( sc, settings ) )
 				.registerErrorHandler ( ModelAccessException.class, HttpStatusCodes.k403_forbidden )
 				.registerErrorHandler ( ModelItemDoesNotExistException.class, HttpStatusCodes.k404_notFound )
 				.registerErrorHandler ( ModelRequestException.class, HttpStatusCodes.k400_badRequest )

@@ -24,8 +24,6 @@ import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
-import io.continual.services.model.impl.common.BasicModelRelnInstance;
-import io.continual.services.model.impl.common.BasicModelRequestContextBuilder;
 import io.continual.services.model.impl.common.SimpleModelQuery;
 import io.continual.services.model.impl.json.CommonJsonDbModel;
 import io.continual.services.model.impl.json.CommonJsonDbObject;
@@ -59,19 +57,13 @@ public class InMemoryModel extends CommonJsonDbModel
 	}
 
 	@Override
-	public ModelRequestContextBuilder getRequestContextBuilder ()
-	{
-		return new BasicModelRequestContextBuilder ();
-	}
-
-	@Override
 	public ModelPathList listChildrenOfPath ( ModelRequestContext context, Path parentPath ) throws ModelServiceException, ModelRequestException
 	{
 		JSONObject current = getDataRoot ();
 		for ( Name name : parentPath.getSegments () )
 		{
 			current = current.optJSONObject ( name.toString () );
-			if ( current == null ) return null;
+			if ( current == null ) return ModelPathList.emptyList ();
 		}
 
 		final LinkedList<Path> paths = new LinkedList<> ();
@@ -119,7 +111,7 @@ public class InMemoryModel extends CommonJsonDbModel
 			tos.add ( reln.getTo ().toString () );
 			fromNode.put ( reln.getName (), JsonVisitor.collectionToArray ( tos ) );
 
-			return new BasicModelRelnInstance ( reln );
+			return ModelRelationInstance.from ( reln );
 		}
 		catch ( Exception x )
 		{
@@ -151,7 +143,7 @@ public class InMemoryModel extends CommonJsonDbModel
 	{
 		try
 		{
-			final BasicModelRelnInstance mr = BasicModelRelnInstance.fromId ( relnId );
+			final ModelRelationInstance mr = ModelRelationInstance.from ( relnId );
 			return unrelate ( context, mr );
 		}
 		catch ( IllegalArgumentException x )
@@ -175,7 +167,7 @@ public class InMemoryModel extends CommonJsonDbModel
 					@Override
 					public boolean visit ( String toPathText ) throws JSONException
 					{
-						result.add ( new BasicModelRelnInstance ( fromObject, relnName, Path.fromString ( toPathText ) ) );
+						result.add ( ModelRelationInstance.from ( fromObject, relnName, Path.fromString ( toPathText ) ) );
 						return true;
 					}
 				} );
@@ -196,7 +188,7 @@ public class InMemoryModel extends CommonJsonDbModel
 		{
 			for ( Path fromObj : revRelns.get ( named ) )
 			{
-				result.add ( new BasicModelRelnInstance ( fromObj, named, toObject ) );
+				result.add ( ModelRelationInstance.from ( fromObj, named, toObject ) );
 			}
 		}
 
@@ -268,7 +260,6 @@ public class InMemoryModel extends CommonJsonDbModel
 			if ( current.has ( itemName ) && null != current.optJSONObject ( itemName ) )
 			{
 				current.remove ( itemName );
-
 				removeRelnsFor ( objectPath );
 
 				return true;

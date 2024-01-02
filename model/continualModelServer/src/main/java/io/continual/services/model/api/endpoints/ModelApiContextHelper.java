@@ -61,8 +61,6 @@ public class ModelApiContextHelper extends TypicalRestApiEndpoint<Identity>
 
 		ModelSession getModelSession () throws IamSvcException, BuildFailure;
 
-		Path getRequestedPath ();
-
 		default void respondOk ( JSONObject data ) throws IOException { respondWithStatus ( HttpStatusCodes.k200_ok, data ); }
 
 		void respondWithStatus ( int statusCode, JSONObject data ) throws IOException;
@@ -100,7 +98,7 @@ public class ModelApiContextHelper extends TypicalRestApiEndpoint<Identity>
 	 * @param handler
 	 * @throws ModelRequestException
 	 */
-	public void handleModelRequest ( final CHttpRequestContext context, final String acctId, final String path, final ModelApiHandler handler ) throws ModelRequestException
+	public void handleModelRequest ( final CHttpRequestContext context, final String acctId, final ModelApiHandler handler ) throws ModelRequestException
 	{
 		try
 		{
@@ -114,8 +112,6 @@ public class ModelApiContextHelper extends TypicalRestApiEndpoint<Identity>
 				sendNotAuth ( context );
 				return;
 			}
-
-			final Path actualPath = fixupPath ( path );
 
 			// setup a request context
 			final ModelApiContext mac = new ModelApiContext ()
@@ -141,9 +137,6 @@ public class ModelApiContextHelper extends TypicalRestApiEndpoint<Identity>
 						.build ()
 					;
 				}
-
-				@Override
-				public Path getRequestedPath () { return actualPath; }
 
 				@Override
 				public void respondWithStatus ( int statusCode, JSONObject data ) throws IOException

@@ -18,6 +18,7 @@ package io.continual.services.model.core;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedList;
 
 import io.continual.util.naming.Path;
 
@@ -35,5 +36,14 @@ public interface ModelPathList extends Iterable<Path>
 	static ModelPathList wrap ( Collection<Path> paths )
 	{
 		return new ModelPathList () { @Override public Iterator<Path> iterator () { return paths.iterator (); } };
+	}
+
+	/**
+	 * Create an empty list
+	 * @return an empty model path list
+	 */
+	static ModelPathList emptyList ()
+	{
+		return wrap ( new LinkedList<Path> () );
 	}
 }

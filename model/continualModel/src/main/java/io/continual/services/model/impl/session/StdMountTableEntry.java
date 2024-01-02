@@ -40,7 +40,10 @@ public class StdMountTableEntry implements ModelMount
 	@Override
 	public Path getGlobalPath ( Path from )
 	{
-		return fMountPoint.makeChildPath ( from );
+		// note that makeChildPath appends "from" and we don't want a trailing slash from the root path
+		return from.isRootPath () ?
+			fMountPoint :
+			fMountPoint.makeChildPath ( from );
 	}
 
 	@Override

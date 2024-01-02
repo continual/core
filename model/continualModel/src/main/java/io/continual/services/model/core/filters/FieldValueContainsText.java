@@ -1,10 +1,10 @@
 package io.continual.services.model.core.filters;
 
 import io.continual.services.model.core.ModelObject;
-import io.continual.services.model.core.ModelObjectFilter;
+import io.continual.services.model.core.ModelItemFilter;
 import io.continual.util.data.json.JsonEval;
 
-public class FieldValueContainsText implements ModelObjectFilter
+public class FieldValueContainsText implements ModelItemFilter<ModelObject>
 {
 	public FieldValueContainsText ( String field, String text )
 	{

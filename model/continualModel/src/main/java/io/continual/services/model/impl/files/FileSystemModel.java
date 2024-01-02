@@ -46,8 +46,6 @@ import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
-import io.continual.services.model.impl.common.BasicModelRelnInstance;
-import io.continual.services.model.impl.common.BasicModelRequestContextBuilder;
 import io.continual.services.model.impl.common.SimpleModelQuery;
 import io.continual.services.model.impl.json.CommonJsonDbModel;
 import io.continual.services.model.impl.json.CommonJsonDbObject;
@@ -115,35 +113,34 @@ public class FileSystemModel extends CommonJsonDbModel
 	}
 
 	@Override
-	public ModelRequestContextBuilder getRequestContextBuilder ()
-	{
-		return new BasicModelRequestContextBuilder ();
-	}
-
-	@Override
 	public ModelPathList listChildrenOfPath ( ModelRequestContext context, Path prefix ) throws ModelServiceException, ModelRequestException
 	{
 		final LinkedList<Path> result = new LinkedList<> ();
 
 		final File objDir = getObjectDir ();
-		
+
 		// drill down to the proper containing folder
 		final File container = pathToDir ( objDir, prefix );
+
+		if ( container.isFile () )
+		{
+			// this is an object; it has no children
+			return ModelPathList.wrap ( new LinkedList<Path> () );
+		}
+
+		// if the directory doesn't exist, 
 		if ( !container.isDirectory () )
 		{
 			// if the obj dir hasn't been created...
 			if ( container.equals ( objDir ) ) return ModelPathList.wrap ( new LinkedList<Path> () );
 
-			// but normally...
-			return null;
+			// otherwise, this is a path into nowhere... 
+			throw new ModelItemDoesNotExistException ( prefix );
 		}
-		
+
 		for ( File obj : container.listFiles () )
 		{
-			if ( obj.isFile () )
-			{
-				result.add ( prefix.makeChildItem ( Name.fromString ( obj.getName () ) ) );
-			}
+			result.add ( prefix.makeChildItem ( Name.fromString ( obj.getName () ) ) );
 		}
 
 		return new ModelPathList ()
@@ -273,25 +270,13 @@ public class FileSystemModel extends CommonJsonDbModel
 	{
 		try
 		{
-			final BasicModelRelnInstance mr = BasicModelRelnInstance.fromId ( relnId );
+			final ModelRelationInstance mr = ModelRelationInstance.from ( relnId );
 			return unrelate ( context, mr );
 		}
 		catch ( IllegalArgumentException x )
 		{
 			throw new ModelRequestException ( x );
 		}
-	}
-
-	@Override
-	public List<ModelRelationInstance> getInboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
-	{
-		return fRelnMgr.getInboundRelations ( forObject );
-	}
-
-	@Override
-	public List<ModelRelationInstance> getOutboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
-	{
-		return fRelnMgr.getOutboundRelations ( forObject );
 	}
 
 	@Override

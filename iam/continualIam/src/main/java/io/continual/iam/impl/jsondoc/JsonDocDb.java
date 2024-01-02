@@ -27,6 +27,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import io.continual.iam.credentials.UsernamePasswordCredential;
 import io.continual.iam.exceptions.IamBadRequestException;
 import io.continual.iam.exceptions.IamIdentityDoesNotExist;
 import io.continual.iam.exceptions.IamSvcException;
@@ -573,4 +574,22 @@ public class JsonDocDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 		JSONObject tokens = fTop.optJSONObject ( "tokens" );
 		return ( tokens != null && tokens.has ( token ) );
 	}
+
+	@Override
+	protected boolean checkPassword ( UsernamePasswordCredential upc, CommonJsonIdentity user )
+	{
+		final String salt = user.getPasswordSalt ();
+		if ( kNoEncrypt.equals ( salt ) )
+		{
+			final String hash = user.getPasswordHash ();
+			if ( hash != null && hash.equals ( upc.getPassword () ) )
+			{
+				return true;
+			}
+		}
+
+		return super.checkPassword ( upc, user );
+	}
+
+	private static final String kNoEncrypt = "pepper";
 }

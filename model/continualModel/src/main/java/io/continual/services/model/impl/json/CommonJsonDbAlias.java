@@ -13,7 +13,7 @@ public class CommonJsonDbAlias extends CommonJsonDbObject
 			.withId ( id )
 			.withData ( new JSONObject ()
 				.put ( "path", path.toString () ), true )
-			.withType ( "Alias" )
+			.withType ( CommonJsonDbObject.kStdType_Alias )
 			.constructUsing ( new Constructor<CommonJsonDbAlias> ()
 			{
 				@Override

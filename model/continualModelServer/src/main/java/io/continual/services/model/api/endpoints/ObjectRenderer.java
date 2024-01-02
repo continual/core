@@ -16,13 +16,12 @@
 
 package io.continual.services.model.api.endpoints;
 
-import java.util.List;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelRelationInstance;
+import io.continual.services.model.core.ModelRelationList;
 import io.continual.util.naming.Path;
 
 public class ObjectRenderer
@@ -30,7 +29,7 @@ public class ObjectRenderer
 	public ObjectRenderer atPath ( Path p ) { fPath = p; return this; }
 	public ObjectRenderer withData ( ModelObject o ) { fMoc = o; return this; }
 
-	public ObjectRenderer withRelations ( List<ModelRelationInstance> relns ) { fRelns = relns; return this; }
+	public ObjectRenderer withRelations ( ModelRelationList relns ) { fRelns = relns; return this; }
 	public ObjectRenderer withInboundRelnsOnly () { fDir = "in"; return this; }
 	public ObjectRenderer withOutboundRelnsOnly () { fDir = "out"; return this; }
 	public ObjectRenderer withRelnName ( String name ) { fRelnName = name; return this; }
@@ -70,7 +69,8 @@ public class ObjectRenderer
 			// organize each relation into the rendering structure
 			for ( ModelRelationInstance r : fRelns )
 			{
-				final boolean isOut = r.getFrom ().equals ( fPath );
+				final Path fromSide = r.getFrom ();
+				final boolean isOut = fromSide.equals ( fPath );
 				final JSONObject targetList = isOut ? out : in;
 
 				// get/create relation set by name
@@ -113,7 +113,7 @@ public class ObjectRenderer
 
 	private Path fPath = null;
 	private ModelObject fMoc = null;
-	private List<ModelRelationInstance> fRelns = null;
+	private ModelRelationList fRelns = null;
 	private String fDir = null;
 	private String fRelnName = null;
 }

@@ -14,21 +14,25 @@ import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.services.model.core.Model;
+import io.continual.services.model.core.ModelItemList;
 import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
+import io.continual.services.model.core.ModelRelationList;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelTraversal;
 import io.continual.services.model.core.ModelUpdater;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
+import io.continual.services.model.impl.common.BaseRelationSelector;
 import io.continual.services.model.impl.common.BasicModelRequestContextBuilder;
 import io.continual.services.model.impl.common.SimpleTraversal;
 import io.continual.services.model.impl.json.CommonJsonDbObjectContainer;
 import io.continual.services.model.impl.mem.InMemoryModel;
+import io.continual.util.naming.Name;
 import io.continual.util.naming.Path;
 
 /**
@@ -118,6 +122,7 @@ public class DelegatingModel extends SimpleService implements Model
 			log.info ( "Closing " + m.getAcctId () + "/" + m.getId () );
 			m.close ();
 		}
+		fBackingModel.close ();
 	}
 
 	@Override
@@ -131,25 +136,48 @@ public class DelegatingModel extends SimpleService implements Model
 	{
 		try
 		{
-			final ModelMount mm = getModelForPath ( objectPath );
-			if ( mm.getModel () == this )
-			{
-				for ( ModelMount um : fUserMountTable )
-				{
-					final Path mp = um.getMountPoint ();
+			// the root path always exists
+			if ( objectPath.isRootPath () ) return true;
 
-					// is this mount point below the given path prefix?
-					if ( mp.startsWith ( objectPath ) )
-					{
-						return true;
-					}
-				}
-				return objectPath.equals ( Path.getRootPath () );
-			}
-			else
+			// get the model...
+			final ModelMount mm = getModelForPath ( objectPath );
+
+			// if the requested path is in a delegated model, just forward the request
+			if ( mm.getModel () != this )
 			{
 				return mm.getModel ().exists ( context, mm.getPathWithinModel ( objectPath ) );
 			}
+
+			// or if it's part of the backing model
+			if ( !objectPath.isRootPath () && fBackingModel.exists ( context, objectPath ) )
+			{
+				return true;
+			}
+
+			// here, the path is a partial path that may contain model mounts (but not including "/", dealt with above)
+			//
+			//	/
+			//		foo
+			//		weather/
+			//			us/		(mount)
+			//			europe/	(mount)
+			//		scores/
+			//			premiereleague/		(mount)
+			//
+			//
+
+			for ( ModelMount um : fUserMountTable )
+			{
+				final Path mp = um.getMountPoint ();
+
+				// is this mount point below the given path prefix?
+				if ( mp.startsWith ( objectPath ) )
+				{
+					return true;
+				}
+			}
+
+			return false;
 		}
 		catch ( ModelRequestException e )
 		{
@@ -207,36 +235,59 @@ public class DelegatingModel extends SimpleService implements Model
 	public ModelObject load ( ModelRequestContext context, Path objectPath ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
 		final ModelMount mm = getModelForPath ( objectPath );
-		if ( mm.getModel () == this )
-		{
-			// FIXME: merge in results from backing model
-			
-			// might be "/", but also could be "/foo" where "/foo/bar" is a mount point. We just return an object container either way.
 
-			final TreeSet<Path> result = new TreeSet<>();
-			for ( ModelMount um : fUserMountTable )
-			{
-				final Path mp = um.getMountPoint ();
-
-				// is this mount point below the given path prefix?
-				if ( mp.startsWith ( objectPath ) )
-				{
-					// return just the next segment from the requested segment
-					final Path childPart = mp.makePathWithinParent ( objectPath );
-					result.add ( Path.getRootPath ().makeChildItem ( childPart.getSegments ()[0] ) );
-				}
-			}
-
-			return CommonJsonDbObjectContainer.createObjectContainer ( objectPath.toString (), result );
-		}
-		else
+		// if the requested path is in a delegated model, just forward the request
+		if ( mm.getModel () != this )
 		{
 			return mm.getModel ().load ( context, mm.getPathWithinModel ( objectPath ) );
 		}
+
+		// or if it's part of the backing model
+		if ( !objectPath.isRootPath () && fBackingModel.exists ( context, objectPath ) )
+		{
+			return fBackingModel.load ( context, objectPath );
+		}
+
+		// here, the path is a partial path that may contain model mounts (including "/")
+		//
+		//	/
+		//		foo
+		//		weather/
+		//			us/		(mount)
+		//			europe/	(mount)
+		//		scores/
+		//			premiereleague/		(mount)
+		//
+		//
+
+		final TreeSet<Path> result = new TreeSet<>();
+		for ( ModelMount um : fUserMountTable )
+		{
+			final Path mp = um.getMountPoint ();
+
+			// is this mount point below the given path prefix?
+			if ( mp.startsWith ( objectPath ) )
+			{
+				// return just the next segment from the requested segment
+				final Path childPart = mp.makePathWithinParent ( objectPath );
+				result.add ( Path.getRootPath ().makeChildItem ( childPart.getSegments ()[0] ) );
+			}
+		}
+
+		// if this is top-level, include the top-level paths in the backing model
+		if ( objectPath.isRootPath () )
+		{
+			for ( Path p : fBackingModel.listChildrenOfPath ( context, objectPath ) )
+			{
+				result.add ( p );
+			}
+		}
+
+		return CommonJsonDbObjectContainer.createObjectContainer ( objectPath.toString (), result );
 	}
 
 	@Override
-	public void store ( ModelRequestContext context, Path objectPath, ModelUpdater ... updates ) throws ModelRequestException, ModelServiceException
+	public DelegatingModel store ( ModelRequestContext context, Path objectPath, ModelUpdater ... updates ) throws ModelRequestException, ModelServiceException
 	{
 		final ModelMount mm = getModelForPath ( objectPath );
 		if ( mm.getModel () == this )
@@ -247,6 +298,7 @@ public class DelegatingModel extends SimpleService implements Model
 		{
 			mm.getModel ().store ( context, mm.getPathWithinModel ( objectPath ), updates );
 		}
+		return this;
 	}
 
 	@Override
@@ -277,17 +329,7 @@ public class DelegatingModel extends SimpleService implements Model
 
 		if ( mmFrom == mmTo )	// same instance
 		{
-			return mmFrom.getModel ().relate ( context, new ModelRelation ()
-			{
-				@Override
-				public Path getFrom () { return mmFrom.getPathWithinModel ( from ); }
-
-				@Override
-				public Path getTo () { return mmTo.getPathWithinModel ( to ); }
-
-				@Override
-				public String getName () { return mr.getName (); }
-			} );
+			return mmFrom.getModel ().relate ( context, ModelRelation.from ( mmFrom.getPathWithinModel ( from ), mr.getName (), mmTo.getPathWithinModel ( to ) ) );
 		}
 		else
 		{
@@ -309,17 +351,7 @@ public class DelegatingModel extends SimpleService implements Model
 
 		if ( mmFrom == mmTo )	// same instance
 		{
-			return mmFrom.getModel ().unrelate ( context, new ModelRelation ()
-			{
-				@Override
-				public Path getFrom () { return mmFrom.getPathWithinModel ( from ); }
-
-				@Override
-				public Path getTo () { return mmTo.getPathWithinModel ( to ); }
-
-				@Override
-				public String getName () { return reln.getName (); }
-			} );
+			return mmFrom.getModel ().unrelate ( context, ModelRelation.from ( mmFrom.getPathWithinModel ( from ), reln.getName (), mmTo.getPathWithinModel ( to ) ) );
 		}
 		else
 		{
@@ -338,99 +370,117 @@ public class DelegatingModel extends SimpleService implements Model
 			}
 		}
 
-		// FIXME: check cross-model relations
+		fBackingModel.unrelate ( context, relnId );
 
 		return false;
 	}
 
-	@Override
-	public List<ModelRelationInstance> getInboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
-	{
-		// FIXME we need to check our own data source as well as the model hosting the object
-
-		final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
-
-		final ModelMount mm = getModelForPath ( forObject );
-		final Model m = mm.getModel () == this ? fBackingModel : mm.getModel ();
-
-		try
-		{
-			final ModelRequestContext mrc = m.getRequestContextBuilder ()
-				.forUser ( context.getOperator () )
-				.build ()
-			;
-
-			for ( ModelRelationInstance mrInternal : m.getInboundRelationsNamed ( mrc, mm.getPathWithinModel ( forObject ), named ) )
-			{
-				result.add ( new ToGlobalMapper ( mm, mrInternal ) );
-			}
-		}
-		catch ( BuildFailure e )
-		{
-			throw new ModelServiceException ( e );
-		}
-
-		return result;
-	}
+	private static final String kChild = "child";
 
 	@Override
-	public List<ModelRelationInstance> getOutboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
+	public RelationSelector selectRelations ( Path objectPath )
 	{
-		// FIXME we need to check our own data source as well as the model hosting the object
-
-		final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
-
-		final ModelMount mm = getModelForPath ( forObject );
-		final Model m = mm.getModel () == this ? fBackingModel : mm.getModel ();
-
-		try
+		return new BaseRelationSelector<DelegatingModel> ( this, objectPath )
 		{
-			final ModelRequestContext mrc = m.getRequestContextBuilder ()
-				.forUser ( context.getOperator () )
-				.build ()
-			;
-
-			for ( ModelRelationInstance mrInternal : m.getOutboundRelationsNamed ( mrc, mm.getPathWithinModel ( forObject ), named ) )
+			@Override
+			public ModelRelationList getRelations ( ModelRequestContext context ) throws ModelServiceException, ModelRequestException
 			{
-				result.add ( new ToGlobalMapper ( mm, mrInternal ) );
-			}
-		}
-		catch ( BuildFailure e )
-		{
-			throw new ModelServiceException ( e );
-		}
+				final ModelRequestContext dc = getDerivedContext ( fBackingModel, context );
+				
+				final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
 
-		return result;
+				// some setup
+				final Path objectPath = getObject ();
+				final ModelMount mm = getModelForPath ( objectPath );
+				final String relnNameFilter = getNameFilter ();
+
+				// if the requested path is in a delegated model, forward the request to that model, then convert the 
+				// results to their global names
+				if ( mm.getModel () != DelegatingModel.this )
+				{
+					final Path pathInModel = mm.getPathWithinModel ( objectPath );
+					final ModelRelationList relnList = mm.getModel ().selectRelations ( pathInModel )
+						.named ( relnNameFilter )
+						.inbound ( wantInbound () )
+						.outbound ( wantOutbound () )
+						.getRelations ( getDerivedContext ( mm.getModel (), context ) )
+					;
+					final List<ModelRelationInstance> relns =  ModelItemList.iterateIntoList ( relnList );
+					for ( ModelRelationInstance mri : relns )
+					{
+						result.add ( ModelRelationInstance.from (
+							mm.getGlobalPath ( mri.getFrom () ),
+							mri.getName (),
+							mm.getGlobalPath ( mri.getTo () )
+						) );
+					}
+				}
+
+				// the object may also have relations in the delegating model
+				result.addAll ( ModelItemList.iterateIntoList ( fBackingModel.selectRelations ( objectPath )
+					.named ( relnNameFilter )
+					.inbound ( wantInbound () )
+					.outbound ( wantOutbound () )
+					.getRelations ( dc )
+				));
+
+				// finally, we establish parent/child hierarchy via path names
+				if ( wantInbound () && !objectPath.isRootPath () && ( relnNameFilter == null || relnNameFilter.equals ( kChild ) )  )
+				{
+					result.add ( ModelRelationInstance.from ( objectPath.getParentPath (), kChild, objectPath ) );
+				}
+				if ( wantOutbound () && ( relnNameFilter == null || relnNameFilter.equals ( kChild ) )  )
+				{
+					TreeSet<Path> children = new TreeSet<>();
+
+					// find the paths below this one in the mount space
+					for ( ModelMount mmm : fUserMountTable )
+					{
+						// mount /foo/bar; object path /foo, then we want /foo/bar
+						// mount /foo/bar; object path /foo/bar, then we have to ask the model for /'s children
+						// mount /foo/bar; object path /foo/bar/baz, then we have to ask the model for /bar's children
+						
+						if ( mmm.getMountPoint ().startsWith ( objectPath ) && !mmm.getMountPoint ().equals ( objectPath ) )
+						{
+							final Path pInP = mmm.getMountPoint ().makePathWithinParent ( objectPath );
+							final Name childName = pInP.getSegment ( 0 );
+							final Path asChild = objectPath.makeChildItem ( childName );
+							children.add ( asChild );
+						}
+						else if ( objectPath.startsWith ( mmm.getMountPoint () ) )
+						{
+							for ( Path child : mmm.getModel ().listChildrenOfPath (
+								getDerivedContext ( mmm.getModel (), context ),
+								mmm.getPathWithinModel ( objectPath ) ) )
+							{
+								children.add ( mmm.getGlobalPath ( child ) );
+							}
+						}
+						// else: no overlap
+					}
+
+					// also find any child objects in the backing store
+					for ( Path p : fBackingModel.listChildrenOfPath ( dc, objectPath ) )
+					{
+						children.add ( p );
+					}
+
+					// build relations
+					for ( Path child : children )
+					{
+						result.add ( ModelRelationInstance.from ( objectPath, kChild, child ) );
+					}
+				}
+
+				return ModelRelationList.simpleListOfCollection ( result );
+			}
+		};
 	}
 
 	private final String fAcctId;
 	private final String fModelId;
 	private final LinkedList<ModelMount> fUserMountTable;
 	private final Model fBackingModel;
-
-	private static class ToGlobalMapper implements ModelRelationInstance
-	{
-		public ToGlobalMapper ( ModelMount mount, ModelRelationInstance internal )
-		{
-			fModelMount = mount;
-			fInternalReln = internal;
-		}
-
-		@Override
-		public String getId () { return fInternalReln.getId (); }
-
-		@Override
-		public Path getFrom () { return fModelMount.getGlobalPath ( fInternalReln.getFrom () ); }
-
-		@Override
-		public Path getTo () { return fModelMount.getGlobalPath ( fInternalReln.getTo () ); }
-
-		@Override
-		public String getName () { return fInternalReln.getName (); }
-
-		private final ModelRelationInstance fInternalReln;
-		private final ModelMount fModelMount;
-	}
 
 	// get the model that owns the given path, which may be the top-level delegating model
 	private ModelMount getModelForPath ( Path modelPath )
@@ -443,6 +493,7 @@ public class DelegatingModel extends SimpleService implements Model
 			}
 		}
 
+		// this path is in the top-level mount
 		return new ModelMount ()
 		{
 			@Override
@@ -461,9 +512,24 @@ public class DelegatingModel extends SimpleService implements Model
 			public Path getPathWithinModel ( Path absolutePath ) { return absolutePath; }
 
 			@Override
-			public Path getGlobalPath ( Path from ) { return null; }
+			public Path getGlobalPath ( Path from ) { return from; }
 		};
 	}
 
 	private static final Logger log = LoggerFactory.getLogger ( DelegatingModel.class );
+
+	private ModelRequestContext getDerivedContext ( Model targetModel, ModelRequestContext mrc ) throws ModelRequestException
+	{
+		try
+		{
+			return targetModel.getRequestContextBuilder ()
+				.forUser ( mrc.getOperator () )
+				.build ()
+			;
+		}
+		catch ( BuildFailure e )
+		{
+			throw new ModelRequestException ( e );
+		}
+	}
 }

@@ -33,14 +33,17 @@ public class BasicModelRequestContext implements ModelRequestContext
 	{
 		fUser = mrcBuilder.fUser;
 		fCacheControl = CacheControl.READ_AND_WRITE;
-		fMountPoint = mrcBuilder.fMountPoint;
 		fObjects = new HashMap<> ();
 		fKnownNotToExist = new TreeSet<> ();
-		fRawData = new HashMap<String,Object> ();
 		fSchemaReg = mrcBuilder.fSchemaReg;
 		fNotificationService = mrcBuilder.fNotificationSvc;
 	}
 
+	@Override
+	public void close ()
+	{
+	}
+	
 	@Override
 	public Identity getOperator ()
 	{
@@ -74,33 +77,6 @@ public class BasicModelRequestContext implements ModelRequestContext
 	}
 
 	@Override
-	public Object getRawData ( String key )
-	{
-		return fRawData.get ( key );
-	}
-
-	@Override
-	public <T> T getRawData ( String key, Class<T> c )
-	{
-		final Object data = getRawData ( key );
-		if ( data == null || !c.isInstance ( data ) ) return null;
-		try
-		{
-			return c.cast ( data );
-		}
-		catch ( ClassCastException x )
-		{
-			return null;
-		}
-	}
-
-	@Override
-	public void putRawData ( String key, Object value )
-	{
-		fRawData.put ( key, value );
-	}
-
-	@Override
 	public void doesNotExist ( Path key )
 	{
 		fKnownNotToExist.add ( key );
@@ -114,12 +90,6 @@ public class BasicModelRequestContext implements ModelRequestContext
 	}
 
 	@Override
-	public Path getMountPoint ()
-	{
-		return fMountPoint;
-	}
-
-	@Override
 	public ModelSchemaRegistry getSchemaRegistry ()
 	{
 		return fSchemaReg;
@@ -130,14 +100,12 @@ public class BasicModelRequestContext implements ModelRequestContext
 	{
 		return fNotificationService;
 	}
-
+	
 	private final Identity fUser;
 	private final CacheControl fCacheControl;
-	private final Path fMountPoint;
 	private final ModelSchemaRegistry fSchemaReg;
 	private final ModelNotificationService fNotificationService;
 
 	private final HashMap<Path,ModelObject> fObjects;
-	private final HashMap<String,Object> fRawData;
 	private final TreeSet<Path> fKnownNotToExist;
 }

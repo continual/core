@@ -16,6 +16,8 @@
 
 package io.continual.services.model.core;
 
+import java.util.Objects;
+
 import io.continual.util.naming.Path;
 
 /**
@@ -25,7 +27,7 @@ import io.continual.util.naming.Path;
  * Note that objects in a 1:M or M:M structure are related using multiple relation instances
  * with the same relation name.
  */
-public interface ModelRelation
+public interface ModelRelation extends Comparable<ModelRelation>
 {
 	/**
 	 * Get the "from" side object path
@@ -64,6 +66,52 @@ public interface ModelRelation
 
 			@Override
 			public String getName () { return reln; }
+
+			@Override
+			public String toString ()
+			{
+				return new StringBuilder ()
+					.append ( getFrom () )
+					.append ( "->" )
+					.append ( getName () )
+					.append ( "->" )
+					.append ( getTo () )
+					.toString ()
+				;
+			}
+
+			@Override
+			public int hashCode ()
+			{
+				return Objects.hash ( getFrom(), getName(), getTo() );
+			}
+
+			@Override
+			public boolean equals ( Object obj )
+			{
+				if ( this == obj ) return true;
+				if ( obj == null ) return false;
+				if ( getClass () != obj.getClass () ) return false;
+				final ModelRelation that = (ModelRelation) obj;
+				return Objects.equals ( getFrom(), that.getFrom() )
+					&& Objects.equals ( getName(), that.getName() )
+					&& Objects.equals ( getTo(), that.getTo() );
+			}
+
+			@Override
+			public int compareTo ( ModelRelation o )
+			{
+				int result = from.compareTo ( o.getFrom () );
+				if ( result != 0 ) return result;
+
+				result = reln.compareTo ( o.getName () );
+				if ( result != 0 ) return result;
+
+				result = to.compareTo ( o.getTo () );
+				if ( result != 0 ) return result;
+
+				return 0;
+			}
 		};
 	}
 }

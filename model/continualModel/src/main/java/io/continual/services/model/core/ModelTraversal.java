@@ -49,7 +49,7 @@ public interface ModelTraversal
 	 * @param filter
 	 * @return this traversal
 	 */
-	ModelTraversal filterSet ( ModelObjectFilter filter );
+	ModelTraversal filterSet ( ModelItemFilter<ModelObject> filter );
 
 	/**
 	 * Execute the traversal

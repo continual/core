@@ -44,8 +44,6 @@ import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
-import io.continual.services.model.impl.common.BasicModelRelnInstance;
-import io.continual.services.model.impl.common.BasicModelRequestContextBuilder;
 import io.continual.services.model.impl.common.SimpleModelQuery;
 import io.continual.services.model.impl.json.CommonJsonDbModel;
 import io.continual.services.model.impl.json.CommonJsonDbObject;
@@ -87,12 +85,6 @@ public class ModelClient extends CommonJsonDbModel
 		{
 			throw new BuildFailure ( e );
 		}
-	}
-
-	@Override
-	public ModelRequestContextBuilder getRequestContextBuilder ()
-	{
-		return new BasicModelRequestContextBuilder ( );
 	}
 
 	@Override
@@ -303,7 +295,7 @@ public class ModelClient extends CommonJsonDbModel
 			}
 
 			// FIXME: return ID from service
-			return new BasicModelRelnInstance ( reln );
+			return ModelRelationInstance.from ( reln );
 		}
 		catch ( HttpServiceException e )
 		{
@@ -348,7 +340,7 @@ public class ModelClient extends CommonJsonDbModel
 		// FIXME: this needs to use id from service
 		try
 		{
-			final BasicModelRelnInstance mr = BasicModelRelnInstance.fromId ( relnId );
+			final ModelRelationInstance mr = ModelRelationInstance.from ( relnId );
 			return unrelate ( context, mr );
 		}
 		catch ( IllegalArgumentException x )
@@ -387,17 +379,7 @@ public class ModelClient extends CommonJsonDbModel
 							{
 								// FIXME: get ID from service
 								final Path srcPath = Path.fromString ( srcObj );
-								result.add ( new BasicModelRelnInstance ( new ModelRelation () {
-
-									@Override
-									public Path getFrom () { return inbound ? srcPath : forObject; }
-
-									@Override
-									public Path getTo () { return inbound ? forObject : srcPath; }
-
-									@Override
-									public String getName () { return relnName; }
-								} ) );
+								result.add ( ModelRelationInstance.from ( ModelRelation.from ( inbound ? srcPath : forObject, relnName, inbound ? forObject : srcPath ) ) );
 								return true;
 							}
 							
@@ -427,18 +409,6 @@ public class ModelClient extends CommonJsonDbModel
 		}
 	}
 	
-	@Override
-	public List<ModelRelationInstance> getInboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
-	{
-		return getRelns ( forObject, true, null );
-	}
-
-	@Override
-	public List<ModelRelationInstance> getOutboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
-	{
-		return getRelns ( forObject, false, null );
-	}
-
 	@Override
 	public List<ModelRelationInstance> getInboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
 	{

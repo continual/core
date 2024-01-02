@@ -34,7 +34,7 @@ public class Options extends TypicalRestApiEndpoint<Identity>
 		super ( sc, settings );
 	}
 
-	public static void listOptions ( CHttpRequestContext context, final String path )
+	public void listOptions ( CHttpRequestContext context, final String path )
 	{
 		CorsOptionsRouter.setupCorsHeaders ( context );
 

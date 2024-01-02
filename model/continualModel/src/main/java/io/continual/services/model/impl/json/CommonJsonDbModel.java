@@ -17,8 +17,11 @@
 package io.continual.services.model.impl.json;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.continual.iam.access.AccessControlEntry;
 import io.continual.iam.access.AccessControlList;
@@ -30,6 +33,7 @@ import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelNotificationService;
 import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelOperation;
+import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelSchema;
 import io.continual.services.model.core.ModelSchema.ValidationResult;
@@ -39,6 +43,7 @@ import io.continual.services.model.core.ModelUpdater;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
+import io.continual.services.model.impl.common.BasicModelRequestContextBuilder;
 import io.continual.services.model.impl.common.SimpleTraversal;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.naming.Path;
@@ -59,6 +64,12 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 	@Override
 	public void close () throws IOException
 	{
+	}
+
+	@Override
+	public ModelRequestContextBuilder getRequestContextBuilder ()
+	{
+		return new BasicModelRequestContextBuilder ();
 	}
 
 	@Override
@@ -132,7 +143,7 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 	}
 
 	@Override
-	public void store ( ModelRequestContext context, Path objectPath, ModelUpdater... updates ) throws ModelRequestException, ModelServiceException
+	public Model store ( ModelRequestContext context, Path objectPath, ModelUpdater... updates ) throws ModelRequestException, ModelServiceException
 	{
 		try
 		{
@@ -182,6 +193,7 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 			}
 
 			internalStore ( context, objectPath, o );
+			log.info ( "wrote {}", objectPath );
 			context.put ( objectPath, o );
 
 			final ModelNotificationService ns = context.getNotificationService();
@@ -198,6 +210,7 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 		{
 			throw new ModelServiceException ( e );
 		}
+		return this;
 	}
 
 	@Override
@@ -205,6 +218,7 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 	{
 		final boolean result = internalRemove ( context, objectPath );
 		context.remove ( objectPath );
+		log.info ( "removed {}", objectPath );
 		context.getNotificationService().onObjectDelete ( objectPath );
 		return result;
 	}
@@ -219,6 +233,12 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 	public ModelTraversal startTraversal () throws ModelRequestException
 	{
 		return new SimpleTraversal ( this );
+	}
+
+	@Override
+	public RelationSelector selectRelations ( Path objectPath )
+	{
+		return new CommonRelationSelector ( this, objectPath );
 	}
 
 	private final String fAcctId;
@@ -259,4 +279,30 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 
 	public static final String kMetadataTag = "Ⓜ";
 	public static final String kUserDataTag = "Ⓤ";
+
+	/**
+	 * Get inbound related objects with a given name from a given object
+	 * @param context
+	 * @param forObject
+	 * @param named send null to retrieve any
+	 * @return a list of 0 or more relations, with getTo set to forObject and getName set to named
+	 * @throws ModelServiceException
+	 * @throws ModelRequestException
+	 */
+	@Deprecated
+	public abstract List<ModelRelationInstance> getInboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException;
+
+	/**
+	 * Get outbound related objects with a given name from a given object
+	 * @param context
+	 * @param forObject
+	 * @param named
+	 * @return a list of 0 or more relations, with getFrom set to forObject and getName set to named
+	 * @throws ModelServiceException
+	 * @throws ModelRequestException
+	 */
+	@Deprecated
+	public abstract List<ModelRelationInstance> getOutboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException;
+
+	private static final Logger log = LoggerFactory.getLogger ( CommonJsonDbModel.class );
 }

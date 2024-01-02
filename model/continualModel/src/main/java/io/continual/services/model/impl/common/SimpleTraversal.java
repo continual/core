@@ -6,7 +6,7 @@ import java.util.TreeSet;
 
 import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelObject;
-import io.continual.services.model.core.ModelObjectFilter;
+import io.continual.services.model.core.ModelItemFilter;
 import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRequestContext;
@@ -42,7 +42,11 @@ public class SimpleTraversal implements ModelTraversal
 			public void execute ( StepContext sc ) throws ModelRequestException, ModelServiceException
 			{
 				final TreeSet<Path> result = new TreeSet<> ();
-				for ( ModelRelation mr : fModel.getOutboundRelationsNamed ( sc.fMrc, fStart, relation ) )
+				for ( ModelRelation mr : fModel.selectRelations ( fStart )
+						.named ( relation )
+						.outboundOnly ()
+						.getRelations ( sc.fMrc )
+					)
 				{
 					result.add ( mr.getTo () );
 				}
@@ -60,7 +64,11 @@ public class SimpleTraversal implements ModelTraversal
 			public void execute ( StepContext sc ) throws ModelRequestException, ModelServiceException
 			{
 				final TreeSet<Path> result = new TreeSet<> ();
-				for ( ModelRelation mr : fModel.getInboundRelationsNamed ( sc.fMrc, fStart, relation ) )
+				for ( ModelRelation mr : fModel.selectRelations ( fStart )
+					.named ( relation )
+					.inboundOnly ()
+					.getRelations ( sc.fMrc )
+				)
 				{
 					result.add ( mr.getFrom () );
 				}
@@ -111,7 +119,7 @@ public class SimpleTraversal implements ModelTraversal
 	}
 
 	@Override
-	public ModelTraversal filterSet ( ModelObjectFilter filter )
+	public ModelTraversal filterSet ( ModelItemFilter<ModelObject> filter )
 	{
 		fSteps.add ( new Step ()
 		{

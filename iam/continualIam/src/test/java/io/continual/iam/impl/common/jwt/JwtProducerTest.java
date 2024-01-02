@@ -59,7 +59,7 @@ public class JwtProducerTest
 					.withIssuerName ( issuer )
 					.usingSigningKey ( signingKey )
 					.build ();
-			final String result = jwtp.createJwtToken ( id );
+			final String result = jwtp.createJwtToken ( id, 0, null );
 			Assert.assertNotNull ( result );
 			Assert.assertTrue ( result.split ( "\\." ).length == 3 );
 		} catch ( BuildFailure e ) {

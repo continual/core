@@ -1,10 +1,10 @@
 package io.continual.services.model.core.filters;
 
 import io.continual.services.model.core.ModelObject;
-import io.continual.services.model.core.ModelObjectFilter;
+import io.continual.services.model.core.ModelItemFilter;
 import io.continual.util.data.json.JsonEval;
 
-public class FieldValueEquals implements ModelObjectFilter
+public class FieldValueEquals implements ModelItemFilter<ModelObject>
 {
 	public FieldValueEquals ( String field, Object val )
 	{

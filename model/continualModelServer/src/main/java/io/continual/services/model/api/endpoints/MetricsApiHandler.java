@@ -34,7 +34,7 @@ public class MetricsApiHandler extends TypicalRestApiEndpoint<Identity>
 		super ( sc, config );
 	}
 	
-	public static void getLiveness ( CHttpRequestContext context ) throws IOException
+	public void getLiveness ( CHttpRequestContext context ) throws IOException
 	{
 		context.response ()
 			.setStatus ( HttpStatusCodes.k200_ok )
@@ -42,7 +42,7 @@ public class MetricsApiHandler extends TypicalRestApiEndpoint<Identity>
 		;
 	}
 
-	public static void getReadiness ( CHttpRequestContext context ) throws IOException
+	public void getReadiness ( CHttpRequestContext context ) throws IOException
 	{
 		getLiveness ( context );
 	}

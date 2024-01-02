@@ -20,19 +20,12 @@ import io.continual.iam.identity.Identity;
 import io.continual.util.naming.Path;
 
 /**
- * The model request context is created once per user request. It caches data
- * used during request handling.
+ * A single user operation often requires multiple interactions with the model. The model request context 
+ * caches information across these interactions. It also provides references for the user's identity, the
+ * schema registry and the notification service.
  */
-public interface ModelRequestContext
+public interface ModelRequestContext extends AutoCloseable
 {
-	enum CacheControl
-	{
-		NONE,
-		READ_NO_WRITE,
-		WRITE_NO_READ,
-		READ_AND_WRITE
-	};
-	
 	/**
 	 * Get the operator for this context.
 	 * @return the operator
@@ -40,8 +33,31 @@ public interface ModelRequestContext
 	Identity getOperator ();
 
 	/**
-	 * Get the cache control settings
-	 * @return cache control settings
+	 * Get the schema registry
+	 * @return a schema registry
+	 */
+	ModelSchemaRegistry getSchemaRegistry ();
+
+	/**
+	 * Get notification service
+	 * @return a notification service
+	 */
+	ModelNotificationService getNotificationService ();
+
+	/**
+	 * CacheControl signals what kind of caching operation is allowed on the transaction
+	 */
+	enum CacheControl
+	{
+		NONE,
+		READ_NO_WRITE,
+		WRITE_NO_READ,
+		READ_AND_WRITE
+	};
+
+	/**
+	 * Get the cache control setting
+	 * @return cache control setting
 	 */
 	CacheControl getCacheControl ();
 
@@ -67,28 +83,6 @@ public interface ModelRequestContext
 	void remove ( Path objectPath );
 
 	/**
-	 * Get the named data from the context.
-	 * @param key the raw data key
-	 * @return the data, or null
-	 */
-	Object getRawData ( String key );
-
-	/**
-	 * Get raw data as the given type.
-	 * @param key the raw data key
-	 * @param c the class to cast the raw data to
-	 * @return the raw data stored with the key, cast to the given type, or null
-	 */
-	<T> T getRawData ( String key, Class<T> c );
-
-	/**
-	 * Put the named data and value into the context
-	 * @param key the raw data key
-	 * @param value a raw data object
-	 */
-	void putRawData ( String key, Object value );
-
-	/**
 	 * Tell the context that a key does not exist in the model.
 	 * @param key the object path
 	 */
@@ -100,22 +94,4 @@ public interface ModelRequestContext
 	 * @return true if the key is known to not exist
 	 */
 	boolean knownToNotExist ( Path key );
-
-	/**
-	 * Where is this model mounted in the user's global name system?
-	 * @return a Path
-	 */
-	Path getMountPoint ();
-
-	/**
-	 * Get the schema registry
-	 * @return a schema registry
-	 */
-	ModelSchemaRegistry getSchemaRegistry ();
-
-	/**
-	 * Get notification service
-	 * @return a notification service
-	 */
-	ModelNotificationService getNotificationService ();
 }

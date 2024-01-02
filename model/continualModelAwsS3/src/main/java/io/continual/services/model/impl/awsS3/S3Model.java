@@ -64,8 +64,6 @@ import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
-import io.continual.services.model.impl.common.BasicModelRelnInstance;
-import io.continual.services.model.impl.common.BasicModelRequestContextBuilder;
 import io.continual.services.model.impl.common.SimpleModelQuery;
 import io.continual.services.model.impl.json.CommonJsonDbModel;
 import io.continual.services.model.impl.json.CommonJsonDbObject;
@@ -188,7 +186,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 				vv = Version.V2;
 			}
 			fVersion = vv;
-			
+
 			fRelnMgr = new S3SysRelnMgr ( fS3, fBucketId, getRelationsPath () );
 
 			// optionally report metrics
@@ -236,12 +234,6 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	}
 
 	@Override
-	public ModelRequestContextBuilder getRequestContextBuilder ()
-	{
-		return new BasicModelRequestContextBuilder ( );
-	}
-
-	@Override
 	public ModelPathList listChildrenOfPath ( ModelRequestContext context, Path prefix ) throws ModelServiceException, ModelRequestException
 	{
 		final LinkedList<Path> pending = new LinkedList<> ();
@@ -267,7 +259,11 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 					for ( S3ObjectSummary objectSummary : result.getObjectSummaries () )
 					{
 						final String key = objectSummary.getKey ();
-						pending.add ( s3KeyToPath ( key ) );
+						final Path asPath = s3KeyToPath ( key );
+						if ( !asPath.equals ( prefix ) )
+						{
+							pending.add ( asPath );
+						}
 					}
 					final String token = result.getNextContinuationToken ();
 					req.setContinuationToken ( token );
@@ -755,7 +751,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 
 		fRelnMgr.relate ( mr );
 
-		return new BasicModelRelnInstance ( mr );
+		return ModelRelationInstance.from ( mr );
 	}
 
 	@Override
@@ -773,30 +769,13 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	{
 		try
 		{
-			final BasicModelRelnInstance mr = BasicModelRelnInstance.fromId ( relnId );
+			final ModelRelationInstance mr = ModelRelationInstance.from ( relnId );
 			return unrelate ( context, mr );
 		}
 		catch ( IllegalArgumentException x )
 		{
 			throw new ModelRequestException ( x );
 		}
-	}
-
-
-	@Override
-	public List<ModelRelationInstance> getInboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
-	{
-		if ( !Version.isV2OrLater ( fVersion ) ) throw new ModelServiceException ( "not implemented" );
-
-		return fRelnMgr.getInboundRelations ( forObject );
-	}
-
-	@Override
-	public List<ModelRelationInstance> getOutboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
-	{
-		if ( !Version.isV2OrLater ( fVersion ) ) throw new ModelServiceException ( "not implemented" );
-
-		return fRelnMgr.getOutboundRelations ( forObject );
 	}
 
 	@Override

@@ -18,6 +18,9 @@ import io.continual.util.time.Clock;
 
 public class CommonJsonDbObject implements ModelObject, AclUpdateListener
 {
+	public static final String kStdType_Alias = "Alias";
+	public static final String kStdType_ObjectContainer = "ObjectContainer";
+	
 	public CommonJsonDbObject ( )
 	{
 		this ( null, new JSONObject () );

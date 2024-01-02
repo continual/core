@@ -7,8 +7,6 @@ import java.util.Collections;
 import org.json.JSONObject;
 
 import io.continual.services.model.impl.json.CommonJsonDbObject.Builder.Constructor;
-import io.continual.util.data.json.JsonVisitor;
-import io.continual.util.data.json.JsonVisitor.ItemRenderer;
 import io.continual.util.naming.Path;
 
 public class CommonJsonDbObjectContainer extends CommonJsonDbObject
@@ -27,16 +25,16 @@ public class CommonJsonDbObjectContainer extends CommonJsonDbObject
 	{
 		return new Builder<CommonJsonDbObjectContainer> ()
 			.withId ( id )
-			.withData ( new JSONObject ()
-				.put ( "objects", JsonVisitor.collectionToArray ( containedPaths, new ItemRenderer<Path,String> ()
-				{
-					@Override
-					public String render ( Path containedPath )
-					{
-						return containedPath.toString ().substring ( 1 );
-					}
-				} ) ), true )
-			.withType ( "ObjectContainer" )
+//			.withData ( new JSONObject ()
+//				.put ( "objects", JsonVisitor.collectionToArray ( containedPaths, new ItemRenderer<Path,String> ()
+//				{
+//					@Override
+//					public String render ( Path containedPath )
+//					{
+//						return containedPath.toString ().substring ( 1 );
+//					}
+//				} ) ), true )
+			.withType ( CommonJsonDbObject.kStdType_ObjectContainer )
 			.constructUsing ( new Constructor<CommonJsonDbObjectContainer> ()
 			{
 				@Override

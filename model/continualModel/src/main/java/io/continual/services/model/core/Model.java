@@ -17,8 +17,6 @@
 package io.continual.services.model.core;
 
 import java.io.Closeable;
-import java.util.LinkedList;
-import java.util.List;
 
 import org.json.JSONObject;
 
@@ -47,8 +45,6 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 		 * @return this context
 		 */
 		ModelRequestContextBuilder forUser ( Identity user );
-
-		ModelRequestContextBuilder mountedAt ( Path mountPoint );
 
 		ModelRequestContextBuilder withSchemasFrom ( ModelSchemaRegistry reg );
 
@@ -82,11 +78,12 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	 * List paths immediately below the given path.
 	 * @param context
 	 * @param parentPath
-	 * @return a list of 0 or more object paths, or null if the requested prefix path does not exist
+	 * @return a list of 0 or more object paths
 	 * @throws ModelServiceException
+	 * @throws ModelItemDoesNotExistException
 	 * @throws ModelRequestException
 	 */
-	ModelPathList listChildrenOfPath ( ModelRequestContext context, Path parentPath ) throws ModelServiceException, ModelRequestException;
+	ModelPathList listChildrenOfPath ( ModelRequestContext context, Path parentPath ) throws ModelServiceException, ModelItemDoesNotExistException, ModelRequestException;
 
 	/**
 	 * Start a query on this model implementation.
@@ -129,9 +126,9 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	 * @throws ModelSchemaViolationException
 	 * @throws ModelServiceException
 	 */
-	default void store ( ModelRequestContext context, Path objectPath, String jsonData ) throws ModelRequestException, ModelSchemaViolationException, ModelServiceException
+	default Model store ( ModelRequestContext context, Path objectPath, String jsonData ) throws ModelRequestException, ModelSchemaViolationException, ModelServiceException
 	{
-		store ( context, objectPath, new DataOverwrite ( JsonUtil.readJsonObject ( jsonData ) ) );
+		return store ( context, objectPath, new DataOverwrite ( JsonUtil.readJsonObject ( jsonData ) ) );
 	}
 
 	/**
@@ -143,9 +140,9 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	 * @throws ModelSchemaViolationException
 	 * @throws ModelServiceException
 	 */
-	default void store ( ModelRequestContext context, Path objectPath, JSONObject jsonData ) throws ModelRequestException, ModelSchemaViolationException, ModelServiceException
+	default Model store ( ModelRequestContext context, Path objectPath, JSONObject jsonData ) throws ModelRequestException, ModelSchemaViolationException, ModelServiceException
 	{
-		store ( context, objectPath, new DataOverwrite ( jsonData ) );
+		return store ( context, objectPath, new DataOverwrite ( jsonData ) );
 	}
 
 	/**
@@ -157,9 +154,9 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	 * @throws ModelSchemaViolationException
 	 * @throws ModelServiceException
 	 */
-	default void update ( ModelRequestContext context, Path objectPath, JSONObject jsonData ) throws ModelRequestException, ModelSchemaViolationException, ModelServiceException
+	default Model update ( ModelRequestContext context, Path objectPath, JSONObject jsonData ) throws ModelRequestException, ModelSchemaViolationException, ModelServiceException
 	{
-		store ( context, objectPath, new DataMerge ( jsonData ) );
+		return store ( context, objectPath, new DataMerge ( jsonData ) );
 	}
 
 	/**
@@ -171,7 +168,7 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	 * @throws ModelSchemaViolationException
 	 * @throws ModelServiceException
 	 */
-	void store ( ModelRequestContext context, Path objectPath, ModelUpdater... updates ) throws ModelRequestException, ModelSchemaViolationException, ModelServiceException;
+	Model store ( ModelRequestContext context, Path objectPath, ModelUpdater... updates ) throws ModelRequestException, ModelSchemaViolationException, ModelServiceException;
 
 	/**
 	 * Remove (delete) an object from the model
@@ -226,66 +223,69 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	boolean unrelate ( ModelRequestContext context, String relnId ) throws ModelServiceException, ModelRequestException;
 
 	/**
-	 * Get all related objects from a given object
-	 * @param context
-	 * @param forObject
-	 * @return a list of 0 or more relations
-	 * @throws ModelServiceException
-	 * @throws ModelRequestException
+	 * Relation Selector
 	 */
-	default List<ModelRelationInstance> getRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
+	interface RelationSelector 
 	{
-		final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
-		result.addAll ( getInboundRelations ( context, forObject ) );
-		result.addAll ( getOutboundRelations ( context, forObject ) );
-		return result;
-	}
+		/**
+		 * Select relations with any name
+		 * @return this selector
+		 */
+		default RelationSelector withAnyName () { return named ( null ); }
 
-	/**
-	 * Get inbound related objects from a given object
-	 * @param context
-	 * @param forObject
-	 * @return a list of 0 or more relations, with getTo set to forObject
-	 * @throws ModelServiceException
-	 * @throws ModelRequestException
-	 */
-	default List<ModelRelationInstance> getInboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
-	{
-		return getInboundRelationsNamed ( context, forObject, null );
-	}
+		/**
+		 * Select relations with the given name only
+		 * @param name Use null to mean any name
+		 * @return this selector
+		 */
+		RelationSelector named ( String name );
 
-	/**
-	 * Get outbound related objects from a given object
-	 * @param context
-	 * @param forObject
-	 * @return a list of 0 or more relations, with getFrom set to forObject
-	 * @throws ModelServiceException
-	 * @throws ModelRequestException
-	 */
-	default List<ModelRelationInstance> getOutboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
-	{
-		return getOutboundRelationsNamed ( context, forObject, null );
-	}
+		/**
+		 * Select inbound relations only
+		 * @return this selector
+		 */
+		default RelationSelector inboundOnly () { return inbound(true).outbound(false); } 
 
-	/**
-	 * Get inbound related objects with a given name from a given object
-	 * @param context
-	 * @param forObject
-	 * @param named send null to retrieve any
-	 * @return a list of 0 or more relations, with getTo set to forObject and getName set to named
-	 * @throws ModelServiceException
-	 * @throws ModelRequestException
-	 */
-	List<ModelRelationInstance> getInboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException;
+		/**
+		 * Select inbound relations if the parameter is true 
+		 * @param wantInbound
+		 * @return this selector
+		 */
+		RelationSelector inbound ( boolean wantInbound );
 
+		/**
+		 * Select outbound relations only
+		 * @return this selector
+		 */
+		default RelationSelector outboundOnly () { return inbound(false).outbound(true); }
+
+		/**
+		 * Select outbound relations if the parameter is true
+		 * @param wantOutbound
+		 * @return this selector
+		 */
+		RelationSelector outbound ( boolean wantOutbound );
+
+		/**
+		 * Select both inbound and outbound relations
+		 * @return this selector
+		 */
+		default RelationSelector inboundAndOutbound () { return inbound(true).outbound (true); }
+
+		/**
+		 * Get the requested relations
+		 * @param context
+		 * @return a model relation list
+		 * @throws ModelServiceException
+		 * @throws ModelRequestException
+		 */
+		ModelRelationList getRelations ( ModelRequestContext context ) throws ModelServiceException, ModelRequestException;
+	};
+	
 	/**
-	 * Get outbound related objects with a given name from a given object
-	 * @param context
-	 * @param forObject
-	 * @param named
-	 * @return a list of 0 or more relations, with getFrom set to forObject and getName set to named
-	 * @throws ModelServiceException
-	 * @throws ModelRequestException
+	 * Start a relations query. The default selector returns all relations in both directions.
+	 * @param objectPath
+	 * @return a relation selector
 	 */
-	List<ModelRelationInstance> getOutboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException;
+	RelationSelector selectRelations ( Path objectPath );
 }

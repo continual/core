@@ -251,9 +251,17 @@ public class MultiSourceDb<I extends Identity,G extends Group> implements IamDb<
 	}
 
 	@Override
-	public String createJwtToken ( Identity ii ) throws IamSvcException
+	public String createJwtToken ( Identity ii, long duration, TimeUnit tu ) throws IamSvcException
 	{
-		throw new IamSvcException ( "not implemented in multisource db" );
+		if ( ii == null ) throw new IamSvcException ( "Identity may not be null." );
+
+		final String userId = ii.getId ();
+		final IamDb<I,G> db = getDbFor ( userId );
+		if ( db != null )
+		{
+			return db.createJwtToken ( ii );
+		}
+		return null;
 	}
 
 	@Override

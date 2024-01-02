@@ -12,4 +12,23 @@ public interface ModelNotificationService
 	void onObjectUpdate ( Path objectPath );
 
 	void onObjectDelete ( Path objectPath );
+
+	/**
+	 * Create a no-op notifier
+	 * @return a notification service
+	 */
+	static ModelNotificationService noopNotifier ()
+	{
+		return new ModelNotificationService ()
+		{
+			@Override
+			public void onObjectCreate ( Path objectPath ) {}
+
+			@Override
+			public void onObjectUpdate ( Path objectPath ) {}
+
+			@Override
+			public void onObjectDelete ( Path objectPath ) {}
+		};
+	}
 }
