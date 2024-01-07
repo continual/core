@@ -19,6 +19,7 @@ import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
+import io.continual.util.data.TypeConvertor;
 import io.continual.util.naming.Name;
 import io.continual.util.naming.Path;
 
@@ -171,10 +172,20 @@ class S3SysRelnMgr
 	private final AmazonS3 fS3;
 	private final String fBucketId;
 
+	private String encodePathComponent ( String s )
+	{
+		return TypeConvertor.urlEncode ( s );
+	}
+
+	private String decodePathComponent ( String s )
+	{
+		return TypeConvertor.urlDecode ( s );
+	}
+
 	private String getOutboundPrefixFor ( Path from, String reln )
 	{
 		final StringBuilder sb = new StringBuilder ()
-			.append ( from.toString ().substring ( 1 ) )
+			.append ( encodePathComponent ( from.toString ().substring ( 1 ) ) )
 			.append ( kFwdSegmentSeparator )
 		;
 		if ( reln != null && reln.length () > 0 )
@@ -184,13 +195,15 @@ class S3SysRelnMgr
 				.append ( kFwdSegmentSeparator )
 			;
 		}
-		return sb.toString ();
+		final Name name = Name.fromString ( sb.toString () );
+		final Path p = fRelnsRoot.makeChildItem ( name );
+		return p.toString ().substring ( 1 );
 	}
 
 	private String getInboundPrefixFor ( Path to, String reln )
 	{
 		final StringBuilder sb = new StringBuilder ()
-			.append ( to.toString ().substring ( 1 ) )
+			.append ( encodePathComponent ( to.toString ().substring ( 1 ) ) )
 			.append ( kRevSegmentSeparator )
 		;
 		if ( reln != null && reln.length () > 0 )
@@ -200,32 +213,59 @@ class S3SysRelnMgr
 				.append ( kRevSegmentSeparator )
 			;
 		}
-		return sb.toString ();
+		final Name name = Name.fromString ( sb.toString () );
+		final Path p = fRelnsRoot.makeChildItem ( name );
+		return p.toString ().substring ( 1 );
 	}
 
 	private String forwardDirToS3Path ( ModelRelation mr )
 	{
-		final Path p = fRelnsRoot.makeChildItem ( Name.fromString (
-			mr.getFrom ().toString ().substring ( 1 ) + kFwdSegmentSeparator + mr.getName () + kFwdSegmentSeparator + mr.getTo ().toString ().substring ( 1 ) )
-		);
+		final StringBuilder sb = new StringBuilder ()
+			.append ( encodePathComponent ( mr.getFrom ().toString ().substring ( 1 ) ) )
+			.append ( kFwdSegmentSeparator )
+			.append ( encodePathComponent ( mr.getName () ) )
+			.append ( kFwdSegmentSeparator )
+			.append ( encodePathComponent ( mr.getTo ().toString ().substring ( 1 ) ) )
+		;
+		final Name name = Name.fromString ( sb.toString () );
+		final Path p = fRelnsRoot.makeChildItem ( name );
 		return p.toString ().substring ( 1 );
 	}
 
 	private String reverseDirToS3Path ( ModelRelation mr )
 	{
-		final Path p = fRelnsRoot.makeChildItem ( Name.fromString (
-			mr.getTo ().toString ().substring ( 1 ) + kRevSegmentSeparator + mr.getName () + kRevSegmentSeparator + mr.getFrom ().toString ().substring ( 1 ) )
-		);
+		final StringBuilder sb = new StringBuilder ()
+			.append ( encodePathComponent ( mr.getTo ().toString ().substring ( 1 ) ) )
+			.append ( kRevSegmentSeparator )
+			.append ( encodePathComponent ( mr.getName () ) )
+			.append ( kRevSegmentSeparator )
+			.append ( encodePathComponent ( mr.getFrom ().toString ().substring ( 1 ) ) )
+		;
+		final Name name = Name.fromString ( sb.toString () );
+		final Path p = fRelnsRoot.makeChildItem ( name );
 		return p.toString ().substring ( 1 );
 	}
 
 	private ModelRelationInstance s3EntryToReln ( S3ObjectSummary objectSummary )
 	{
-		// FIXME
-		return null;
+		final String key = objectSummary.getKey ();
+		final Path keyPath = Path.fromString ( "/" + key );
+		final Path localPart = keyPath.makePathWithinParent ( fRelnsRoot );
+		final String localPartStr = localPart.toString ().substring ( 1 );
+
+		if ( localPartStr.contains ( kFwdSegmentSeparator ) )
+		{
+			final String[] parts = localPartStr.split ( kFwdSegmentSeparator );
+			return ModelRelationInstance.from ( Path.fromString ( "/" + decodePathComponent(parts[0]) ), parts[1], Path.fromString ( "/" + decodePathComponent ( parts[2] ) ) );
+		}
+		else
+		{
+			final String[] parts = localPartStr.split ( kRevSegmentSeparator );
+			return ModelRelationInstance.from ( Path.fromString ( "/" + decodePathComponent(parts[2]) ), parts[1], Path.fromString ( "/" + decodePathComponent ( parts[0] ) ) );
+		}
 	}
 
-	private final String kFwdSegmentSeparator = "|-->|";
-	private final String kRevSegmentSeparator = "|<--|";
+	private final String kFwdSegmentSeparator = "-->";
+	private final String kRevSegmentSeparator = "<--";
 	private final byte[] kBytesForObject = new JSONObject ().toString ().getBytes ( S3Model.kUtf8 );
 }
