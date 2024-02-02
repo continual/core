@@ -146,11 +146,19 @@ public class CHttpPlayishInstanceCallRoutingSource<T> implements CHttpRouteSourc
 		public Path getRouteNameForMetrics ()
 		{
 			String pathPart = fPe.getPath();
-			if ( !pathPart.startsWith ( "/" ) )
+			if ( !pathPart.startsWith ( Path.getPathSeparatorString () ) )
 			{
-				pathPart = "/" + pathPart;
+				pathPart = Path.getPathSeparatorString () + pathPart;
 			}
-			return Path.fromString ( "/" + fPe.getVerb () + pathPart );
+			if ( pathPart.equals ( Path.getPathSeparatorString () ) )
+			{
+				pathPart = "(root)";
+			}
+			else if ( pathPart.endsWith ( Path.getPathSeparatorString () ) )
+			{
+				pathPart = pathPart.substring ( 0, pathPart.length () - 1 );
+			}
+			return Path.fromString ( Path.getPathSeparatorString () + fPe.getVerb () + pathPart );
 		}
 
 		private final CHttpPathInfo fPe;

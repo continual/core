@@ -75,7 +75,7 @@ public class Name implements Comparable<Name>
 
 	Name ( String name )
 	{
-		if ( name.indexOf ( '/' ) > -1 )
+		if ( name.indexOf ( Path.getPathSeparator() ) > -1 )
 		{
 			throw new IllegalArgumentException ( "Name string [" + name + "] contains a path separator." );
 		}

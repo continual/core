@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.3.4</version>
+		<version>0.3.7</version>
 		<artifactId>continualModelSystems</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -30,10 +30,20 @@
 			<artifactId>continualJsonHttpClient</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>com.squareup.okhttp3</groupId>
+			<artifactId>okhttp</artifactId>
+		</dependency>
 
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+		    <artifactId>logback-classic</artifactId>
 			<scope>test</scope>
 		</dependency>
 

@@ -7,13 +7,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 
 import io.continual.builder.Builder.BuildFailure;
+import io.continual.services.model.core.Model.RelationType;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.exceptions.ModelRequestException;
@@ -42,6 +41,10 @@ class FileSysRelnMgr
 		{
 			throw new BuildFailure ( relnDir.toString () + " exists and is not a directory." );
 		}
+	}
+
+	public void setRelationType ( String relnName, RelationType rt )
+	{
 	}
 
 	public ModelRelationInstance relate ( ModelRelation mr ) throws ModelServiceException, ModelRequestException
@@ -136,7 +139,7 @@ class FileSysRelnMgr
 		final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
 
 		final String relnName = reln.getName ();
-		for ( Path to : loadToSet ( reln ) )
+		for ( Path to : loadToList ( reln ) )
 		{
 			result.add ( ModelRelationInstance.from (
 				( objIsFromSide ? forObject : to ),
@@ -148,7 +151,7 @@ class FileSysRelnMgr
 		return result;
 	}
 	
-	private Set<Path> loadToSet ( File relnFile ) throws ModelServiceException
+	private List<Path> loadToList ( File relnFile ) throws ModelServiceException
 	{
 		if ( relnFile.exists () )
 		{
@@ -164,7 +167,7 @@ class FileSysRelnMgr
 					}
 				} );
 
-				final TreeSet<Path> result = new TreeSet<> ();
+				final LinkedList<Path> result = new LinkedList<> ();
 				result.addAll ( list );
 				return result;
 			}
@@ -178,10 +181,10 @@ class FileSysRelnMgr
 			}
 		}
 
-		return new TreeSet<Path> ();
+		return new LinkedList<Path> ();
 	}
 	
-	private void storeToFile ( File relnFile, Set<Path> list ) throws ModelServiceException
+	private void storeToFile ( File relnFile, List<Path> list ) throws ModelServiceException
 	{
 		if ( list.size () > 0 )
 		{
@@ -238,7 +241,7 @@ class FileSysRelnMgr
 		}
 
 		final File pathFile = new File ( targetDir, relnName );
-		final Set<Path> farSideList = loadToSet ( pathFile );
+		final List<Path> farSideList = loadToList ( pathFile );
 		farSideList.add ( farSide );
 		storeToFile ( pathFile, farSideList );
 	}
@@ -247,7 +250,7 @@ class FileSysRelnMgr
 	{
 		if ( relnFile.exists () )
 		{
-			final Set<Path> toList = loadToSet ( relnFile );
+			final List<Path> toList = loadToList ( relnFile );
 			if ( toList.contains ( farSide  ) )
 			{
 				toList.remove ( farSide );

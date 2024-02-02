@@ -213,7 +213,6 @@ public class CollatzSequence extends ReadOnlyModel
 
 	private class CollatzModelObject implements ModelObject
 	{
-		private final String fId;
 		private final Long fNumber;
 		
 		public CollatzModelObject ( String id )
@@ -223,15 +222,11 @@ public class CollatzSequence extends ReadOnlyModel
 		
 		public CollatzModelObject ( String id, Long num )
 		{
-			fId = id;
 			fNumber = num;
 		}
 
 		@Override
 		public AccessControlList getAccessControlList () { return kAcl; }
-
-		@Override
-		public String getId () { return fId; }
 
 		@Override
 		public JSONObject toJson ()

@@ -103,7 +103,7 @@ public class CHttpServlet extends HttpServlet
 	 */
 	public CHttpServlet ( SessionLifeCycle slc ) throws BuildFailure
 	{
-		this ( null, slc, null, null, null );
+		this ( new JSONObject (), slc, null, null, null );
 	}
 
 	/**
@@ -568,7 +568,26 @@ public class CHttpServlet extends HttpServlet
 			@Override
 			public Path getMetricNameFor ( CHttpRequest req )
 			{
-				return Path.fromString ( "/" + req.getMethod () + " " + req.getPathInContext ().replaceAll ( "\\.", "%2E" ) );
+				// handle a null request without throwing
+				if ( req == null ) return Path.fromString ( "/null" );
+
+				// get the url path
+				String urlPathPart = req.getPathInContext ();
+
+				// replace any dots with %2e, because our metrics library doesn't like them (FIXME: why? it's just a Path?)
+				urlPathPart = urlPathPart.replaceAll ( "\\.", "%2E" );
+
+				// we can't end a path in "/", so truncate that, or for the root path, replace it
+				if ( urlPathPart.equals ( Path.getPathSeparatorString () ) )
+				{
+					urlPathPart = "(root)";
+				}
+				else if ( urlPathPart.endsWith ( Path.getPathSeparatorString () ))
+				{
+					urlPathPart = urlPathPart.substring ( 0, urlPathPart.length () - 1 );
+				}
+
+				return Path.fromString ( "/" + req.getMethod () + " " + urlPathPart );
 			}
 		};
 	}

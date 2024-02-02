@@ -45,6 +45,25 @@ public class Path implements Comparable<Path>
 	}
 
 	/**
+	 * Get the path separator used by this implementation. This is always expected to be '/', but 
+	 * perhaps is best to not be scattered through code. 😬
+	 * @return the path separator character
+	 */
+	public static char getPathSeparator ()
+	{
+		return kSepChar;
+	}
+	
+	/**
+	 * A string version of getPathSeparator() 
+	 * @return the path separator character as a string
+	 */
+	public static String getPathSeparatorString ()
+	{
+		return kSepStr;
+	}
+	
+	/**
 	 * Get the unique name for this path as a resource
 	 * @return the unique name for this path as a resource
 	 */
@@ -126,6 +145,10 @@ public class Path implements Comparable<Path>
 	 */
 	public Path makeChildPath ( Path childPath )
 	{
+		// the root path has a single / char, which would end up trailing the base path below,
+		// making an illegal path. So we just short-circuit here.
+		if ( childPath.isRootPath () ) return this;
+		
 		final StringBuilder sb = new StringBuilder ()
 			.append ( toString () )
 			.append ( childPath.toString () )
@@ -207,16 +230,16 @@ public class Path implements Comparable<Path>
 	@Override
 	public String toString ()
 	{
-		if ( fParent == null && fName == null ) return "/";
+		if ( fParent == null && fName == null ) return kSepStr;
 
 		final String parentPart = fParent == null ? "" : fParent.toString ();
 
 		final StringBuilder sb = new StringBuilder ();
 		sb.append ( parentPart );
 
-		if ( !parentPart.endsWith ( "/" ) )
+		if ( !parentPart.endsWith ( kSepStr ) )
 		{
-			sb.append ( "/" );
+			sb.append ( kSepStr );
 		}
 		sb.append ( fName == null ? "" : fName.toString () );
 
@@ -244,7 +267,7 @@ public class Path implements Comparable<Path>
 
 	private Path ( String path )
 	{
-		if ( path == null || !path.startsWith ( "/" ) )
+		if ( path == null || !path.startsWith ( kSepStr ) )
 		{
 			throw new IllegalArgumentException ( "Path string must be absolute." );
 		}
@@ -265,15 +288,21 @@ public class Path implements Comparable<Path>
 		}
 
 		// root path is a special case. The path could now be empty
-		if ( path.length () == 0 || path.equals ( "/" ) )
+		if ( path.length () == 0 || path.equals ( kSepStr ) )
 		{
 			fParent = null;
 			fName = null;
 			return;
 		}
 
+		// other than the root path, we can't have a path ending in /
+		if ( path.endsWith ( kSepStr ) )
+		{
+			throw new IllegalArgumentException ( "Path string can't end with " + kSepStr );
+		}
+
 		// split on the last slash...
-		final int lastSlash = path.lastIndexOf ( '/' );
+		final int lastSlash = path.lastIndexOf ( kSepChar );
 		if ( lastSlash == 0 )
 		{
 			fParent = getRootPath ();

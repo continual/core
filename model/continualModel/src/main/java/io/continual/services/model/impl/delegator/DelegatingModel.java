@@ -23,7 +23,6 @@ import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRelationList;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelTraversal;
-import io.continual.services.model.core.ModelUpdater;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
@@ -287,18 +286,17 @@ public class DelegatingModel extends SimpleService implements Model
 	}
 
 	@Override
-	public DelegatingModel store ( ModelRequestContext context, Path objectPath, ModelUpdater ... updates ) throws ModelRequestException, ModelServiceException
+	public ObjectUpdater createUpdate ( ModelRequestContext context, Path objectPath ) throws ModelRequestException, ModelServiceException
 	{
 		final ModelMount mm = getModelForPath ( objectPath );
 		if ( mm.getModel () == this )
 		{
-			fBackingModel.store ( context, objectPath, updates );
+			return fBackingModel.createUpdate ( context, objectPath );
 		}
 		else
 		{
-			mm.getModel ().store ( context, mm.getPathWithinModel ( objectPath ), updates );
+			return mm.getModel ().createUpdate ( context, mm.getPathWithinModel ( objectPath ) );
 		}
-		return this;
 	}
 
 	@Override
@@ -313,6 +311,23 @@ public class DelegatingModel extends SimpleService implements Model
 		{
 			return mm.getModel ().remove ( context, mm.getPathWithinModel ( objectPath ) );
 		}
+	}
+
+	@Override
+	public Model setRelationType ( ModelRequestContext context, String relnName, RelationType rt ) throws ModelServiceException, ModelRequestException
+	{
+		// we don't know which model(s) to report this relation type to, so we just report to all of them
+
+		// tell the backing model
+		fBackingModel.setRelationType ( context, relnName, rt );
+
+		// tell the mounted models
+		for ( ModelMount mountEntry : fUserMountTable )
+		{
+			mountEntry.getModel ().setRelationType ( context, relnName, rt );
+		}
+
+		return this;
 	}
 
 	@Override

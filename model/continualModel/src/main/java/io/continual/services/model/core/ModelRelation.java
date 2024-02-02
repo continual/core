@@ -114,4 +114,16 @@ public interface ModelRelation extends Comparable<ModelRelation>
 			}
 		};
 	}
+
+	static int compare ( ModelRelation mr1, ModelRelation mr2 )
+	{
+		int c = mr1.getFrom ().compareTo ( mr2.getFrom () );
+		if ( c != 0 ) return c;
+
+		c = mr1.getName ().compareTo ( mr2.getName () );
+		if ( c != 0 ) return c;
+
+		return mr1.getTo ().compareTo ( mr2.getTo () );
+	}
 }
+

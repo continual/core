@@ -26,7 +26,7 @@ import io.continual.util.naming.Path;
  * A list of model paths. This list could be thousands of entries long and is therefore
  * presented only as an iterator.
  */
-public interface ModelPathList extends Iterable<Path>
+public interface ModelPathList extends ModelItemList<Path>
 {
 	/**
 	 * Wrap a collection of paths with a model path list.

@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.model.core.Model;
-import io.continual.services.model.core.ModelObject;
+import io.continual.services.model.core.ModelObjectAndPath;
 import io.continual.services.model.core.ModelObjectList;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRequestContext;
@@ -59,7 +59,7 @@ public class ModelSource extends BasicSource
 	}
 
 	private final String fModelSvcName;
-	private Iterator<ModelObject> fResults;
+	private ModelObjectList fResults;
 	
 	private static final Logger log = LoggerFactory.getLogger ( ModelSource.class );
 
@@ -76,7 +76,7 @@ public class ModelSource extends BasicSource
 				if ( ms == null )
 				{
 					spc.fail ( "No model service named " + fModelSvcName + "." );
-					fResults = ModelObjectList.emptyList ().iterator ();	// prevent re-run
+					fResults = ModelObjectList.emptyList ();	// prevent re-run
 					return null;
 				}
 
@@ -88,15 +88,15 @@ public class ModelSource extends BasicSource
 				;
 	
 				final ModelQuery fQuery = model.startQuery();
-				final ModelObjectList mol = fQuery.execute ( mrc );
-				fResults = mol.iterator ();
+				fResults = fQuery.execute ( mrc );
 			}
 
-			if ( fResults.hasNext () )
+			final Iterator<ModelObjectAndPath> iter = fResults.iterator ();
+			if ( iter.hasNext () )
 			{
-				final ModelObject mo = fResults.next ();
-				final JSONObject asJson = mo.toJson ().getJSONObject ( "data" );
-				asJson.put ( "modelPath", mo.getId () );
+				final ModelObjectAndPath mop = iter.next ();
+				final JSONObject asJson = mop.getObject ().toJson ().getJSONObject ( "data" );
+				asJson.put ( "modelPath", mop.getPath().toString () );
 				final Message msg = Message.adoptJsonAsMessage ( asJson );
 				return makeDefRoutingMessage ( msg );
 			}

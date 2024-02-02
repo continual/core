@@ -25,7 +25,7 @@ import java.util.List;
  * A list of model objects. This list could be thousands of entries long and is therefore
  * presented only as an iterator.
  */
-public interface ModelObjectList extends ModelItemList<ModelObject>
+public interface ModelObjectList extends ModelItemList<ModelObjectAndPath>
 {
 	/**
 	 * Construct an empty object list
@@ -40,13 +40,13 @@ public interface ModelObjectList extends ModelItemList<ModelObject>
 	 * Convenience method for creating a small list of objects.
 	 * @return a list of objects
 	 */
-	static ModelObjectList simpleList ( ModelObject... instances )
+	static ModelObjectList simpleList ( ModelObjectAndPath... instances )
 	{
-		final List<ModelObject> list = Arrays.asList ( instances );
+		final List<ModelObjectAndPath> list = Arrays.asList ( instances );
 		return new ModelObjectList ()
 		{
 			@Override
-			public Iterator<ModelObject> iterator ()
+			public Iterator<ModelObjectAndPath> iterator ()
 			{
 				return list.iterator ();
 			}
@@ -58,12 +58,12 @@ public interface ModelObjectList extends ModelItemList<ModelObject>
 	 * @param instances
 	 * @return a list of objects
 	 */
-	static ModelObjectList simpleListOfCollection ( Collection<ModelObject> instances )
+	static ModelObjectList simpleListOfCollection ( Collection<ModelObjectAndPath> instances )
 	{
 		return new ModelObjectList ()
 		{
 			@Override
-			public Iterator<ModelObject> iterator ()
+			public Iterator<ModelObjectAndPath> iterator ()
 			{
 				return instances.iterator ();
 			}

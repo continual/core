@@ -35,7 +35,9 @@ import io.continual.builder.Builder.BuildFailure;
 import io.continual.iam.access.AccessControlEntry;
 import io.continual.iam.access.AccessControlList;
 import io.continual.services.ServiceContainer;
+import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelObject;
+import io.continual.services.model.core.ModelObjectAndPath;
 import io.continual.services.model.core.ModelObjectComparator;
 import io.continual.services.model.core.ModelObjectList;
 import io.continual.services.model.core.ModelOperation;
@@ -180,7 +182,7 @@ public class FileSystemModel extends CommonJsonDbModel
 		@Override
 		public ModelObjectList execute ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException
 		{
-			final LinkedList<ModelObject> result = new LinkedList<> ();
+			final LinkedList<ModelObjectAndPath> result = new LinkedList<> ();
 
 			final File objDir = getObjectDir ();
 			final File container = pathToDir ( objDir, getPathPrefix() );
@@ -203,7 +205,7 @@ public class FileSystemModel extends CommonJsonDbModel
 
 						if ( match )
 						{
-							result.add ( mo );
+							result.add ( ModelObjectAndPath.from ( p, mo ) );
 						}
 					}
 				}
@@ -213,12 +215,12 @@ public class FileSystemModel extends CommonJsonDbModel
 			final ModelObjectComparator orderBy = getOrdering ();
 			if ( orderBy != null )
 			{
-				Collections.sort ( result, new java.util.Comparator<ModelObject> ()
+				Collections.sort ( result, new java.util.Comparator<ModelObjectAndPath> ()
 				{
 					@Override
-					public int compare ( ModelObject o1, ModelObject o2 )
+					public int compare ( ModelObjectAndPath o1, ModelObjectAndPath o2 )
 					{
-						return orderBy.compare ( o1, o2 );
+						return orderBy.compare ( o1.getObject (), o2.getObject () );
 					}
 				} );
 			}
@@ -239,7 +241,7 @@ public class FileSystemModel extends CommonJsonDbModel
 			return new ModelObjectList ()
 			{
 				@Override
-				public Iterator<ModelObject> iterator ()
+				public Iterator<ModelObjectAndPath> iterator ()
 				{
 					return result.iterator ();
 				}
@@ -251,6 +253,13 @@ public class FileSystemModel extends CommonJsonDbModel
 	public FsModelQuery startQuery ()
 	{
 		return new FsModelQuery ();
+	}
+
+	@Override
+	public Model setRelationType ( ModelRequestContext context, String relnName, RelationType rt ) throws ModelServiceException, ModelRequestException
+	{
+		fRelnMgr.setRelationType ( relnName, rt );
+		return this;
 	}
 
 	@Override

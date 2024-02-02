@@ -12,8 +12,6 @@ import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
-import io.continual.services.model.core.updaters.DataMerge;
-import io.continual.services.model.core.updaters.DataOverwrite;
 import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.library.util.Setter;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
@@ -72,19 +70,28 @@ public class ModelUpdate implements Processor
 						container.remove ( parts.get ( parts.size () - 1 ) );
 					}
 
-					model.store ( mrc, path, new DataOverwrite ( modelData ) );
+					model.createUpdate ( mrc, path )
+						.overwrite ( modelData )
+						.execute ()
+					;
 				}
 				else if ( updateBlock.has ( "patch" ) )
 				{
 					final JSONObject data = updateBlock.getJSONObject ( "patch" );
 					final JSONObject evaled = Setter.evaluate ( context, data, context.getMessage () );
-					model.store ( mrc, path, new DataMerge ( evaled ) );
+					model.createUpdate ( mrc, path )
+						.merge ( evaled )
+						.execute ()
+					;
 				}
 				else if ( updateBlock.has ( "put" ) )
 				{
 					final JSONObject data = updateBlock.getJSONObject ( "put" );
 					final JSONObject evaled = Setter.evaluate ( context, data, context.getMessage () );
-					model.store ( mrc, path, new DataOverwrite ( evaled ) );
+					model.createUpdate ( mrc, path )
+						.overwrite ( evaled )
+						.execute ()
+					;
 				}
 			}
 		}

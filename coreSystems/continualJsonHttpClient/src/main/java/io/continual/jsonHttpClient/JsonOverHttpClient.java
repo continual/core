@@ -303,5 +303,10 @@ public interface JsonOverHttpClient
 	 * Start a request on this client
 	 * @return a request
 	 */
-	public HttpRequest newRequest ();
+	HttpRequest newRequest ();
+
+	/**
+	 * Close this client. Calling newRequest() after close() is an illegal state.
+	 */
+	default void close () {}
 }

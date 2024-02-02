@@ -192,7 +192,7 @@ public class TypicalRestApiEndpoint<I extends Identity> extends JsonIoEndpoint
 					// authorized user is vouching for another...
 					
 					// get that user's identity
-					final I authForUser = am.getIdentityDb ().loadUser( authFor );
+					final I authForUser = am.getIdentityDb ().loadUser ( authFor );
 
 					// if the user exists and this user is authorized...
 					if ( authForUser != null && authUser.getGroup ( kContinualSystemsGroup ) != null )

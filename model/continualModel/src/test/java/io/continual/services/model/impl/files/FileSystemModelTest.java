@@ -35,8 +35,15 @@ public class FileSystemModelTest extends TestCase
 					.forUser ( new TestIdentity() )
 					.build ()
 				;
-				model.store ( mrc, Path.fromString ( "/foo/bar" ), new JSONObject () );
-				model.store ( mrc, Path.fromString ( "/foo/baz" ), new JSONObject () );
+
+				model.createUpdate ( mrc, Path.fromString ( "/foo/bar" ) )
+					.overwrite ( new JSONObject () )
+					.execute ()
+				;
+				model.createUpdate ( mrc, Path.fromString ( "/foo/baz" ) )
+					.overwrite ( new JSONObject () )
+					.execute ()
+				;
 
 				model.relate ( mrc, ModelRelation.from ( Path.fromString ( "/foo/bar" ), "testWith", Path.fromString ( "/foo/baz" ) ) );
 

@@ -8,7 +8,7 @@ import org.json.JSONObject;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.ServiceContainer;
 import io.continual.services.model.core.Model;
-import io.continual.services.model.core.ModelObject;
+import io.continual.services.model.core.ModelObjectAndPath;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.exceptions.ModelRequestException;
@@ -88,8 +88,8 @@ public class ModelQueryFetcher extends BaseFetcher implements ObjectFetcher
 			if ( !fResultSet.hasNext () ) return null;
 
 			// get the next object
-			final ModelObject mo = fResultSet.next ();
-			return buildMessageAndRouting ( mo, pipeline );
+			final ModelObjectAndPath mo = fResultSet.next ();
+			return buildMessageAndRouting ( mo.getPath (), mo.getObject (), pipeline );
 		}
 		catch ( BuildFailure | ModelServiceException | ModelRequestException e )
 		{
@@ -104,7 +104,7 @@ public class ModelQueryFetcher extends BaseFetcher implements ObjectFetcher
 	
 	private int fLastPageNumber = 0;
 
-	private Iterator<ModelObject> fResultSet;
+	private Iterator<ModelObjectAndPath> fResultSet;
 
 	private boolean isPaging ()
 	{

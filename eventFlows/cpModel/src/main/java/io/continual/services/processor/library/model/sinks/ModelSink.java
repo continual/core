@@ -7,11 +7,10 @@ import io.continual.iam.access.AccessControlList;
 import io.continual.metrics.MetricsCatalog;
 import io.continual.metrics.MetricsCatalog.PathPopper;
 import io.continual.services.model.core.Model;
+import io.continual.services.model.core.Model.ObjectUpdater;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
-import io.continual.services.model.core.updaters.AclUpdate;
-import io.continual.services.model.core.updaters.DataOverwrite;
 import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
@@ -71,10 +70,15 @@ public class ModelSink extends ModelConnector implements Sink
 				newAcl = AccessControlList.deserialize ( meta.optJSONObject ( "acl" ), null );
 			}
 
-			model.store ( mrc, path,
-				new AclUpdate ( newAcl ),
-				new DataOverwrite ( msg.accessRawJson ().getJSONObject ( "data" ) )
-			);
+			ObjectUpdater ou = model.createUpdate ( mrc, path );
+			if ( newAcl != null )
+			{
+				ou = ou.replaceAcl ( newAcl );
+			}
+			ou
+				.overwrite ( msg.accessRawJson ().getJSONObject ( "data" ) )
+				.execute ()
+			;
 		}
 		catch ( BuildFailure | ModelRequestException | ModelServiceException e )
 		{

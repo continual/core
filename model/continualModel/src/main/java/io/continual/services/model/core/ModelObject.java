@@ -18,15 +18,21 @@ package io.continual.services.model.core;
 
 import org.json.JSONObject;
 
-import io.continual.iam.access.ProtectedResource;
+import io.continual.iam.access.AccessControlList;
 import io.continual.util.data.json.JsonSerialized;
 
 /**
  * A model object is data that can be represented as JSON, is a protected resource
  * in the system, and is subject to type-locking.
  */
-public interface ModelObject extends ProtectedResource, JsonSerialized
+public interface ModelObject extends JsonSerialized
 {
+	/**
+	 * Get the access control list for this object
+	 * @return an ACL
+	 */
+	AccessControlList getAccessControlList ( );
+
 	/**
 	 * Get this object's metadata
 	 * @return object metadata
