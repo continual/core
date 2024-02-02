@@ -5,8 +5,8 @@ import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRequestContext;
-import io.continual.services.model.core.ModelUpdater;
 import io.continual.services.model.core.exceptions.ModelRequestException;
+import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.util.naming.Path;
 
 public abstract class ReadOnlyModel extends SimpleService implements Model
@@ -18,7 +18,7 @@ public abstract class ReadOnlyModel extends SimpleService implements Model
 	}
 
 	@Override
-	public ReadOnlyModel store ( ModelRequestContext context, Path objectPath, ModelUpdater ... updates ) throws ModelRequestException
+	public ObjectUpdater createUpdate ( final ModelRequestContext context, final Path objectPath ) throws ModelRequestException, ModelServiceException
 	{
 		failReadOnly ();
 		return null;
@@ -29,6 +29,12 @@ public abstract class ReadOnlyModel extends SimpleService implements Model
 	{
 		failReadOnly ();
 		return false;
+	}
+
+	@Override
+	public Model setRelationType ( ModelRequestContext context, String relnName, RelationType rt ) throws ModelServiceException, ModelRequestException
+	{
+		return this;
 	}
 
 	@Override

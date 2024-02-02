@@ -21,14 +21,13 @@ import java.io.Closeable;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
+import io.continual.iam.access.AccessControlList;
 import io.continual.iam.identity.Identity;
 import io.continual.services.Service;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelSchemaViolationException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
-import io.continual.services.model.core.updaters.DataMerge;
-import io.continual.services.model.core.updaters.DataOverwrite;
 import io.continual.util.data.json.JsonUtil;
 import io.continual.util.naming.Path;
 
@@ -89,8 +88,9 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	 * Start a query on this model implementation.
 	 * @return a query 
 	 * @throws ModelRequestException 
+	 * @throws ModelServiceException 
 	 */
-	ModelQuery startQuery () throws ModelRequestException;
+	ModelQuery startQuery () throws ModelRequestException, ModelServiceException;
 
 	/**
 	 * Start a traversal on this model implementation.
@@ -126,9 +126,14 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	 * @throws ModelSchemaViolationException
 	 * @throws ModelServiceException
 	 */
+	@Deprecated
 	default Model store ( ModelRequestContext context, Path objectPath, String jsonData ) throws ModelRequestException, ModelSchemaViolationException, ModelServiceException
 	{
-		return store ( context, objectPath, new DataOverwrite ( JsonUtil.readJsonObject ( jsonData ) ) );
+		createUpdate ( context, objectPath )
+			.overwrite ( JsonUtil.readJsonObject ( jsonData ) )
+			.execute ()
+		;
+		return this;
 	}
 
 	/**
@@ -140,9 +145,14 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	 * @throws ModelSchemaViolationException
 	 * @throws ModelServiceException
 	 */
+	@Deprecated
 	default Model store ( ModelRequestContext context, Path objectPath, JSONObject jsonData ) throws ModelRequestException, ModelSchemaViolationException, ModelServiceException
 	{
-		return store ( context, objectPath, new DataOverwrite ( jsonData ) );
+		createUpdate ( context, objectPath )
+			.overwrite ( jsonData )
+			.execute ()
+		;
+		return this;
 	}
 
 	/**
@@ -154,22 +164,40 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	 * @throws ModelSchemaViolationException
 	 * @throws ModelServiceException
 	 */
+	@Deprecated
 	default Model update ( ModelRequestContext context, Path objectPath, JSONObject jsonData ) throws ModelRequestException, ModelSchemaViolationException, ModelServiceException
 	{
-		return store ( context, objectPath, new DataMerge ( jsonData ) );
+		createUpdate ( context, objectPath )
+			.merge ( jsonData )
+			.execute ()
+		;
+		return this;
 	}
 
 	/**
-	 * Update an existing object. If the object doesn't exist, it's created. 
+	 * An object updater
+	 */
+	interface ObjectUpdater
+	{
+		ObjectUpdater overwrite ( JSONObject withData );
+
+		ObjectUpdater merge ( JSONObject withData );
+
+		ObjectUpdater replaceAcl ( AccessControlList acl );
+
+		void execute () throws ModelRequestException, ModelSchemaViolationException, ModelServiceException;
+	};
+
+	/**
+	 * Begin an update
 	 * @param context
 	 * @param objectPath
-	 * @param updates the updaters
+	 * @return an object updater
 	 * @throws ModelRequestException
-	 * @throws ModelSchemaViolationException
 	 * @throws ModelServiceException
 	 */
-	Model store ( ModelRequestContext context, Path objectPath, ModelUpdater... updates ) throws ModelRequestException, ModelSchemaViolationException, ModelServiceException;
-
+	ObjectUpdater createUpdate ( ModelRequestContext context, Path objectPath ) throws ModelRequestException, ModelServiceException;
+	
 	/**
 	 * Remove (delete) an object from the model
 	 * @param context
@@ -181,7 +209,27 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	boolean remove ( ModelRequestContext context, Path objectPath ) throws ModelServiceException, ModelRequestException;
 
 	/**
-	 * Relate two objects with a relationship in the graph. If the relation already exists, the request has no effect.
+	 * RelationType 
+	 */
+	enum RelationType
+	{
+		UNORDERED,	// default
+		ORDERED,
+	}
+	
+	/**
+	 * Set the relation type. 
+	 * @param context
+	 * @param relnName
+	 * @param rt
+	 * @return this model
+	 */
+	Model setRelationType ( ModelRequestContext context, String relnName, RelationType rt ) throws ModelServiceException, ModelRequestException;
+	
+	/**
+	 * Relate two objects with a relationship in the graph. If the relation already exists, the request has no effect. If the relation
+	 * is ordered, the new relation instance becomes last in the ordered list of related objects.
+	 * 
 	 * @param context
 	 * @param reln
 	 * @throws ModelServiceException

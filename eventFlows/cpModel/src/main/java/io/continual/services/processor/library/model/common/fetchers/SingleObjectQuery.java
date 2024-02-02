@@ -44,7 +44,7 @@ public class SingleObjectQuery extends BaseFetcher implements ObjectFetcher
 					.build ()
 				;
 				final ModelObject mo = model.load ( mrc, fPath );
-				return buildMessageAndRouting ( mo, pipeline );
+				return buildMessageAndRouting ( fPath, mo, pipeline );
 			}
 			catch ( ModelItemDoesNotExistException e )
 			{

@@ -41,14 +41,23 @@ public class DelegatingModelTest extends TestCase
 
 		// place a few objects...
 		final ModelRequestContext mrc1 = model1.getRequestContextBuilder ().forUser ( user ).build ();
-		model1
-			.store ( mrc1, Path.fromString ( "/foo" ), new JSONObject ().put ( "helloMyNameIs", "foo" ) )
-			.store ( mrc1, Path.fromString ( "/bar" ), new JSONObject ().put ( "helloMyNameIs", "bar" ) )
+		model1.createUpdate ( mrc1, Path.fromString ( "/foo" ) )
+			.overwrite ( new JSONObject ().put ( "helloMyNameIs", "foo" ) )
+			.execute ()
 		;
+		model1.createUpdate ( mrc1, Path.fromString ( "/bar" ) )
+			.overwrite ( new JSONObject ().put ( "helloMyNameIs", "bar" ) )
+			.execute ()
+		;
+
 		final ModelRequestContext mrc2 = model2.getRequestContextBuilder ().forUser ( user ).build ();
-		model2
-			.store ( mrc2, Path.fromString ( "/baz" ), new JSONObject ().put ( "helloMyNameIs", "baz" ) )
-			.store ( mrc2, Path.fromString ( "/bee" ), new JSONObject ().put ( "helloMyNameIs", "bee" ) )
+		model2.createUpdate ( mrc2, Path.fromString ( "/baz" ) )
+			.overwrite ( new JSONObject ().put ( "helloMyNameIs", "baz" ) )
+			.execute ()
+		;
+		model2.createUpdate ( mrc2, Path.fromString ( "/bee" ) )
+			.overwrite ( new JSONObject ().put ( "helloMyNameIs", "bee" ) )
+			.execute ()
 		;
 
 		// make an internal relation...

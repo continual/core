@@ -152,6 +152,7 @@ public class PathTest extends TestCase
 		SimpleTest.validPath ( "/./././.", "/" ),
 		SimpleTest.validPath ( "/foo/.", "/foo" ),
 		SimpleTest.invalidPath ( "foo/bar" ),
+		SimpleTest.invalidPath ( "/foo/bar/" ),
 	};
 
 	private static Path[][] kParentPathTests =

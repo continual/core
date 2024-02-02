@@ -15,8 +15,10 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 import io.continual.builder.Builder.BuildFailure;
+import io.continual.services.model.core.Model.RelationType;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
+import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.util.data.TypeConvertor;
@@ -37,6 +39,14 @@ class S3SysRelnMgr
 		fS3 = s3;
 		fBucketId = bucketId;
 		fRelnsRoot = relnsRoot;
+	}
+
+	public void setRelationType ( ModelRequestContext context, String relnName, RelationType rt ) throws ModelRequestException
+	{
+		if ( rt == RelationType.ORDERED )
+		{
+			throw new ModelRequestException ( "The S3 model implementation does not currently support ordered relations." );
+		}
 	}
 
 	public void relate ( ModelRelation mr ) throws ModelServiceException, ModelRequestException

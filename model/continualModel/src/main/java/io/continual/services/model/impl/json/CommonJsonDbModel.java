@@ -17,6 +17,7 @@
 package io.continual.services.model.impl.json;
 
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.json.JSONObject;
@@ -39,9 +40,9 @@ import io.continual.services.model.core.ModelSchema;
 import io.continual.services.model.core.ModelSchema.ValidationResult;
 import io.continual.services.model.core.ModelSchemaRegistry;
 import io.continual.services.model.core.ModelTraversal;
-import io.continual.services.model.core.ModelUpdater;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
+import io.continual.services.model.core.exceptions.ModelSchemaViolationException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.model.impl.common.BasicModelRequestContextBuilder;
 import io.continual.services.model.impl.common.SimpleTraversal;
@@ -52,13 +53,19 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 {
 	public CommonJsonDbModel ( ServiceContainer sc, JSONObject config )
 	{
-		this ( config.getString ( "acctId" ), config.getString ( "modelId" ) );
+		this ( config.getString ( "acctId" ), config.getString ( "modelId" ), config.optBoolean ( "readOnly", false ) );
 	}
 
 	public CommonJsonDbModel ( String acctId, String modelId )
 	{
+		this ( acctId, modelId, false );
+	}
+
+	public CommonJsonDbModel ( String acctId, String modelId, boolean readOnly )
+	{
 		fAcctId = acctId;
 		fModelId = modelId;
+		fReadOnly = readOnly;
 	}
 
 	@Override
@@ -143,79 +150,177 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 	}
 
 	@Override
-	public Model store ( ModelRequestContext context, Path objectPath, ModelUpdater... updates ) throws ModelRequestException, ModelServiceException
+	public ObjectUpdater createUpdate ( final ModelRequestContext context, final Path objectPath ) throws ModelRequestException, ModelServiceException
 	{
-		try
+		checkReadOnly ();
+		return new ObjectUpdater ()
 		{
-			final boolean isCreate = !exists ( context, objectPath );
-
-			ModelObject o;
-			if ( isCreate )
+			@Override
+			public ObjectUpdater overwrite ( JSONObject withData )
 			{
-				o = initializeObject ( context );
-			}
-			else
-			{
-				o = load ( context, objectPath );
+				fUpdates.add ( new Update ( UpdateType.OVERWRITE, withData ) );
+				return this;
 			}
 
-			for ( ModelUpdater mu : updates )
+			@Override
+			public ObjectUpdater merge ( JSONObject withData )
 			{
-				final AccessControlList acl = o.getAccessControlList ();
-				final ModelOperation[] accessList = mu.getAccessRequired ();
-				for ( ModelOperation access : accessList )
+				fUpdates.add ( new Update ( UpdateType.MERGE, withData ) );
+				return this;
+			}
+
+			@Override
+			public ObjectUpdater replaceAcl ( AccessControlList acl )
+			{
+				fUpdates.add ( new Update ( acl ) );
+				return this;
+			}
+
+			@Override
+			public void execute () throws ModelRequestException, ModelSchemaViolationException, ModelServiceException
+			{
+				try
 				{
-					if ( !acl.canUser ( context.getOperator (), access.toString () ) )
+					final boolean isCreate = !exists ( context, objectPath );
+
+					ModelObject o;
+					if ( isCreate )
 					{
-						throw new ModelRequestException ( context.getOperator ().getId () + " may not " + access + " " + objectPath.toString () + "." );
+						o = initializeObject ( context );
+					}
+					else
+					{
+						o = load ( context, objectPath );
+					}
+
+					for ( Update mu : fUpdates )
+					{
+						final AccessControlList acl = o.getAccessControlList ();
+						final ModelOperation[] accessList = mu.getAccessRequired ();
+						for ( ModelOperation access : accessList )
+						{
+							if ( !acl.canUser ( context.getOperator (), access.toString () ) )
+							{
+								throw new ModelRequestException ( context.getOperator ().getId () + " may not " + access + " " + objectPath.toString () + "." );
+							}
+						}
+						mu.update ( context, o );
+					}
+
+					// validate the update
+					final ModelSchemaRegistry schemas = context.getSchemaRegistry ();
+					for ( String type : o.getMetadata ().getLockedTypes () )
+					{
+						final ModelSchema ms = schemas.getSchema ( type );
+						if ( ms == null )
+						{
+							throw new ModelRequestException ( "Unknown type " + type );
+						}
+						final ValidationResult vr = ms.isValid ( o );
+						if ( !vr.isValid () )
+						{
+							throw new ModelRequestException ( "The object does not meet type " + type,
+								new JSONObject ()
+									.put ( "validationProblems", JsonVisitor.listToArray ( vr.getProblems () ) )
+							);
+						}
+					}
+
+					internalStore ( context, objectPath, o );
+					log.info ( "wrote {}", objectPath );
+					context.put ( objectPath, o );
+
+					final ModelNotificationService ns = context.getNotificationService();
+					if ( isCreate ) 
+					{
+						ns.onObjectCreate ( objectPath );
+					}
+					else
+					{
+						ns.onObjectUpdate ( objectPath );
 					}
 				}
-				mu.update ( context, o );
-			}
-
-			// validate the update
-			final ModelSchemaRegistry schemas = context.getSchemaRegistry ();
-			for ( String type : o.getMetadata ().getLockedTypes () )
-			{
-				final ModelSchema ms = schemas.getSchema ( type );
-				if ( ms == null )
+				catch ( IamSvcException e )
 				{
-					throw new ModelRequestException ( "Unknown type " + type );
-				}
-				final ValidationResult vr = ms.isValid ( o );
-				if ( !vr.isValid () )
-				{
-					throw new ModelRequestException ( "The object does not meet type " + type,
-						new JSONObject ()
-							.put ( "validationProblems", JsonVisitor.listToArray ( vr.getProblems () ) )
-					);
+					throw new ModelServiceException ( e );
 				}
 			}
 
-			internalStore ( context, objectPath, o );
-			log.info ( "wrote {}", objectPath );
-			context.put ( objectPath, o );
+			private final LinkedList<Update> fUpdates = new LinkedList<> ();
+		};
+	}
 
-			final ModelNotificationService ns = context.getNotificationService();
-			if ( isCreate ) 
+	private enum UpdateType
+	{
+		OVERWRITE,
+		MERGE,
+		ACL
+	}
+	private class Update
+	{
+		public Update ( UpdateType ut, JSONObject data )
+		{
+			fType = ut;
+			fData = data;
+			fAcl = null;
+		}
+
+		public void update ( ModelRequestContext context, ModelObject o )
+		{
+			switch ( fType )
 			{
-				ns.onObjectCreate ( objectPath );
+				case ACL:
+					final AccessControlList targetAcl = o.getAccessControlList ();
+					targetAcl.clear ();
+					targetAcl.setOwner ( fAcl.getOwner () );
+					for ( AccessControlEntry e : fAcl.getEntries () )
+					{
+						targetAcl.addAclEntry ( e );
+					}					
+					break;
+
+				case MERGE:
+					o.patchData ( fData );
+					break;
+
+				case OVERWRITE:
+					o.putData ( fData );
+					break;
+
+				default:
+					throw new RuntimeException ( "Unknown update type." );
+			}
+		}
+
+		public ModelOperation[] getAccessRequired ()
+		{
+			if ( fType == UpdateType.ACL )
+			{
+				return new ModelOperation[] { ModelOperation.ACL_UPDATE };
 			}
 			else
 			{
-				ns.onObjectUpdate ( objectPath );
+				return new ModelOperation[] { ModelOperation.UPDATE };
 			}
 		}
-		catch ( IamSvcException e )
+
+		public Update ( AccessControlList acl )
 		{
-			throw new ModelServiceException ( e );
+			fType = UpdateType.ACL;
+			fData = null;
+			fAcl = acl;
 		}
-		return this;
+
+		public final UpdateType fType;
+		public final JSONObject fData;
+		public final AccessControlList fAcl;
 	}
 
 	@Override
 	public boolean remove ( ModelRequestContext context, Path objectPath ) throws ModelServiceException, ModelRequestException
 	{
+		checkReadOnly ();
+
 		final boolean result = internalRemove ( context, objectPath );
 		context.remove ( objectPath );
 		log.info ( "removed {}", objectPath );
@@ -226,6 +331,7 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 	@Override
 	public Model createIndex ( String field ) throws ModelRequestException, ModelServiceException
 	{
+		checkReadOnly ();
 		return this;
 	}
 
@@ -243,6 +349,7 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 
 	private final String fAcctId;
 	private final String fModelId;
+	private final boolean fReadOnly;
 
 	protected ModelObject initializeObject ( ModelRequestContext context ) throws ModelRequestException
 	{
@@ -305,4 +412,9 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 	public abstract List<ModelRelationInstance> getOutboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException;
 
 	private static final Logger log = LoggerFactory.getLogger ( CommonJsonDbModel.class );
+
+	protected void checkReadOnly () throws ModelRequestException
+	{
+		if ( fReadOnly ) throw new ModelRequestException ( "This model was loaded as read-only." );
+	}
 }

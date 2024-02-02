@@ -195,9 +195,10 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	{
 		try
 		{
+			// setup job for transfer via config transfer service
 			final String jobId = ds.getJob ().getId ();
 			final String k8sJobId = makeK8sName ( jobId );
-			final String tag = k8sJobId ;//+ "-" + UniqueStringGenerator.createKeyUsingAlphabet ( jobId, "abcdefhigjklmnopqrstuvwxyz" );
+			final String tag = k8sJobId;
 			final Map<String,String> configFetchEnv = fConfigTransfer.deployConfiguration ( ds.getJob () );
 
 			final String targetConfigFile = fConfigMountLoc + "/jobConfig.json";
@@ -885,7 +886,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		return pl.getItems ();
 	}
 
-	private class LocalDeploymentSpecBuilder implements DeploymentSpecBuilder
+	protected class LocalDeploymentSpecBuilder implements DeploymentSpecBuilder
 	{
 		@Override
 		public DeploymentSpecBuilder forJob ( FlowControlJob job )

@@ -36,8 +36,6 @@ import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
-import io.continual.services.model.core.updaters.DataMerge;
-import io.continual.services.model.core.updaters.DataOverwrite;
 import io.continual.services.model.service.ModelService;
 import io.continual.services.model.session.ModelSession;
 import io.continual.util.collections.MultiMap;
@@ -236,7 +234,11 @@ public class ModelApi extends ModelApiContextHelper
 				final Path requestedPath = fixupPath ( objectPath );
 				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
 
-				ms.getModel ().store ( mrc, requestedPath, new DataOverwrite ( obj ) );
+				ms.getModel ().createUpdate ( mrc, requestedPath )
+					.overwrite ( obj )
+					.execute ()
+				;
+
 				modelApiContext.respondWithStatus ( HttpStatusCodes.k204_noContent, null );
 			}
 		} );
@@ -255,7 +257,11 @@ public class ModelApi extends ModelApiContextHelper
 				final Path requestedPath = fixupPath ( objectPath );
 				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
 
-				ms.getModel ().store ( mrc, requestedPath, new DataMerge ( obj ) );
+				ms.getModel ().createUpdate ( mrc, requestedPath )
+					.merge ( obj )
+					.execute ()
+				;
+
 				modelApiContext.respondWithStatus ( HttpStatusCodes.k204_noContent, null );
 			}
 		} );

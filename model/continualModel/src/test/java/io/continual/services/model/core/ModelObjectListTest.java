@@ -5,6 +5,7 @@ import java.util.Iterator;
 import org.junit.Test;
 
 import io.continual.services.model.impl.json.CommonJsonDbObject;
+import io.continual.util.naming.Path;
 import junit.framework.TestCase;
 
 public class ModelObjectListTest extends TestCase
@@ -31,13 +32,13 @@ public class ModelObjectListTest extends TestCase
 	public void testOneItemList ()
 	{
 		final ModelObject m1 = new CommonJsonDbObject ();
-		final ModelObjectList mol = ModelObjectList.simpleList ( m1 );
+		final ModelObjectList mol = ModelObjectList.simpleList ( mp ( "/p1", m1 ) );
 		assertNotNull ( mol );
 		
-		final Iterator<ModelObject> iter = mol.iterator ();
+		final Iterator<ModelObjectAndPath> iter = mol.iterator ();
 		assertNotNull ( iter );
 		assertTrue ( iter.hasNext () );
-		assertEquals ( m1, iter.next () );
+		assertEquals ( m1, iter.next ().getObject () );
 		assertFalse ( iter.hasNext () );
 	}
 
@@ -47,17 +48,17 @@ public class ModelObjectListTest extends TestCase
 		final ModelObject m1 = new CommonJsonDbObject ();
 		final ModelObject m2 = new CommonJsonDbObject ();
 		final ModelObject m3 = new CommonJsonDbObject ();
-		final ModelObjectList mol = ModelObjectList.simpleList ( m1, m2, m3 );
+		final ModelObjectList mol = ModelObjectList.simpleList ( mp ( "/p1", m1 ), mp ( "/p2", m2 ), mp ( "/p3", m3 ) );
 		assertNotNull ( mol );
 		
-		final Iterator<ModelObject> iter = mol.iterator ();
+		final Iterator<ModelObjectAndPath> iter = mol.iterator ();
 		assertNotNull ( iter );
 		assertTrue ( iter.hasNext () );
-		assertEquals ( m1, iter.next () );
+		assertEquals ( m1, iter.next ().getObject () );
 		assertTrue ( iter.hasNext () );
-		assertEquals ( m2, iter.next () );
+		assertEquals ( m2, iter.next ().getObject () );
 		assertTrue ( iter.hasNext () );
-		assertEquals ( m3, iter.next () );
+		assertEquals ( m3, iter.next ().getObject () );
 		assertFalse ( iter.hasNext () );
 	}
 
@@ -67,16 +68,21 @@ public class ModelObjectListTest extends TestCase
 		final ModelObject m1 = new CommonJsonDbObject ();
 		final ModelObject m2 = new CommonJsonDbObject ();
 		final ModelObject m3 = new CommonJsonDbObject ();
-		final ModelObjectList mol = ModelObjectList.simpleList ( m1, m2, m3 );
+		final ModelObjectList mol = ModelObjectList.simpleList ( mp ( "/p1", m1 ), mp ( "/p2", m2 ), mp ( "/p3", m3 ) );
 		assertNotNull ( mol );
 		
-		final Iterator<ModelObject> iter1 = mol.iterator ();
-		final Iterator<ModelObject> iter2 = mol.iterator ();
+		final Iterator<ModelObjectAndPath> iter1 = mol.iterator ();
+		final Iterator<ModelObjectAndPath> iter2 = mol.iterator ();
 
 		iter1.next ();
 		iter1.next ();
 		iter1.next ();
 
-		assertEquals ( m1, iter2.next () );
+		assertEquals ( m1, iter2.next ().getObject () );
+	}
+
+	private static ModelObjectAndPath mp ( String p, ModelObject mo )
+	{
+		return ModelObjectAndPath.from ( Path.fromString ( p ), mo );
 	}
 }

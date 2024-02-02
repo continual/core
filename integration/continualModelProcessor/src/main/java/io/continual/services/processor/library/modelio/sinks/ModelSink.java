@@ -26,7 +26,6 @@ import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
-import io.continual.services.model.core.updaters.DataMerge;
 import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
@@ -93,7 +92,10 @@ public class ModelSink implements Sink
 
 			log.info ( "Writing to {}", modelPathText );
 
-			model.store ( mrc, modelPath, new DataMerge ( msg.toJson () ) );
+			model.createUpdate ( mrc, modelPath )
+				.merge ( msg.toJson () )
+				.execute ()
+			;
 		}
 		catch ( BuildFailure | ModelRequestException | ModelServiceException e )
 		{

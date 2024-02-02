@@ -14,7 +14,9 @@ import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.ServiceContainer;
+import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelObject;
+import io.continual.services.model.core.ModelObjectAndPath;
 import io.continual.services.model.core.ModelObjectComparator;
 import io.continual.services.model.core.ModelObjectList;
 import io.continual.services.model.core.ModelPathList;
@@ -47,10 +49,15 @@ public class InMemoryModel extends CommonJsonDbModel
 
 	public InMemoryModel ( String acctId, String modelId ) throws BuildFailure
 	{
+		this ( acctId, modelId, new JSONObject () );
+	}
+
+	public InMemoryModel ( String acctId, String modelId, JSONObject data ) throws BuildFailure
+	{
 		super ( acctId, modelId );
 
 		fRoot = new JSONObject ();
-		fRoot.put ( kObjectsNode, new JSONObject () );
+		fRoot.put ( kObjectsNode, data );
 		fRoot.put ( kRelnsNode, new JSONObject () );
 
 		fReversals = new HashMap<Path,MultiMap<String,Path>> ();
@@ -69,7 +76,7 @@ public class InMemoryModel extends CommonJsonDbModel
 		final LinkedList<Path> paths = new LinkedList<> ();
 		for ( String key : current.keySet () )
 		{
-			if ( null != current.optJSONObject ( key ) )
+			if ( !key.equals ( CommonJsonDbObject.kDataTag ) && !key.equals ( CommonJsonDbObject.kMetaTag ) &&  null != current.optJSONObject ( key ) )
 			{
 				paths.add ( parentPath.makeChildItem ( Name.fromString ( key ) ) );
 			}
@@ -82,6 +89,13 @@ public class InMemoryModel extends CommonJsonDbModel
 	public ModelQuery startQuery () throws ModelRequestException
 	{
 		return new ModelQuery ();
+	}
+
+	@Override
+	public Model setRelationType ( ModelRequestContext context, String relnName, RelationType rt ) throws ModelServiceException, ModelRequestException
+	{
+		// this model always keeps relations in order
+		return this;
 	}
 
 	@Override
@@ -106,10 +120,15 @@ public class InMemoryModel extends CommonJsonDbModel
 				relnNode = new JSONArray ();
 				fromNode.put ( reln.getName (), relnNode );
 			}
-	
-			final TreeSet<String> tos = new TreeSet<> ( JsonVisitor.arrayToList ( relnNode ) );
-			tos.add ( reln.getTo ().toString () );
-			fromNode.put ( reln.getName (), JsonVisitor.collectionToArray ( tos ) );
+
+			final String target = reln.getTo ().toString ();
+			final LinkedList<String> toList = new LinkedList<> ( JsonVisitor.arrayToList ( relnNode ) );
+			final TreeSet<String> toSet = new TreeSet<> ( toList );
+			if ( !toSet.contains ( target ) )
+			{
+				toList.add ( target );
+				fromNode.put ( reln.getName (), JsonVisitor.collectionToArray ( toList ) );
+			}
 
 			return ModelRelationInstance.from ( reln );
 		}
@@ -308,11 +327,11 @@ public class InMemoryModel extends CommonJsonDbModel
 		{
 			return false;
 		}
-	
-		final TreeSet<String> tos = new TreeSet<> ( JsonVisitor.arrayToList ( relnNode ) );
+
+		final LinkedList<String> tos = new LinkedList<> ( JsonVisitor.arrayToList ( relnNode ) );
 		boolean result = tos.remove ( reln.getTo ().toString () );
 		fromNode.put ( reln.getName (), JsonVisitor.collectionToArray ( tos ) );
-	
+
 		// also remove from reversals
 		final MultiMap<String,Path> revReln = fReversals.get ( reln.getTo () );
 		if ( revReln != null )
@@ -400,7 +419,7 @@ public class InMemoryModel extends CommonJsonDbModel
 		@Override
 		public ModelObjectList execute ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException
 		{
-			final LinkedList<ModelObject> result = new LinkedList<> ();
+			final LinkedList<ModelObjectAndPath> result = new LinkedList<> ();
 
 			for ( Path p : collectObjectsUnder ( getPathPrefix () ) )
 			{
@@ -419,7 +438,7 @@ public class InMemoryModel extends CommonJsonDbModel
 
 					if ( match )
 					{
-						result.add ( mo );
+						result.add ( ModelObjectAndPath.from ( p, mo ) );
 					}
 				}
 			}
@@ -428,12 +447,12 @@ public class InMemoryModel extends CommonJsonDbModel
 			final ModelObjectComparator orderBy = getOrdering ();
 			if ( orderBy != null )
 			{
-				Collections.sort ( result, new java.util.Comparator<ModelObject> ()
+				Collections.sort ( result, new java.util.Comparator<ModelObjectAndPath> ()
 				{
 					@Override
-					public int compare ( ModelObject o1, ModelObject o2 )
+					public int compare ( ModelObjectAndPath o1, ModelObjectAndPath o2 )
 					{
-						return orderBy.compare ( o1, o2 );
+						return orderBy.compare ( o1.getObject (), o2.getObject () );
 					}
 				} );
 			}
@@ -454,7 +473,7 @@ public class InMemoryModel extends CommonJsonDbModel
 			return new ModelObjectList ()
 			{
 				@Override
-				public Iterator<ModelObject> iterator ()
+				public Iterator<ModelObjectAndPath> iterator ()
 				{
 					return result.iterator ();
 				}

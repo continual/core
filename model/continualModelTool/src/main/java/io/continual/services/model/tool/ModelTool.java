@@ -152,7 +152,11 @@ public class ModelTool extends ConfiguredConsole
 				final ModelObject mo = src.fModel.load ( srcMrc, srcObj );
 				if ( !mo.getMetadata ().getLockedTypes ().contains ( CommonJsonDbObject.kStdType_ObjectContainer ) )
 				{
-					tgt.fModel.store ( tgtMrc, tgtChild, mo.getData () );
+					tgt.fModel
+						.createUpdate ( tgtMrc, tgtChild )
+						.overwrite ( mo.getData () )
+						.execute ()
+					;
 
 					for ( ModelRelation mr : src.fModel.selectRelations ( srcObj ).getRelations ( srcMrc ) )
 					{

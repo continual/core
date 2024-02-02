@@ -28,7 +28,6 @@ public class CommonJsonDbObject implements ModelObject, AclUpdateListener
 
 	public CommonJsonDbObject ( String id, JSONObject rawData )
 	{
-		fId = id;
 		fRaw = rawData;
 
 		// read or create a metadata object, setting create timestamp as needed 
@@ -140,12 +139,6 @@ public class CommonJsonDbObject implements ModelObject, AclUpdateListener
 			}
 		};
 	}
-	
-	@Override
-	public String getId ()
-	{
-		return fId;
-	}
 
 	@Override
 	public AccessControlList getAccessControlList ()
@@ -243,7 +236,6 @@ public class CommonJsonDbObject implements ModelObject, AclUpdateListener
 		putData ( existing );
 	}
 
-	private final String fId;
 	private final AccessControlList fAcl;	// this is awkwardly placed -- it's stored in the metadata object but deser'd once on the object (FIXME)
 	private final JSONObject fRaw;
 

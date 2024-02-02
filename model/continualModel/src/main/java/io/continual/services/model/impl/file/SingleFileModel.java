@@ -18,7 +18,9 @@ import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.ServiceContainer;
+import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelObject;
+import io.continual.services.model.core.ModelObjectAndPath;
 import io.continual.services.model.core.ModelObjectComparator;
 import io.continual.services.model.core.ModelObjectList;
 import io.continual.services.model.core.ModelPathList;
@@ -120,6 +122,13 @@ public class SingleFileModel extends CommonJsonDbModel
 	}
 
 	@Override
+	public Model setRelationType ( ModelRequestContext context, String relnName, RelationType rt ) throws ModelServiceException, ModelRequestException
+	{
+		// this implementation orders all relations
+		return this;
+	}
+
+	@Override
 	public ModelRelationInstance relate ( ModelRequestContext context, ModelRelation reln ) throws ModelServiceException, ModelRequestException
 	{
 		// make a backup...
@@ -142,11 +151,16 @@ public class SingleFileModel extends CommonJsonDbModel
 				fromNode.put ( reln.getName (), relnNode );
 			}
 	
-			final TreeSet<String> tos = new TreeSet<> ( JsonVisitor.arrayToList ( relnNode ) );
-			tos.add ( reln.getTo ().toString () );
-			fromNode.put ( reln.getName (), JsonVisitor.collectionToArray ( tos ) );
+			final String target = reln.getTo ().toString ();
+			final List<String> toList = JsonVisitor.arrayToList ( relnNode );
+			final TreeSet<String> toSet = new TreeSet<> ( toList );
+			if ( ! toSet.contains ( target ) )
+			{
+				toList.add ( target );
+				fromNode.put ( reln.getName (), JsonVisitor.collectionToArray ( toList ) );
 
-			flush ();
+				flush ();
+			}
 
 			return ModelRelationInstance.from ( reln );
 		}
@@ -370,18 +384,25 @@ public class SingleFileModel extends CommonJsonDbModel
 		{
 			return false;
 		}
-	
-		final TreeSet<String> tos = new TreeSet<> ( JsonVisitor.arrayToList ( relnNode ) );
-		boolean result = tos.remove ( reln.getTo ().toString () );
-		fromNode.put ( reln.getName (), JsonVisitor.collectionToArray ( tos ) );
-	
-		// also remove from reversals
-		final MultiMap<String,Path> revReln = fReversals.get ( reln.getTo () );
-		if ( revReln != null )
+
+		boolean result = false;
+
+		final String target = reln.getTo ().toString ();
+		final List<String> toList = JsonVisitor.arrayToList ( relnNode );
+		final TreeSet<String> tos = new TreeSet<> ( toList );
+		if ( tos.contains ( target ) )
 		{
-			revReln.remove ( reln.getName (), reln.getFrom () );
+			result = toList.remove ( target );	// must return true
+			fromNode.put ( reln.getName (), JsonVisitor.collectionToArray ( tos ) );
+
+			// also remove from reversals
+			final MultiMap<String,Path> revReln = fReversals.get ( reln.getTo () );
+			if ( revReln != null )
+			{
+				revReln.remove ( reln.getName (), reln.getFrom () );
+			}
 		}
-	
+
 		return result;
 	}
 	
@@ -515,7 +536,7 @@ public class SingleFileModel extends CommonJsonDbModel
 		@Override
 		public ModelObjectList execute ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException
 		{
-			final LinkedList<ModelObject> result = new LinkedList<> ();
+			final LinkedList<ModelObjectAndPath> result = new LinkedList<> ();
 
 			for ( Path p : collectObjectsUnder ( getPathPrefix () ) )
 			{
@@ -534,7 +555,7 @@ public class SingleFileModel extends CommonJsonDbModel
 
 					if ( match )
 					{
-						result.add ( mo );
+						result.add ( ModelObjectAndPath.from ( p, mo ) );
 					}
 				}
 			}
@@ -543,12 +564,12 @@ public class SingleFileModel extends CommonJsonDbModel
 			final ModelObjectComparator orderBy = getOrdering ();
 			if ( orderBy != null )
 			{
-				Collections.sort ( result, new java.util.Comparator<ModelObject> ()
+				Collections.sort ( result, new java.util.Comparator<ModelObjectAndPath> ()
 				{
 					@Override
-					public int compare ( ModelObject o1, ModelObject o2 )
+					public int compare ( ModelObjectAndPath o1, ModelObjectAndPath o2 )
 					{
-						return orderBy.compare ( o1, o2 );
+						return orderBy.compare ( o1.getObject (), o2.getObject () );
 					}
 				} );
 			}
@@ -569,7 +590,7 @@ public class SingleFileModel extends CommonJsonDbModel
 			return new ModelObjectList ()
 			{
 				@Override
-				public Iterator<ModelObject> iterator ()
+				public Iterator<ModelObjectAndPath> iterator ()
 				{
 					return result.iterator ();
 				}

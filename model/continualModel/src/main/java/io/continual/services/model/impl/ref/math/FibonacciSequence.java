@@ -247,7 +247,6 @@ public class FibonacciSequence extends ReadOnlyModel
 
 	private class FibModelObject implements ModelObject
 	{
-		private final String fId;
 		private final Long fNumber;
 		
 		public FibModelObject ( String id )
@@ -257,15 +256,11 @@ public class FibonacciSequence extends ReadOnlyModel
 		
 		public FibModelObject ( String id, Long num )
 		{
-			fId = id;
 			fNumber = num;
 		}
 
 		@Override
 		public AccessControlList getAccessControlList () { return kAcl; }
-
-		@Override
-		public String getId () { return fId; }
 
 		@Override
 		public JSONObject toJson ()

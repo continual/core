@@ -15,6 +15,11 @@ import org.slf4j.LoggerFactory;
 import io.continual.jsonHttpClient.JsonOverHttpClient;
 import okhttp3.OkHttpClient;
 
+/**
+ * This OkHttp-backed implementation is expected to be used as a singleton in the process.
+ * The close() call may be used once no other connections will be made.
+ *
+ */
 public class OkHttp implements JsonOverHttpClient
 {
 	public OkHttp ()
@@ -31,8 +36,18 @@ public class OkHttp implements JsonOverHttpClient
 	{
 		fProxy = proxy;
 		fIgnoreCertValidation = ignoreCertValidation;
+		fDestroyed = false;
 	}
 
+	public synchronized void close ()
+	{
+		if ( fHttpClient != null )
+		{
+			fHttpClient.connectionPool ().evictAll ();
+		}
+		fDestroyed = true;
+	}
+	
 	@Override
 	public HttpRequest newRequest ()
 	{
@@ -43,10 +58,16 @@ public class OkHttp implements JsonOverHttpClient
 	
 	private final Proxy fProxy;
 	private OkHttpClient fHttpClient;
+	private boolean fDestroyed;
 	private boolean fIgnoreCertValidation;
 
-	private OkHttpClient getHttpClient ( )
+	private synchronized OkHttpClient getHttpClient ( )
 	{
+		if ( fDestroyed )
+		{
+			throw new IllegalStateException ( "A new request was received after OkHttp was closed." );
+		}
+
 		if ( fHttpClient == null )
 		{
 			try

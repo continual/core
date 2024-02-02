@@ -40,6 +40,7 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.ListObjectsV2Request;
 import com.amazonaws.services.s3.model.ListObjectsV2Result;
+import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
@@ -53,7 +54,9 @@ import io.continual.metrics.impl.noop.NoopTimer;
 import io.continual.metrics.metricTypes.Meter;
 import io.continual.metrics.metricTypes.Timer;
 import io.continual.services.ServiceContainer;
+import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelObject;
+import io.continual.services.model.core.ModelObjectAndPath;
 import io.continual.services.model.core.ModelObjectComparator;
 import io.continual.services.model.core.ModelObjectList;
 import io.continual.services.model.core.ModelPathList;
@@ -146,6 +149,8 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 
 		fVersion = determineVersion ( );
 		fRelnMgr = new S3SysRelnMgr ( fS3, fBucketId, getRelationsPath () );
+
+		fFoldersAsObjects = false;
 	}
 
 	public S3Model ( ServiceContainer sc, JSONObject config ) throws BuildFailure
@@ -188,6 +193,8 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 			fVersion = vv;
 
 			fRelnMgr = new S3SysRelnMgr ( fS3, fBucketId, getRelationsPath () );
+
+			fFoldersAsObjects = evaledConfig.optBoolean ( "foldersAsObjects", false );
 
 			// optionally report metrics
 			final MetricsService ms = sc.get ( "metrics", MetricsService.class );
@@ -238,9 +245,10 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	{
 		final LinkedList<Path> pending = new LinkedList<> ();
 
-		final ListObjectsV2Request req = new ListObjectsV2Request()
+		final ListObjectsV2Request req = new ListObjectsV2Request ()
 			.withBucketName ( fBucketId )
-			.withPrefix ( pathToS3Path ( prefix ) )
+			.withPrefix ( pathToS3Path ( prefix ) + "/" )
+			.withDelimiter ( Path.getPathSeparatorString () )
 		;
 
 		final AtomicBoolean lastResultTruncated = new AtomicBoolean ( true );
@@ -260,6 +268,14 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 					{
 						final String key = objectSummary.getKey ();
 						final Path asPath = s3KeyToPath ( key );
+						if ( !asPath.equals ( prefix ) )
+						{
+							pending.add ( asPath );
+						}
+					}
+					for ( String commonPrefix : result.getCommonPrefixes () )
+					{
+						final Path asPath = s3KeyToPath ( commonPrefix );
 						if ( !asPath.equals ( prefix ) )
 						{
 							pending.add ( asPath );
@@ -305,7 +321,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 
 		private ModelObjectList fullLoad ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException
 		{
-			final LinkedList<ModelObject> result = new LinkedList<> ();
+			final LinkedList<ModelObjectAndPath> result = new LinkedList<> ();
 
 			final ModelPathList objectPaths = listChildrenOfPath ( context, getPathPrefix () );
 			for ( Path objectPath : objectPaths )
@@ -322,7 +338,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 				}
 				if ( match )
 				{
-					result.add ( mo );
+					result.add ( ModelObjectAndPath.from ( objectPath, mo ) );
 				}
 			}
 
@@ -330,12 +346,12 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 			ModelObjectComparator orderBy = getOrdering ();
 			if ( orderBy != null )
 			{
-				Collections.sort ( result, new java.util.Comparator<ModelObject> ()
+				Collections.sort ( result, new java.util.Comparator<ModelObjectAndPath> ()
 				{
 					@Override
-					public int compare ( ModelObject o1, ModelObject o2 )
+					public int compare ( ModelObjectAndPath o1, ModelObjectAndPath o2 )
 					{
-						return orderBy.compare ( o1, o2 );
+						return orderBy.compare ( o1.getObject (), o2.getObject () );
 					}
 				} );
 			}
@@ -343,7 +359,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 			return new ModelObjectList ()
 			{
 				@Override
-				public Iterator<ModelObject> iterator ()
+				public Iterator<ModelObjectAndPath> iterator ()
 				{
 					return result.iterator ();
 				}
@@ -355,14 +371,14 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 			final ModelPathList objectPaths = listChildrenOfPath ( context, getPathPrefix () );
 			final Iterator<Path> paths = objectPaths.iterator ();
 
-			final LinkedList<ModelObject> pending = new LinkedList<> ();
+			final LinkedList<ModelObjectAndPath> pending = new LinkedList<> ();
 
 			return new ModelObjectList ()
 			{
 				@Override
-				public Iterator<ModelObject> iterator ()
+				public Iterator<ModelObjectAndPath> iterator ()
 				{
-					return new Iterator<ModelObject> ()
+					return new Iterator<ModelObjectAndPath> ()
 					{
 						@Override
 						public boolean hasNext ()
@@ -390,7 +406,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 									}
 									if ( match )
 									{
-										pending.add ( mo );
+										pending.add ( ModelObjectAndPath.from ( p, mo ) );
 									}
 								}
 								catch ( ModelServiceException | ModelRequestException x )
@@ -403,7 +419,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 						}
 
 						@Override
-						public ModelObject next ()
+						public ModelObjectAndPath next ()
 						{
 							return pending.removeFirst ();
 						}
@@ -429,9 +445,13 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 			throw new IllegalArgumentException ( "The key [ " + s3Key + "] is not from this bucket." );
 		}
 
-		final String withoutPrefix = s3Key.substring ( fPrefix.length () );
+		String cleanedUp = s3Key.substring ( fPrefix.length () );
+		if ( cleanedUp.endsWith ( Path.getPathSeparatorString () ) )
+		{
+			cleanedUp = cleanedUp.substring ( 0, cleanedUp.length () - 1 );
+		}
 
-		Path asPath = Path.fromString ( withoutPrefix );
+		Path asPath = Path.fromString ( cleanedUp );
 
 		asPath = asPath.makePathWithinParent ( Path.fromString ( "/" + getAcctId() ) );
 		asPath = asPath.makePathWithinParent ( Path.fromString ( "/" + getId() ) );
@@ -510,7 +530,16 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 			final Boolean notFound = fNotFoundCache.read ( s3Path );
 			if ( notFound != null ) return false;
 
-			return fS3.doesObjectExist ( fBucketId, pathToS3Path ( objectPath ) );
+			final boolean asObj = fS3.doesObjectExist ( fBucketId, s3Path );
+			if ( asObj ) return true;
+
+			if ( fFoldersAsObjects )
+			{
+				final ObjectListing ol = fS3.listObjects ( fBucketId, s3Path + "/" );
+				return ( ol.getObjectSummaries ().size () > 0 );
+			}
+			
+			return false;
 		}
 		catch ( SdkClientException x )
 		{
@@ -572,6 +601,19 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		{
 			if ( x.getErrorCode ().equals ( "NoSuchKey" ) )
 			{
+				if ( fFoldersAsObjects )
+				{
+					final ObjectListing ol = fS3.listObjects ( fBucketId, s3Path + "/" );
+					if ( ol.getObjectSummaries ().size () > 0 )
+					{
+						// it's a "folder"; return an empty object
+						final ModelObject result = new CommonJsonDbObject ( objectPath.toString (), new JSONObject () );
+						fCache.write ( s3Path, result );
+						return result;
+					}
+				}
+
+				// else: we're not reporting folders or we are but this isn't one
 				fNotFoundCache.write ( s3Path, true );
 				throw new ModelItemDoesNotExistException ( objectPath );
 			}
@@ -624,6 +666,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	private final String fBucketId;
 	private final String fPrefix;
 	private final S3SysRelnMgr fRelnMgr;
+	private final boolean fFoldersAsObjects;
 
 	private final ShardedExpiringCache<String,ModelObject> fCache;
 	private final ShardedExpiringCache<String,Boolean> fNotFoundCache;	// because null means not-found :-(
@@ -743,11 +786,24 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		return Version.fromText ( metadata.optString ( "version", Version.V1_IMPLIED.toString () ) );
 	}
 
+	@Override
+	public Model setRelationType ( ModelRequestContext context, String relnName, RelationType rt ) throws ModelServiceException, ModelRequestException
+	{
+		if ( !Version.isV2OrLater ( fVersion ) ) throw new ModelServiceException ( "not implemented" );
+
+		checkReadOnly ();
+
+		fRelnMgr.setRelationType ( context, relnName, rt );
+
+		return this;
+	}
 
 	@Override
 	public ModelRelationInstance relate ( ModelRequestContext context, ModelRelation mr ) throws ModelServiceException, ModelRequestException
 	{
 		if ( !Version.isV2OrLater ( fVersion ) ) throw new ModelServiceException ( "not implemented" );
+
+		checkReadOnly ();
 
 		fRelnMgr.relate ( mr );
 
@@ -759,6 +815,8 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	{
 		if ( !Version.isV2OrLater ( fVersion ) ) throw new ModelServiceException ( "not implemented" );
 
+		checkReadOnly ();
+
 		final boolean exists = fRelnMgr.doesRelationExist ( reln );
 		fRelnMgr.unrelate ( reln );
 		return exists;
@@ -769,6 +827,8 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	{
 		try
 		{
+			checkReadOnly ();
+
 			final ModelRelationInstance mr = ModelRelationInstance.from ( relnId );
 			return unrelate ( context, mr );
 		}
@@ -781,16 +841,22 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	@Override
 	public List<ModelRelationInstance> getInboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
 	{
-		if ( !Version.isV2OrLater ( fVersion ) ) throw new ModelServiceException ( "not implemented" );
-
+		if ( !Version.isV2OrLater ( fVersion ) )
+		{
+			// these models didn't support relations
+			return new LinkedList<> ();
+		}
 		return fRelnMgr.getInboundRelationsNamed ( forObject, named );
 	}
 
 	@Override
 	public List<ModelRelationInstance> getOutboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
 	{
-		if ( !Version.isV2OrLater ( fVersion ) ) throw new ModelServiceException ( "not implemented" );
-
+		if ( !Version.isV2OrLater ( fVersion ) )
+		{
+			// these models didn't support relations
+			return new LinkedList<> ();
+		}
 		return fRelnMgr.getOutboundRelationsNamed ( forObject, named );
 	}
 

@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import io.continual.services.model.core.ModelObject;
+import io.continual.services.model.core.ModelObjectAndPath;
 import io.continual.services.model.core.ModelObjectComparator;
 import io.continual.services.model.core.ModelObjectList;
 import io.continual.services.model.core.ModelQuery;
@@ -146,16 +147,16 @@ public abstract class SimpleModelQuery implements ModelQuery
 	@Override
 	public abstract ModelObjectList execute ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException;
 
-	protected ModelObjectList refineSet ( List<ModelObject> initialList )
+	protected ModelObjectList refineSet ( List<ModelObjectAndPath> initialList )
 	{
-		final LinkedList<ModelObject> result = new LinkedList<> ();
+		final LinkedList<ModelObjectAndPath> result = new LinkedList<> ();
 
-		for ( ModelObject obj : initialList )
+		for ( ModelObjectAndPath obj : initialList )
 		{
 			boolean match = true;
 			for ( Filter f : getFilters() )
 			{
-				match = f.matches ( obj );
+				match = f.matches ( obj.getObject () );
 				if ( !match )
 				{
 					break;
@@ -171,12 +172,12 @@ public abstract class SimpleModelQuery implements ModelQuery
 		ModelObjectComparator orderBy = getOrdering ();
 		if ( orderBy != null )
 		{
-			Collections.sort ( result, new java.util.Comparator<ModelObject> ()
+			Collections.sort ( result, new java.util.Comparator<ModelObjectAndPath> ()
 			{
 				@Override
-				public int compare ( ModelObject o1, ModelObject o2 )
+				public int compare ( ModelObjectAndPath o1, ModelObjectAndPath o2 )
 				{
-					return orderBy.compare ( o1, o2 );
+					return orderBy.compare ( o1.getObject (), o2.getObject () );
 				}
 			} );
 		}
@@ -184,7 +185,7 @@ public abstract class SimpleModelQuery implements ModelQuery
 		return new ModelObjectList ()
 		{
 			@Override
-			public Iterator<ModelObject> iterator ()
+			public Iterator<ModelObjectAndPath> iterator ()
 			{
 				return result.iterator ();
 			}
