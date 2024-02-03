@@ -41,6 +41,7 @@ import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarSource;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.api.model.PodSpec;
@@ -333,8 +334,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 			final K8sDeployWrapper dw = getDeployment ( deploymentId );
 			if ( dw == null ) return null;
 			
-			final String jobId = dw.getMetadata ().getLabels ().get ( "flowcontroljob" );
-			return new IntDeployment ( dw.getMetadata ().getName (), jobId == null ? "(unknown)" : jobId );
+			return new IntDeployment ( dw.getMetadata ().getName (), getJobIdFrom ( dw, "(unknown)" ) );
 		}
 		catch ( KubernetesClientException x )
 		{
@@ -362,8 +362,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		{
 			for ( K8sDeployWrapper dw : getK8sDeployments () )
 			{
-				final String jobId = dw.getMetadata ().getLabels ().get ( "flowcontroljob" );
-				result.add ( new IntDeployment ( dw.getMetadata ().getName (), jobId == null ? "(unknown)" : jobId ) );
+				result.add ( new IntDeployment ( dw.getMetadata ().getName (), getJobIdFrom ( dw, "(unknown)" ) ) );
 			}
 		}
 		catch ( KubernetesClientException x )
@@ -381,7 +380,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		{
 			for ( K8sDeployWrapper dw : getK8sDeployments () )
 			{
-				final String thisJobId = dw.getMetadata ().getLabels ().get ( "flowcontroljob" );
+				final String thisJobId = getJobIdFrom ( dw, null );
 				if ( jobId.equals ( thisJobId ) )
 				{
 					result.add ( new IntDeployment ( dw.getMetadata ().getName (), thisJobId ) );
@@ -1003,7 +1002,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	{
 		return i == null ? 0 : i;
 	}
-	
+
 	private static String selectValue ( String... values )
 	{
 		for ( String val : values )
@@ -1014,5 +1013,27 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 			}
 		}
 		return null;
+	}
+
+	private static String getJobIdFrom ( K8sDeployWrapper dw, String defval )
+	{
+		// make no assumptions about the existence of structures here!
+		if ( dw != null )
+		{
+			final ObjectMeta om = dw.getMetadata ();
+			if ( om != null )
+			{
+				final Map<String,String> labels = om.getLabels ();
+				if ( labels != null )
+				{
+					final String jobId = labels.get ( "flowcontroljob" );
+					if ( jobId != null )
+					{
+						return jobId;
+					}
+				}
+			}
+		}
+		return defval;
 	}
 }
