@@ -395,7 +395,7 @@ public class Auth0IamDb implements IamDb<Auth0Identity,Auth0Group>
 	}
 
 	@Override
-	public String createJwtToken ( Identity ii ) throws IamSvcException
+	public String createJwtToken ( Identity ii, long duration, TimeUnit tu ) throws IamSvcException
 	{
 		readOnlyDbException ();
 		return null;

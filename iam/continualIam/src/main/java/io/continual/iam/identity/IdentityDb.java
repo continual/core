@@ -15,6 +15,8 @@
  */
 package io.continual.iam.identity;
 
+import java.util.concurrent.TimeUnit;
+
 import io.continual.iam.credentials.ApiKeyCredential;
 import io.continual.iam.credentials.JwtCredential;
 import io.continual.iam.credentials.UsernamePasswordCredential;
@@ -55,7 +57,20 @@ public interface IdentityDb<I extends Identity>
 	 * @return a JWT token
 	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
-	String createJwtToken ( Identity ii ) throws IamSvcException;
+	default String createJwtToken ( Identity ii ) throws IamSvcException
+	{
+		return createJwtToken ( ii, -1L, null );
+	}
+
+	/**
+	 * Create a JWT token for the given identity and duration
+	 * @param ii
+	 * @param duration use 0 or less for default
+	 * @param tu
+	 * @return a JWT token
+	 * @throws IamSvcException
+	 */
+	String createJwtToken ( Identity ii, long duration, TimeUnit tu ) throws IamSvcException;
 
 	/**
 	 * Invalidate the given JWT token

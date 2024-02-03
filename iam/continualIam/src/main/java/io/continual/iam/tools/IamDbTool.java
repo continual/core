@@ -10,10 +10,12 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import java.util.Vector;
 
 import org.json.JSONException;
 
+import io.continual.builder.Builder.BuildFailure;
 import io.continual.iam.IamDb;
 import io.continual.iam.access.AccessControlList;
 import io.continual.iam.access.Resource;
@@ -55,7 +57,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 
 	private IamDb<I,G> fDb;
 
-	protected abstract IamDb<I,G> createDb ( Vector<String> args, PrintStream outTo ) throws IamSvcException;
+	protected abstract IamDb<I,G> createDb ( Vector<String> args, PrintStream outTo ) throws IamSvcException, BuildFailure;
 
 	private class commandSet extends StdCommandList 
 	{
@@ -75,7 +77,7 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 						fDb = createDb ( args, outTo );
 						workspace.put ( "iamDb", fDb );
 					}
-					catch ( IamSvcException e )
+					catch ( IamSvcException | BuildFailure e )
 					{
 						outTo.println ( "Problem connecting to IAM DB: " + e.getMessage () );
 					}
@@ -1048,6 +1050,44 @@ public abstract class IamDbTool<I extends Identity, G extends Group> extends Con
 						new IamDbBackup<I,G> ( fDb ).restoreFrom ( fis );
 					}
 					catch ( JSONException | IOException e )
+					{
+						outTo.println ( "Couldn't read file: " + e.getMessage () );
+					}
+					catch ( IamSvcException e )
+					{
+						outTo.println ( "Problem with IAM DB: " + e.getMessage () );
+					}
+				}
+			} );
+
+			registerCommand ( new IamDbCmd ( "createToken", true )
+			{
+				@Override
+				protected void execute ( IamDb<?,?> db, Vector<String> args,
+					HashMap<String,Object> workspace, CmdLinePrefs p, PrintStream outTo )
+						throws UsageException, NvReadable.MissingReqdSettingException
+				{
+					if ( args.size () < 1 || args.size () > 2 )
+					{
+						outTo.println ( "usage: createToken <user> [<durationHrs>]" );
+						return;
+					}
+
+					final long duration = args.size () == 2 ? Long.parseLong ( args.elementAt ( 1 ) ) : 0;
+
+					try
+					{
+						final I user = fDb.loadUser ( args.elementAt ( 0 ) );
+						if ( user == null )
+						{
+							outTo.println ( "User " + args.elementAt ( 0 ) + " not found." );
+							return;
+						}
+
+						final String token = fDb.createJwtToken ( user, duration, TimeUnit.HOURS );
+						outTo.println ( token );
+					}
+					catch ( JSONException e )
 					{
 						outTo.println ( "Couldn't read file: " + e.getMessage () );
 					}

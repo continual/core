@@ -1,6 +1,7 @@
 package io.continual.iam.impl.common.jwt;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -37,9 +38,11 @@ public class JwtProducer extends SimpleJwtValidator
 	/**
 	 * Create a JWT token for the given identity. The audience is this issuer.
 	 * @param ii an identity for which to create the JWT
+	 * @param duration use &lt; 0 for default
+	 * @param tu time unit of duration
 	 * @return a JWT token string
 	 */
-	public String createJwtToken ( Identity ii )
+	public String createJwtToken ( Identity ii, long duration, TimeUnit tu )
 	{
 		// header
 		final JSONObject header = new JSONObject ()
@@ -48,12 +51,17 @@ public class JwtProducer extends SimpleJwtValidator
 		;
 		final String encodedHeader = TypeConvertor.base64UrlEncode ( header.toString () ); 
 
+		final long durationToUseMs = duration > 0 && tu != null ?
+			TimeUnit.MILLISECONDS.convert ( duration, tu ) :
+			fDurationSecs * 1000L
+		;
+
 		// payload
 		final JSONObject payload = new JSONObject ()
 			.put ( "iss", fIssuer )
 			.put ( "sub", ii.getId () )
 			.put ( "aud", new JSONArray ().put ( fIssuer ) )
-			.put ( "exp", ( Clock.now () + ( fDurationSecs * 1000 ) ) / 1000L )
+			.put ( "exp", ( Clock.now () + durationToUseMs ) / 1000L )
 		;
 		final String encodedPayload = TypeConvertor.base64UrlEncode ( payload.toString () ); 
 

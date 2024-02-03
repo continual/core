@@ -222,13 +222,13 @@ public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends Common
 	}
 
 	@Override
-	public String createJwtToken ( Identity ii ) throws IamSvcException
+	public String createJwtToken ( Identity ii, long duration, TimeUnit tu ) throws IamSvcException
 	{
 		if ( fJwtTokenFactory == null )
 		{
 			throw new IamSvcException ( "This identity manager does not have a JWT token factory." );
 		}
-		return fJwtTokenFactory.createJwtToken ( ii );
+		return fJwtTokenFactory.createJwtToken ( ii, duration, tu );
 	}
 
 	@Override
