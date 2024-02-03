@@ -46,7 +46,7 @@ public interface CHttpConnection
 
 	/**
 	 * Called when the servlet requires the connection to build a context for use by
-	 * the Velocity renderer.
+	 * a renderer.
 	 * @param context
 	 */
 	void buildTemplateContext ( HashMap<String, Object> context );

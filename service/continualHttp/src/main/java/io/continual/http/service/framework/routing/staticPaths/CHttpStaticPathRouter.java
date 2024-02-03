@@ -125,7 +125,10 @@ public class CHttpStaticPathRouter implements CHttpRouteSource
 			{
 				return Path.getRootPath ()
 					.makeChildItem ( Name.fromString ( verb ) )
-					.makeChildItem ( Name.fromString ( path.replaceAll ( "\\.", "%2E" ) ) )
+					.makeChildItem ( Name.fromString ( path
+						.replaceAll ( "\\.", "%2E" )
+						.replaceAll ( "/", "%2F" )
+					))
 				;
 			}
 		};
