@@ -33,6 +33,7 @@ import io.continual.util.data.json.JsonVisitor.ArrayVisitor;
 import io.continual.util.naming.Name;
 import io.continual.util.naming.Path;
 
+@Deprecated
 public class StdModelService extends SimpleService implements ModelService
 {
 	public StdModelService ( ServiceContainer sc, JSONObject config ) throws BuildFailure
@@ -146,7 +147,7 @@ public class StdModelService extends SimpleService implements ModelService
 	{
 		public StdModelSession ( StdModelSessionBuilder builder ) throws IamSvcException, BuildFailure
 		{
-			fModel = new DelegatingModel ( builder.fUser.getId (), "{top}" );
+			fModel = new DelegatingModel ( builder.fUser.getId (), "{top}", null );
 
 			// user config data
 			final JSONObject userSettings = JsonVisitor.mapOfStringsToObject ( builder.fUser.getAllUserData () )

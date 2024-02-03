@@ -117,7 +117,7 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 
 		ModelObject result = context.get ( objectPath );
 		if ( result != null ) return result;
-		
+
 		result = loadObject ( context, objectPath );
 		if ( result == null )
 		{

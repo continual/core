@@ -3,7 +3,9 @@ package io.continual.services.model.impl.delegator;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.TreeSet;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,25 +28,46 @@ import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.model.impl.common.BasicModelRequestContextBuilder;
 import io.continual.services.model.impl.common.SimpleTraversal;
 import io.continual.services.model.impl.json.CommonJsonDbObjectContainer;
+import io.continual.services.model.impl.mem.InMemoryModel;
 import io.continual.util.naming.Path;
 
+/**
+ * The delegating model provides a top-level model with other models presented at mount points.
+ * The top-level model is read-only. For example, if you have a model mounted at "/foo" (and no
+ * other mounts) you cannot write to "/bar".
+ */
 public class DelegatingModel extends SimpleService implements Model
 {
-	public DelegatingModel ( ServiceContainer sc, JSONObject config )
+	/**
+	 * Construct a delegating model service from a service container and configuration
+	 * @param sc
+	 * @param config
+	 * @throws BuildFailure 
+	 * @throws JSONException 
+	 */
+	public DelegatingModel ( ServiceContainer sc, JSONObject config ) throws JSONException, BuildFailure
 	{
-		this ( config.getString ( "acctId" ), config.getString ( "modelId" ) );
+		this ( config.getString ( "acctId" ), config.getString ( "modelId" ), sc.get ( "backingModel", Model.class ) );
 	}
 
-	public DelegatingModel ( String acctId, String modelId )
+	/**
+	 * Construct a delegating model from basic information
+	 * @param acctId
+	 * @param modelId
+	 * @throws BuildFailure 
+	 */
+	public DelegatingModel ( String acctId, String modelId, Model backingModel ) throws BuildFailure
 	{
 		fAcctId = acctId;
 		fModelId = modelId;
 		fUserMountTable = new LinkedList<>();
+		fBackingModel = backingModel == null ? new InMemoryModel ( acctId, modelId ) : backingModel;
 	}
 
 	/**
 	 * Mount a model. The model mount instance is read-only, allowing the caller to mount shared/global models.
-	 * @param mm
+	 * That is, the same ModelMount instance can be used to mount a given model into multiple delegating models.
+	 * @param mm a model mount specification
 	 * @return this model
 	 */
 	public DelegatingModel mount ( ModelMount mm )
@@ -121,7 +144,7 @@ public class DelegatingModel extends SimpleService implements Model
 						return true;
 					}
 				}
-				return false;
+				return objectPath.equals ( Path.getRootPath () );
 			}
 			else
 			{
@@ -186,9 +209,11 @@ public class DelegatingModel extends SimpleService implements Model
 		final ModelMount mm = getModelForPath ( objectPath );
 		if ( mm.getModel () == this )
 		{
+			// FIXME: merge in results from backing model
+			
 			// might be "/", but also could be "/foo" where "/foo/bar" is a mount point. We just return an object container either way.
 
-			final LinkedList<Path> result = new LinkedList<>();
+			final TreeSet<Path> result = new TreeSet<>();
 			for ( ModelMount um : fUserMountTable )
 			{
 				final Path mp = um.getMountPoint ();
@@ -214,25 +239,35 @@ public class DelegatingModel extends SimpleService implements Model
 	public void store ( ModelRequestContext context, Path objectPath, ModelUpdater ... updates ) throws ModelRequestException, ModelServiceException
 	{
 		final ModelMount mm = getModelForPath ( objectPath );
-		if ( mm.getModel () == this ) throw new ModelRequestException ( "Cannot store here." );
-
-		mm.getModel ().store ( context, mm.getPathWithinModel ( objectPath ), updates );
+		if ( mm.getModel () == this )
+		{
+			fBackingModel.store ( context, objectPath, updates );
+		}
+		else
+		{
+			mm.getModel ().store ( context, mm.getPathWithinModel ( objectPath ), updates );
+		}
 	}
 
 	@Override
 	public boolean remove ( ModelRequestContext context, Path objectPath ) throws ModelServiceException, ModelRequestException
 	{
 		final ModelMount mm = getModelForPath ( objectPath );
-		if ( mm.getModel () == this ) throw new ModelRequestException ( "Cannot remove here." );
-
-		return mm.getModel ().remove ( context, mm.getPathWithinModel ( objectPath ) );
+		if ( mm.getModel () == this )
+		{
+			return fBackingModel.remove ( context, objectPath );
+		}
+		else
+		{
+			return mm.getModel ().remove ( context, mm.getPathWithinModel ( objectPath ) );
+		}
 	}
 
 	@Override
 	public ModelRelationInstance relate ( ModelRequestContext context, ModelRelation mr ) throws ModelServiceException, ModelRequestException
 	{
 		// for each relation, we check if both sides are in the same model. If so, let the model handle the relation. If not,
-		// we store it in our "local" store.
+		// we store it in our backing model
 
 		final Path from = mr.getFrom ();
 		final ModelMount mmFrom = getModelForPath ( from );
@@ -256,9 +291,7 @@ public class DelegatingModel extends SimpleService implements Model
 		}
 		else
 		{
-			// store it in this model's backing data
-			// (FIXME)
-			throw new ModelServiceException ( "not yet implemented across models" );
+			return fBackingModel.relate ( context, mr );
 		}
 	}
 
@@ -290,9 +323,7 @@ public class DelegatingModel extends SimpleService implements Model
 		}
 		else
 		{
-			// store it in this model's backing data
-			// (FIXME)
-			throw new ModelServiceException ( "not yet implemented across models" );
+			return fBackingModel.unrelate ( context, reln );
 		}
 	}
 
@@ -313,80 +344,23 @@ public class DelegatingModel extends SimpleService implements Model
 	}
 
 	@Override
-	public List<ModelRelationInstance> getInboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
-	{
-		// we need to check our own data source as well as the model hosting the object
-
-		final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
-
-		final ModelMount mm = getModelForPath ( forObject );
-
-		try
-		{
-			final ModelRequestContext mrc = mm.getModel().getRequestContextBuilder ()
-				.forUser ( context.getOperator () )
-				.build ()
-			;
-
-			for ( ModelRelationInstance mrInternal : mm.getModel ().getInboundRelations ( mrc, mm.getPathWithinModel ( forObject ) ) )
-			{
-				result.add ( new ToGlobalMapper ( mm, mrInternal ) );
-			}
-		}
-		catch ( BuildFailure e )
-		{
-			throw new ModelServiceException ( e );
-		}
-
-		return result;
-	}
-
-	@Override
-	public List<ModelRelationInstance> getOutboundRelations ( ModelRequestContext context, Path forObject ) throws ModelServiceException, ModelRequestException
-	{
-		// we need to check our own data source as well as the model hosting the object
-
-		final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
-
-		final ModelMount mm = getModelForPath ( forObject );
-
-		try
-		{
-			final ModelRequestContext mrc = mm.getModel().getRequestContextBuilder ()
-				.forUser ( context.getOperator () )
-				.build ()
-			;
-
-			for ( ModelRelationInstance mrInternal : mm.getModel ().getOutboundRelations ( mrc, mm.getPathWithinModel ( forObject ) ) )
-			{
-				result.add ( new ToGlobalMapper ( mm, mrInternal ) );
-			}
-		}
-		catch ( BuildFailure e )
-		{
-			throw new ModelServiceException ( e );
-		}
-
-		return result;
-	}
-
-	@Override
 	public List<ModelRelationInstance> getInboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
 	{
-		// we need to check our own data source as well as the model hosting the object
+		// FIXME we need to check our own data source as well as the model hosting the object
 
 		final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
 
 		final ModelMount mm = getModelForPath ( forObject );
+		final Model m = mm.getModel () == this ? fBackingModel : mm.getModel ();
 
 		try
 		{
-			final ModelRequestContext mrc = mm.getModel().getRequestContextBuilder ()
+			final ModelRequestContext mrc = m.getRequestContextBuilder ()
 				.forUser ( context.getOperator () )
 				.build ()
 			;
 
-			for ( ModelRelationInstance mrInternal : mm.getModel ().getInboundRelationsNamed ( mrc, mm.getPathWithinModel ( forObject ), named ) )
+			for ( ModelRelationInstance mrInternal : m.getInboundRelationsNamed ( mrc, mm.getPathWithinModel ( forObject ), named ) )
 			{
 				result.add ( new ToGlobalMapper ( mm, mrInternal ) );
 			}
@@ -402,20 +376,21 @@ public class DelegatingModel extends SimpleService implements Model
 	@Override
 	public List<ModelRelationInstance> getOutboundRelationsNamed ( ModelRequestContext context, Path forObject, String named ) throws ModelServiceException, ModelRequestException
 	{
-		// we need to check our own data source as well as the model hosting the object
+		// FIXME we need to check our own data source as well as the model hosting the object
 
 		final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
 
 		final ModelMount mm = getModelForPath ( forObject );
+		final Model m = mm.getModel () == this ? fBackingModel : mm.getModel ();
 
 		try
 		{
-			final ModelRequestContext mrc = mm.getModel().getRequestContextBuilder ()
+			final ModelRequestContext mrc = m.getRequestContextBuilder ()
 				.forUser ( context.getOperator () )
 				.build ()
 			;
 
-			for ( ModelRelationInstance mrInternal : mm.getModel ().getOutboundRelationsNamed ( mrc, mm.getPathWithinModel ( forObject ), named ) )
+			for ( ModelRelationInstance mrInternal : m.getOutboundRelationsNamed ( mrc, mm.getPathWithinModel ( forObject ), named ) )
 			{
 				result.add ( new ToGlobalMapper ( mm, mrInternal ) );
 			}
@@ -431,6 +406,7 @@ public class DelegatingModel extends SimpleService implements Model
 	private final String fAcctId;
 	private final String fModelId;
 	private final LinkedList<ModelMount> fUserMountTable;
+	private final Model fBackingModel;
 
 	private static class ToGlobalMapper implements ModelRelationInstance
 	{
@@ -455,7 +431,8 @@ public class DelegatingModel extends SimpleService implements Model
 		private final ModelRelationInstance fInternalReln;
 		private final ModelMount fModelMount;
 	}
-	
+
+	// get the model that owns the given path, which may be the top-level delegating model
 	private ModelMount getModelForPath ( Path modelPath )
 	{
 		for ( ModelMount mountEntry : fUserMountTable )

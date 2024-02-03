@@ -51,22 +51,6 @@ public class ModelApi extends ModelApiContextHelper
 		super ( ms );
 	}
 
-	public void getModelListForAccount ( CHttpRequestContext context ) throws IOException, ModelRequestException
-	{
-		handleModelRequest ( context, null, null, new ModelApiHandler ()
-		{
-			@Override
-			public void handle ( ModelApiContext modelApiContext ) throws IOException, JSONException
-			{
-				modelApiContext.respondOk ( new JSONObject ()
-					.put ( "status", HttpStatusCodes.k200_ok )
-					.put ( "and...", "not really implemented in transition" )
-				);
-//					.put ( "models", JsonVisitor.listToArray ( modelApiContext.getModelSession ().getModelMounts () ) ) )
-			}
-		} );
-	}
-
 	public void getModelIndexes ( CHttpRequestContext context, final String acctId, final String modelName ) throws IOException, ModelRequestException
 	{
 		handleModelRequest ( context, acctId, null, new ModelApiHandler ()

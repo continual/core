@@ -1,8 +1,8 @@
 package io.continual.services.model.impl.json;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 
 import org.json.JSONObject;
 
@@ -23,7 +23,7 @@ public class CommonJsonDbObjectContainer extends CommonJsonDbObject
 		return createObjectContainer ( id, Arrays.asList ( containedPaths ) );
 	}
 
-	public static CommonJsonDbObjectContainer createObjectContainer ( String id, List<Path> containedPaths )
+	public static CommonJsonDbObjectContainer createObjectContainer ( String id, Collection<Path> containedPaths )
 	{
 		return new Builder<CommonJsonDbObjectContainer> ()
 			.withId ( id )
@@ -31,9 +31,9 @@ public class CommonJsonDbObjectContainer extends CommonJsonDbObject
 				.put ( "objects", JsonVisitor.collectionToArray ( containedPaths, new ItemRenderer<Path,String> ()
 				{
 					@Override
-					public String render ( Path t )
+					public String render ( Path containedPath )
 					{
-						return t.toString ();
+						return containedPath.toString ().substring ( 1 );
 					}
 				} ) ), true )
 			.withType ( "ObjectContainer" )
