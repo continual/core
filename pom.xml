@@ -21,7 +21,7 @@
 	</organization>
 
 	<issueManagement>
-		<system>JIRA</system>
+		<system>BitBucket Issue Tracking</system>
 		<url>https://bitbucket.org/continualio/continual/issues</url>
 	</issueManagement>
 
