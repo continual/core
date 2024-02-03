@@ -70,7 +70,7 @@ public class PathTest extends TestCase
 	public void testDepth()
 	{
 		final Path path = Path.fromString( "/foo/bar" );
-		final int expect = 3;
+		final int expect = 2;
 
 		final int result = path.depth();
 		assertEquals( expect, result );

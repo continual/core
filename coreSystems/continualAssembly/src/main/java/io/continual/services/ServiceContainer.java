@@ -184,6 +184,24 @@ public class ServiceContainer
 		return null;
 	}
 
+	/**
+	 * Get a named service, throwing BuildFailure if it's not found.
+	 * @param <T> the target class
+	 * @param name the service name
+	 * @param asClass the target class
+	 * @return an instance of the target class
+	 * @throws BuildFailure
+	 */
+	public synchronized <T> T getReqd ( String name, Class<T> asClass ) throws BuildFailure
+	{
+		T result = get ( name, asClass );
+		if ( result == null )
+		{
+			throw new BuildFailure ( "Couldn't location a " + asClass.getName () + " named " + name );
+		}
+		return result;
+	}
+
 	public void startAll () throws Service.FailedToStart
 	{
 		try
