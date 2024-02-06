@@ -28,10 +28,10 @@
 		<dependency>
 			<groupId>com.mchange</groupId>
 			<artifactId>c3p0</artifactId>
-			<version>0.9.5-pre8</version>
+			<version>0.9.5.3</version>
 		</dependency>
 
-		 <!-- mysql JDBC driver -->
+		<!-- mysql JDBC driver -->
 		<dependency>
 			<groupId>mysql</groupId>
 			<artifactId>mysql-connector-java</artifactId>
