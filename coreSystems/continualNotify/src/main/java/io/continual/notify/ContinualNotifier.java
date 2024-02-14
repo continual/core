@@ -25,9 +25,9 @@ import io.continual.util.time.Clock;
 public class ContinualNotifier
 {
 	/**
-	 * Send an alert to Continual using credentials and topic/stream data from the environment.
-	 * @param subject
-	 * @param condition
+	 * Send a notification to Continual using credentials and topic/stream data from the environment.
+	 * @param subject the subject of the notification
+	 * @param condition the condition that's occurred with respect to the subject
 	 */
 	public static void send ( String subject, String condition )
 	{
@@ -38,6 +38,10 @@ public class ContinualNotifier
 		;
 	}
 
+	/**
+	 * Construct a notifier instance based on the settings provided in the environment, including
+	 * CONTUNUAL_USER, CONTINUAL_PASSWORD, CONTINUAL_SYSTEM, CONTINUAL_RCVR_TOPIC, and CONTINUAL_RCVR_STREAM.
+	 */
 	public ContinualNotifier ()
 	{
 		fUser = evalSetting ( "CONTINUAL_USER" );
@@ -59,18 +63,34 @@ public class ContinualNotifier
 		fMsg.put ( kVersionTag, kVersion );
 	}
 
+	/**
+	 * Specify the topic to which the notification will be sent.
+	 * @param topic
+	 * @return this notifier
+	 */
 	public ContinualNotifier toTopic ( String topic )
 	{
 		fTopic = topic;
 		return this;
 	}
 
+	/**
+	 * Specify the stream within the topic to which the notification will be sent.
+	 * @param stream
+	 * @return this notififer
+	 */
 	public ContinualNotifier onStream ( String stream )
 	{
 		fStream = stream;
 		return this;
 	}
 
+	/**
+	 * Specify the user and password to use for sending the notification.
+	 * @param user
+	 * @param pwd
+	 * @return this notifier
+	 */
 	public ContinualNotifier asUser ( String user, String pwd )
 	{
 		if ( user == null || user.length () == 0 ) throw new IllegalArgumentException ( "Provide a username." );
@@ -81,18 +101,31 @@ public class ContinualNotifier
 		return this;
 	}
 
+	/**
+	 * Specify that the notification should be sent in the foreground, i.e., in the current thread.
+	 * @return this notifier
+	 */
 	public ContinualNotifier inForeground ()
 	{
 		fBackground = false;
 		return this;
 	}
 
+	/**
+	 * Specify that the notification should be sent in a background thread.
+	 * @return this notifier
+	 */
 	public ContinualNotifier inBackground ()
 	{
 		fBackground = true;
 		return this;
 	}
 
+	/**
+	 * Specify the subject of the notification.
+	 * @param subject
+	 * @return this notifier
+	 */
 	public ContinualNotifier onSubject ( String subject )
 	{
 		if ( subject == null ) throw new IllegalArgumentException ( "Provide a subject." );
@@ -100,6 +133,11 @@ public class ContinualNotifier
 		return this;
 	}
 	
+	/**
+	 * Specify the condition that's occurred with respect to the subject.
+	 * @param condition
+	 * @return this notifier
+	 */
 	public ContinualNotifier withCondition ( String condition )
 	{
 		if ( condition == null ) throw new IllegalArgumentException ( "Provide a subject." );
@@ -107,18 +145,31 @@ public class ContinualNotifier
 		return this;
 	}
 
+	/**
+	 * Specify that the notification is an onset.
+	 * @return this notifier
+	 */
 	public ContinualNotifier asOnset ()
 	{
 		fMsg.put ( kOnset, true );
 		return this;
 	}
 
+	/**
+	 * Specify that the notification is a clear.
+	 * @return this notifier
+	 */
 	public ContinualNotifier asClear ()
 	{
 		fMsg.put ( kOnset, false );
 		return this;
 	}
 
+	/**
+	 * Provide additional details about the notification.
+	 * @param details
+	 * @return this notifier
+	 */
 	public ContinualNotifier withDetails ( String details )
 	{
 		if ( details == null ) throw new IllegalArgumentException ( "Provide details." );
@@ -126,12 +177,22 @@ public class ContinualNotifier
 		return this;
 	}
 
+	/**
+	 * Provide additional data for the notification.
+	 * @param key
+	 * @param val
+	 * @return this notifier
+	 */
 	public ContinualNotifier withAddlData ( String key, Object val )
 	{
 		fMsg.put ( key, val );
 		return this;
 	}
 
+	/**
+	 * Send the notification. If the notification is intended to be sent in the background,
+	 * it's queued for send. Otherwise, it's sent in the current thread.
+	 */
 	public void send ()
 	{
 		withAddlData ( kQueuedAt, Clock.now () );

@@ -17,30 +17,69 @@ import io.continual.util.time.Clock;
  */
 public class ContinualAlertAgent
 {
+	/**
+	 * An alert, which is a condition that's raised on a specific subject at a specific time.
+	 */
 	public interface Alert
 	{
+		/**
+		 * Get the subject of the alert.
+		 * @return the subject
+		 */
 		String subject ();
 
+		/**
+		 * Get the condition of the alert.
+		 * @return the condition
+		 */
 		String condition ();
 
+		/**
+		 * Get the timestamp of the alert's onset.
+		 * @return the onset time
+		 */
 		long when ();
 
+		/**
+		 * Clear the alert at the current time.
+		 */
 		default void clear () { clear ( Clock.now () ); }
 
+		/**
+		 * Clear the alert at the given time.
+		 * @param clearTimeMs
+		 */
 		void clear ( long clearTimeMs );
 	}
 
+	/**
+	 * Construct an alert agent that emits notifications via the given notifier.
+	 * @param out
+	 */
 	public ContinualAlertAgent ( ContinualNotifier out )
 	{
 		fAlertsBySubjectAndCondition = new HashMap<> ();
 		fEventsOut = out;
 	}
 
+	/**
+	 * Onset an alert for the given subject and condition at the current time.
+	 * @param subject
+	 * @param condition
+	 * @return an alert
+	 */
 	public Alert onset ( String subject, String condition )
 	{
 		return this.onset ( subject, condition, Clock.now () );
 	}
 
+	/**
+	 * Onset an alert for the given subject and condition at the current time with an exception as additional data.
+	 * @param subject
+	 * @param condition
+	 * @param x
+	 * @return an alert
+	 */
 	public Alert onset ( String subject, String condition, Throwable x )
 	{
 		final JSONObject addlData = new JSONObject ();
@@ -48,16 +87,35 @@ public class ContinualAlertAgent
 		return onset ( subject, condition, Clock.now (), addlData );
 	}
 
+	/**
+	 * Onset an alert for the given subject and condition at the given time.
+	 * @param subject
+	 * @param condition
+	 * @param atMs
+	 * @return an alert
+	 */
 	public Alert onset ( String subject, String condition, long atMs )
 	{
 		return onset ( subject, condition, atMs, new JSONObject () );
 	}
 
+	/**
+	 * Onset an alert for the given subject and condition at the current time with additional JSON data.
+	 * @param subject
+	 * @param condition
+	 * @param addlData
+	 * @return an alert
+	 */
 	public Alert onset ( String subject, String condition, JSONObject addlData )
 	{
 		return onset ( subject, condition, Clock.now (), addlData );
 	}
 
+	/**
+	 * Translate an exception into a JSON object that can be used for additional alert data.
+	 * @param addlData
+	 * @param t
+	 */
 	public static void populateExceptionInto ( JSONObject addlData, Throwable t )
 	{
 		String stack = "??";
@@ -81,7 +139,15 @@ public class ContinualAlertAgent
 			.put ( "stack", stack )
 		;
 	}
-	
+
+	/**
+	 * Onset an alert for the given subject and condition at the given time with additional JSON data.
+	 * @param subject
+	 * @param condition
+	 * @param atMs
+	 * @param addlData
+	 * @return an alert
+	 */
 	public Alert onset ( String subject, String condition, long atMs, JSONObject addlData )
 	{
 		HashMap<String,Alert> byCondition = fAlertsBySubjectAndCondition.get ( subject );
@@ -116,6 +182,12 @@ public class ContinualAlertAgent
 		return alert;
 	}
 
+	/**
+	 * Get an existing alert for the given subject and condition.
+	 * @param subject
+	 * @param condition
+	 * @return an alert, or null if none exists
+	 */
 	public Alert get ( String subject, String condition )
 	{
 		final HashMap<String,Alert> byCondition = fAlertsBySubjectAndCondition.get ( subject );
@@ -123,6 +195,12 @@ public class ContinualAlertAgent
 		return byCondition.get ( condition );
 	}
 
+	/**
+	 * Clear an alert for the given subject and condition, if it exists.
+	 * @param subject
+	 * @param condition
+	 * @return the cleared alert, or null if none exists
+	 */
 	public Alert clear ( String subject, String condition )
 	{
 		final Alert a = get ( subject, condition );
