@@ -154,7 +154,7 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 			return this;
 		}
 
-		public S3IamDb build () throws IamSvcException
+		public S3IamDb build () throws IamSvcException, BuildFailure
 		{
 			final S3IamDb db = new S3IamDb ( apiKey, privateKey, bucket, prefix, aclFactory, jwtProducer );
 			if ( create )
@@ -174,9 +174,12 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	}
 
 	@SuppressWarnings("deprecation")
-	protected S3IamDb ( String s3ApiKey, String s3PrivateKey, String bucket, String prefix, AclFactory aclFactory, JwtProducer jwtIssuer )
+	protected S3IamDb ( String s3ApiKey, String s3PrivateKey, String bucket, String prefix, AclFactory aclFactory, JwtProducer jwtIssuer ) throws BuildFailure
 	{
 		super ( aclFactory, jwtIssuer );
+
+		if ( bucket == null || bucket.length () == 0 ) throw new BuildFailure ( "A bucket ID is required." );
+		if ( prefix == null ) prefix = "";
 
 		fDb = new AmazonS3Client ( new S3Creds ( s3ApiKey, s3PrivateKey ) );
 		fBucketId = bucket;
@@ -304,10 +307,6 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	
 	String getPrefix ()
 	{
-		if ( fPrefix == null || fPrefix.length() == 0 )
-		{
-			return "";
-		}
 		return fPrefix + "/";
 	}
 

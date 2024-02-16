@@ -3,7 +3,10 @@ package io.continual.notify;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map.Entry;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -209,6 +212,23 @@ public class ContinualAlertAgent
 			a.clear ();
 		}
 		return a;
+	}
+
+	/**
+	 * Get a collection of standing alerts
+	 * @return a collection of standing alerts
+	 */
+	public Collection<Alert> standingAlerts ()
+	{
+		final LinkedList<Alert> result = new LinkedList<> ();
+		for ( Entry<String, HashMap<String, Alert>> e : fAlertsBySubjectAndCondition.entrySet () )
+		{
+			for ( Alert a : e.getValue ().values () )
+			{
+				result.add ( a );
+			}
+		}
+		return result;
 	}
 
 	private class IntAlert implements Alert

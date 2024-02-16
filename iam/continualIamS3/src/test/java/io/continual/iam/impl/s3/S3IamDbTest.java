@@ -20,6 +20,7 @@ import java.util.Set;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import io.continual.builder.Builder.BuildFailure;
 import io.continual.iam.access.AccessControlList;
 import io.continual.iam.access.AccessDb;
 import io.continual.iam.access.Resource;
@@ -42,7 +43,7 @@ public class S3IamDbTest extends TestCase
 	private static final String kTestBucket = "io.continual.iam.testdb";
 
 	@Test
-	public void testS3Setup () throws IamSvcException, IamIdentityExists, IamIdentityDoesNotExist, IamGroupDoesNotExist
+	public void testS3Setup () throws IamSvcException, IamIdentityExists, IamIdentityDoesNotExist, IamGroupDoesNotExist, BuildFailure
 	{
 		final S3IamDb db = new S3IamDb.Builder ()
 			.withAccessKey ( kApiKey )
@@ -83,7 +84,7 @@ public class S3IamDbTest extends TestCase
 	}
 
 	@Test
-	public void testAcl () throws IamSvcException, IamIdentityExists, IamIdentityDoesNotExist, IamGroupDoesNotExist
+	public void testAcl () throws IamSvcException, IamIdentityExists, IamIdentityDoesNotExist, IamGroupDoesNotExist, BuildFailure
 	{
 		final S3IamDb db = new S3IamDb.Builder ()
 			.withAccessKey ( kApiKey )

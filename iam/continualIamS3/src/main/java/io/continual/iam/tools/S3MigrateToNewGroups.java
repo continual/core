@@ -17,6 +17,7 @@ package io.continual.iam.tools;
 
 import java.util.Vector;
 
+import io.continual.builder.Builder.BuildFailure;
 import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.impl.common.CommonJsonGroup;
 import io.continual.iam.impl.common.CommonJsonIdentity;
@@ -64,7 +65,7 @@ public class S3MigrateToNewGroups extends ConsoleProgram
 				}
 			}
 		}
-		catch ( IamSvcException e )
+		catch ( IamSvcException | BuildFailure e )
 		{
 			System.err.println ( e.getMessage () );
 		}
