@@ -56,6 +56,15 @@ public class ContinualAlertAgent
 	}
 
 	/**
+	 * Construct an alert agent that emits notifications to a default notifier. This is equivalent to
+	 * "ContinualAlertAgent ( new ContinualNotifier () )"
+	 */
+	public ContinualAlertAgent ( )
+	{
+		this ( new ContinualNotifier () );
+	}
+
+	/**
 	 * Construct an alert agent that emits notifications via the given notifier.
 	 * @param out
 	 */
