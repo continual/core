@@ -4,6 +4,8 @@ package io.continual.notify;
 import java.io.PrintStream;
 import java.util.HashMap;
 
+import org.json.JSONObject;
+
 import io.continual.notify.ContinualAlertAgent.Alert;
 import io.continual.util.console.CmdLineParser;
 import io.continual.util.console.CmdLinePrefs;
@@ -11,6 +13,7 @@ import io.continual.util.console.ConsoleProgram;
 import io.continual.util.console.shell.ConsoleLooper;
 import io.continual.util.console.shell.SimpleCommand;
 import io.continual.util.console.shell.StdCommandList;
+import io.continual.util.data.json.JsonUtil;
 import io.continual.util.nv.NvReadable;
 import io.continual.util.nv.NvReadable.InvalidSettingValueException;
 import io.continual.util.nv.NvReadable.LoadException;
@@ -62,12 +65,22 @@ public class NotifyConsole extends ConsoleProgram
 			registerCommand ( new SubjCondCommand ( "onset" )
 			{
 				@Override
+				protected void setupParser ( CmdLineParser clp )
+				{
+					super.setupParser ( clp );
+					clp.registerOptionWithValue ( kData, "d" );
+				}
+
+				@Override
 				protected ConsoleLooper.InputResult execute ( HashMap<String,Object> workspace, CmdLinePrefs p, PrintStream outTo ) throws UsageException, NvReadable.MissingReqdSettingException
 				{
 					final String subject = p.getString ( kSubject );
 					final String condition = p.getString ( kCondition );
+					final String data = p.getString ( kData, null );
 
-					final Alert a = fAlertAgent.onset ( subject, condition );
+					final Alert a = fAlertAgent.onset ( subject, condition,
+						( data == null ? null : JsonUtil.readJsonObject ( data ) )
+					);
 					outputAlert ( a, outTo );
 
 					return ConsoleLooper.InputResult.kReady;
@@ -122,6 +135,7 @@ public class NotifyConsole extends ConsoleProgram
 
 	private static final String kSubject = "subject";
 	private static final String kCondition = "condition";
+	private static final String kData = "data";
 
 	private abstract class SubjCondCommand extends SimpleCommand
 	{
