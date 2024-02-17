@@ -4,8 +4,6 @@ package io.continual.notify;
 import java.io.PrintStream;
 import java.util.HashMap;
 
-import org.json.JSONObject;
-
 import io.continual.notify.ContinualAlertAgent.Alert;
 import io.continual.util.console.CmdLineParser;
 import io.continual.util.console.CmdLinePrefs;
