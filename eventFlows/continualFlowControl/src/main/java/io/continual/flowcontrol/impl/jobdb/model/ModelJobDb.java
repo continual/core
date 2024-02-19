@@ -192,7 +192,12 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 		{
 			final String name = job.getName ();
 			final Path path = jobNameToPath ( name );
-			fModel.store ( mrc, path, ((ModelFcJob)job).toJson() );
+			
+			fModel.createUpdate ( mrc, path )
+				.overwrite ( ((ModelFcJob)job).toJson() )
+				.execute ()
+			;
+
 			return internalLoadJob ( mrc, name );
 		}
 		catch ( ModelRequestException | ModelServiceException e )
