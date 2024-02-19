@@ -43,7 +43,7 @@ public class CollapseRecords implements Processor
 		final ArrayList<String> vals = new ArrayList<> ();
 		for ( String key : fKeys )
 		{
-			vals.add ( context.getMessage ().getValueAsString ( key ) );
+			vals.add ( context.getMessage ().getString ( key ) );
 		}
 
 		int valHash = vals.hashCode ();
