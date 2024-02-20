@@ -8,7 +8,6 @@ import io.continual.builder.Builder.BuildFailure;
 import io.continual.metrics.MetricsCatalog;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
-import io.continual.services.processor.engine.model.Program;
 import io.continual.services.processor.engine.model.Sink;
 import io.continual.services.processor.engine.model.Source;
 import io.continual.services.processor.engine.model.StreamProcessingContext;
@@ -36,12 +35,10 @@ public class SimpleMessageProcessingContext implements MessageProcessingContext
 		public Builder usingContext ( StreamProcessingContext s ) { fStreamProcContext = s; return this; }
 		public Builder serialNumbersFrom ( SerialNumberGenerator sng ) { fSng = sng; return this; }
 		public Builder evaluatingAgainst ( ExprDataSource eval ) { fEvalStack = eval; return this; }
-		public Builder sourcesAndSinksFrom ( Program prog ) { fSrcSinkProg = prog; return this; }
 
 		private StreamProcessingContext fStreamProcContext = null;
 		private SerialNumberGenerator fSng = new SerialNumberGenerator ();
 		private ExprDataSource fEvalStack = new ExprDataSourceStack ();
-		private Program fSrcSinkProg = new Program ();
 	}
 	
 	public static Builder builder ()
@@ -70,13 +67,13 @@ public class SimpleMessageProcessingContext implements MessageProcessingContext
 	@Override
 	public Source getSource ( String sinkName )
 	{
-		return fProgram.getSources().get ( sinkName );
+		return getStreamProcessingContext().getProgram().getSources().get ( sinkName );
 	}
 
 	@Override
 	public Sink getSink ( String sinkName )
 	{
-		return fProgram.getSinks ().get ( sinkName );
+		return getStreamProcessingContext().getProgram().getSinks ().get ( sinkName );
 	}
 
 	public boolean shouldContinue ()
@@ -159,7 +156,6 @@ public class SimpleMessageProcessingContext implements MessageProcessingContext
 		fMsg = msg;
 		fId = b.fSng.getNext ();
 		fEvalStack = b.fEvalStack;
-		fProgram = b.fSrcSinkProg;
 
 		if ( fSpc == null ) throw new BuildFailure ( "No stream processing context in message processing context." );
 	}
@@ -168,6 +164,5 @@ public class SimpleMessageProcessingContext implements MessageProcessingContext
 	private final String fId;
 	private final Message fMsg;
 	private final ExprDataSource fEvalStack;
-	private final Program fProgram;
 	private boolean fHaltRequested = false;
 }

@@ -10,6 +10,7 @@ import io.continual.iam.identity.Identity;
 import io.continual.metrics.MetricsCatalog;
 import io.continual.metrics.impl.noop.NoopMetricsCatalog;
 import io.continual.services.processor.engine.model.MessageAndRouting;
+import io.continual.services.processor.engine.model.Program;
 import io.continual.services.processor.engine.model.Source;
 import io.continual.services.processor.engine.model.StreamProcessingContext;
 import io.continual.util.data.exprEval.ExprDataSource;
@@ -22,7 +23,7 @@ public class SimpleStreamProcessingContext implements StreamProcessingContext
 	{
 		public SimpleStreamProcessingContext build ()
 		{
-			final SimpleStreamProcessingContext sspc = new SimpleStreamProcessingContext ( fSource, fEvalStack, fLog, fOper, fMetrics );
+			final SimpleStreamProcessingContext sspc = new SimpleStreamProcessingContext ( this );
 			for ( Map.Entry<String,Object> e : fData.entrySet () )
 			{
 				sspc.addNamedObject ( e.getKey (), e.getValue () );
@@ -36,12 +37,14 @@ public class SimpleStreamProcessingContext implements StreamProcessingContext
 		public Builder holdingObject ( String key, Object obj ) { fData.put ( key, obj ); return this; }
 		public Builder reportMetricsTo ( MetricsCatalog metrics ) { fMetrics = metrics; return this; }
 		public Builder operatedBy ( Identity ii ) { fOper = ii; return this; }
+		public Builder runningProgram ( Program prog ) { fProgram = prog; return this; }
 
 		private Source fSource = null;
 		private ExprDataSource fEvalStack = new ExprDataSourceStack ();
 		private Logger fLog = defaultLog;
 		private HashMap<String,Object> fData = new HashMap<> ();
 		private Identity fOper = null;
+		private Program fProgram = null;
 		private MetricsCatalog fMetrics = new NoopMetricsCatalog ();
 	}
 	
@@ -71,7 +74,13 @@ public class SimpleStreamProcessingContext implements StreamProcessingContext
 
 	@Override
 	public boolean failed () { return fFailed; }
-	
+
+	@Override
+	public Program getProgram ()
+	{
+		return fProgram;
+	}
+
 	@Override
 	public StreamProcessingContext addNamedObject ( String name, Object o )
 	{
@@ -186,18 +195,20 @@ public class SimpleStreamProcessingContext implements StreamProcessingContext
 	private final ExprDataSource fExprEvalStack;
 	private final MetricsCatalog fMetrics;
 	private final Identity fOperator;
+	private final Program fProgram;
 	private final Logger fLog;
 
 	private static final Logger defaultLog = LoggerFactory.getLogger ( SimpleStreamProcessingContext.class );
 
-	private SimpleStreamProcessingContext ( Source src, ExprDataSource exprEvalStack, Logger log, Identity oper, MetricsCatalog metrics )
+	private SimpleStreamProcessingContext ( Builder b )
 	{
-		fSource = src;
+		fSource = b.fSource;
 		fFailed = false;
 		fObjects = new HashMap<> ();
-		fExprEvalStack = exprEvalStack;
-		fLog = log;
-		fOperator = oper;
-		fMetrics = metrics;
+		fExprEvalStack = b.fEvalStack;
+		fLog = b.fLog;
+		fOperator = b.fOper;
+		fProgram = b.fProgram;
+		fMetrics = b.fMetrics;
 	}
 }

@@ -63,7 +63,7 @@ public class TypeChange implements Processor
 	public void process ( MessageProcessingContext context )
 	{
 		final Message msg = context.getMessage ();
-		final String fromVal = msg.getValueAsString ( fFromField );
+		final String fromVal = msg.getString ( fFromField );
 		final String to = fToField == null ? fFromField : fToField;
 		switch ( fTargetType )
 		{

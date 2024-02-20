@@ -451,6 +451,11 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 			cleanedUp = cleanedUp.substring ( 0, cleanedUp.length () - 1 );
 		}
 
+		if ( !cleanedUp.startsWith ( Path.getPathSeparatorString () ) )
+		{
+			cleanedUp = Path.getPathSeparatorString () + cleanedUp;
+		}
+		
 		Path asPath = Path.fromString ( cleanedUp );
 
 		asPath = asPath.makePathWithinParent ( Path.fromString ( "/" + getAcctId() ) );
