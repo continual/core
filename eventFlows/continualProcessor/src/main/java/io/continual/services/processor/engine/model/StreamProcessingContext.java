@@ -57,6 +57,12 @@ public interface StreamProcessingContext
 	Identity getOperator ();
 
 	/**
+	 * Get the program
+	 * @return the program
+	 */
+	Program getProgram ();
+
+	/**
 	 * Add a named object of any type.
 	 * @param name
 	 * @param o

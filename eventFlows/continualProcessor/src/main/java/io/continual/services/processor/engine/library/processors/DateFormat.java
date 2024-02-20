@@ -95,7 +95,7 @@ public class DateFormat implements Processor
 		try
 		{
 			final Message msg = context.getMessage ();
-			final String fromVal = msg.getValueAsString ( fFromField );
+			final String fromVal = msg.getString ( fFromField );
 	
 			long epochMs = 0L;
 			switch ( fFromType )

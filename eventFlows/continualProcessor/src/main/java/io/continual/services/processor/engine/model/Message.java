@@ -78,9 +78,10 @@ public class Message implements JsonSerialized
 		return fData.has ( fieldName );
 	}
 
+	@Deprecated
 	public String getValueAsString ( String key )
 	{
-		return fData.optString ( key, "" );
+		return getString ( key );
 	}
 
 	/**
@@ -91,6 +92,16 @@ public class Message implements JsonSerialized
 	public String evalExpression ( String expression )
 	{
 		return JsonEval.evalToString ( fData, expression );
+	}
+
+	public String getString ( String field )
+	{
+		return getString ( field, "" );
+	}
+
+	public String getString ( String field, String def )
+	{
+		return fData.optString ( field, def );
 	}
 
 	public boolean getBoolean ( String field, boolean def )

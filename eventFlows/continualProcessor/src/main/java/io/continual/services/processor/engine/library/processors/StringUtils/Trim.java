@@ -34,7 +34,7 @@ public class Trim implements Processor
 	@Override
 	public void process ( MessageProcessingContext context )
 	{
-		context.getMessage ().putValue ( fTo, context.getMessage().getValueAsString( fFrom ).trim () );
+		context.getMessage ().putValue ( fTo, context.getMessage().getString ( fFrom ).trim () );
 	}
 
 	private final String fFrom;

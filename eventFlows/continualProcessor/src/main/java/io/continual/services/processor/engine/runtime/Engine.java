@@ -311,6 +311,7 @@ public class Engine extends SimpleService
 				.operatedBy ( fIdentity )
 				.evaluatingAgainst ( fExprEvalStack )
 				.loggingTo ( log )
+				.runningProgram ( fProgram )
 				.reportMetricsTo ( fThreadMetrics )
 				.build ()
 			;
@@ -349,7 +350,6 @@ public class Engine extends SimpleService
 				final SimpleMessageProcessingContext.Builder mpcBuilder = SimpleMessageProcessingContext.builder ()
 					.evaluatingAgainst ( fExprEvalStack )
 					.serialNumbersFrom ( fSnGen )
-					.sourcesAndSinksFrom ( fProgram )
 					.usingContext ( fStreamContext )
 				;
 
