@@ -22,7 +22,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * A list of model relation instances. This list could be thousands of entries long and is therefore
+ * A list of model instances. This list could be thousands of entries long and is therefore
  * presented only as an iterator.
  */
 public interface ModelItemList<T> extends Iterable<T>
@@ -57,7 +57,7 @@ public interface ModelItemList<T> extends Iterable<T>
 	}
 
 	/**
-	 * Convenience method for creating a small list of relations.
+	 * Convenience method for creating a small list of items.
 	 * @return a list of objects
 	 */
 	static <T> ModelItemList<T> simpleListOfCollection ( Collection<T> instances )
