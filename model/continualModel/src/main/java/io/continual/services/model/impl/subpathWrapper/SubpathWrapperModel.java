@@ -32,7 +32,7 @@ import io.continual.util.naming.Path;
 public class SubpathWrapperModel extends SimpleService implements Model
 {
 	/**
-	 * Construct a subpath model service from a service container and configuration
+	 * Construct a subpath wrapper model service from a service container and configuration
 	 * @param sc
 	 * @param config
 	 * @throws BuildFailure 
@@ -48,7 +48,7 @@ public class SubpathWrapperModel extends SimpleService implements Model
 	}
 
 	/**
-	 * Construct a delegating model from basic information
+	 * Construct a subpath wrapper model from basic information
 	 * @param backingModel
 	 * @param basePath
 	 * @param modelId
