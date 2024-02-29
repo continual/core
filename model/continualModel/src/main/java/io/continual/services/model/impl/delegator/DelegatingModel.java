@@ -203,6 +203,14 @@ public class DelegatingModel extends SimpleService implements Model
 					result.add ( Path.getRootPath ().makeChildItem ( childPart.getSegments ()[0] ) );
 				}
 			}
+
+			// and also check the backing model
+			final ModelPathList backing = fBackingModel.listChildrenOfPath ( context, prefix );
+			for ( Path p : backing )
+			{
+				result.add ( p );
+			}
+
 			return ModelPathList.wrap ( result );
 		}
 		else
