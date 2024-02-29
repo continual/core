@@ -103,13 +103,23 @@ public class JsonVisitor
 
 	public static<T> HashMap<String,T> objectToMap ( JSONObject obj, ItemRenderer<Object,T> ir )
 	{
-		final HashMap<String,T> map = new HashMap<> ();
+		return objectToMap ( obj, new KeyRenderer<String> ()
+		{
+			@Override
+			public String render ( String key ) { return key; }
+		}, ir );
+	}
+
+	public static<K,T> HashMap<K,T> objectToMap ( JSONObject obj, KeyRenderer<K> kr, ItemRenderer<Object,T> ir )
+	{
+		final HashMap<K,T> map = new HashMap<> ();
 		if ( obj != null )
 		{
 			for ( Object oo : obj.keySet () )
 			{
-				final String key = oo.toString ();
-				final T val = ir.render ( obj.get ( key ) );
+				final String keyStr = oo.toString ();
+				final K key = kr.render ( keyStr );
+				final T val = ir.render ( obj.get ( keyStr ) );
 				map.put ( key, val );
 			}
 		}
@@ -220,7 +230,12 @@ public class JsonVisitor
 
 	public interface ItemRenderer<T,O>
 	{
-		O render ( T t );
+		O render ( T t ) throws IllegalArgumentException;
+	}
+
+	public interface KeyRenderer<K>
+	{
+		K render ( String key );
 	}
 
 	public static class StdItemRenderer<T> implements ItemRenderer<T,Object>
