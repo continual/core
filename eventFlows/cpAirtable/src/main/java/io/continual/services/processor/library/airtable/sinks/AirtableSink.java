@@ -161,7 +161,7 @@ public class AirtableSink implements Sink
 			AirtableRecord existingRecord = null;
 			if ( fKey != null )
 			{
-				keyVal = msg.getValueAsString ( fKey );
+				keyVal = msg.getString ( fKey );
 				if ( keyVal == null ) keyVal = "";
 
 				// search for value in the key field

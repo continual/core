@@ -21,7 +21,7 @@ public interface ModelDataListAccess
 
 	/**
 	 * Get a value as a string
-	 * @param key
+	 * @param index
 	 * @return a string value
 	 * @throws ClassCastException
 	 */
@@ -33,7 +33,7 @@ public interface ModelDataListAccess
 
 	/**
 	 * Get a value as a boolean
-	 * @param key
+	 * @param index
 	 * @return a boolean value
 	 * @throws ClassCastException
 	 */
@@ -44,7 +44,7 @@ public interface ModelDataListAccess
 
 	/**
 	 * Get a value as a number
-	 * @param key
+	 * @param index
 	 * @return a number value
 	 * @throws ClassCastException
 	 */
@@ -55,7 +55,7 @@ public interface ModelDataListAccess
 
 	/**
 	 * Get a value as a map
-	 * @param key
+	 * @param index
 	 * @return a map value
 	 */
 	default ModelDataObjectAccess getMap ( int index )
@@ -65,7 +65,7 @@ public interface ModelDataListAccess
 
 	/**
 	 * Get a value as a list
-	 * @param key
+	 * @param index
 	 * @return a list value
 	 */
 	default ModelDataListAccess getList ( int index )
