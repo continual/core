@@ -1,5 +1,9 @@
 package io.continual.services.model.core;
 
+import java.util.Comparator;
+
+import io.continual.services.model.core.data.BasicModelObject;
+import io.continual.services.model.core.data.ModelDataObjectAccess;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.util.naming.Path;
@@ -71,7 +75,7 @@ public interface ModelQuery
 	 * @param comparator a comparator
 	 * @return this query
 	 */
-	ModelQuery orderBy ( ModelObjectComparator comparator );
+	ModelQuery orderBy ( Comparator<ModelDataObjectAccess> comparator );
 
 	/**
 	 * Limit the result set to the given page size and start at page number. At most
@@ -90,5 +94,36 @@ public interface ModelQuery
 	 * @throws ModelRequestException
 	 * @throws ModelServiceException
 	 */
-	ModelObjectList execute ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException;
+	default ModelObjectList<BasicModelObject> execute ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException
+	{
+		return execute (
+			context,
+			new ModelObjectAutoFactory<BasicModelObject> ( BasicModelObject.class ),
+			new DataAccessor<BasicModelObject> ()
+			{
+				@Override
+				public ModelDataObjectAccess getDataFrom ( BasicModelObject obj ) { return obj.getData (); }
+			}
+		);
+	}
+
+	/**
+	 * Data accessor
+	 * @param <T>
+	 */
+	interface DataAccessor<T>
+	{
+		ModelDataObjectAccess getDataFrom ( T obj );
+	}
+	
+	/**
+	 * Execute the query
+	 * @param context a model request context
+	 * @param factory
+	 * @param accessor
+	 * @return a object list
+	 * @throws ModelRequestException
+	 * @throws ModelServiceException
+	 */
+	<T> ModelObjectList<T> execute ( ModelRequestContext context, ModelObjectFactory<T> factory, DataAccessor<T> accessor ) throws ModelRequestException, ModelServiceException;
 }

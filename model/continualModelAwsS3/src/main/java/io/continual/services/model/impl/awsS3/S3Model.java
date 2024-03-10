@@ -21,9 +21,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.json.JSONException;
@@ -55,21 +57,21 @@ import io.continual.metrics.metricTypes.Meter;
 import io.continual.metrics.metricTypes.Timer;
 import io.continual.services.ServiceContainer;
 import io.continual.services.model.core.Model;
-import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelObjectAndPath;
-import io.continual.services.model.core.ModelObjectComparator;
+import io.continual.services.model.core.ModelObjectFactory;
 import io.continual.services.model.core.ModelObjectList;
 import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRequestContext;
+import io.continual.services.model.core.data.ModelDataObjectAccess;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.model.impl.common.SimpleModelQuery;
+import io.continual.services.model.impl.json.CommonDataTransfer;
 import io.continual.services.model.impl.json.CommonJsonDbModel;
-import io.continual.services.model.impl.json.CommonJsonDbObject;
 import io.continual.util.collections.ShardedExpiringCache;
 import io.continual.util.data.exprEval.ExpressionEvaluator;
 import io.continual.util.data.json.CommentedJsonTokener;
@@ -138,7 +140,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		fBucketId = bucketId;
 		fPrefix = prefix == null ? "" : prefix;
 
-		fCache = new ShardedExpiringCache.Builder<String,ModelObject> ()
+		fCache = new ShardedExpiringCache.Builder<String,ModelDataTransfer> ()
 			.named ( "object cache" )
 			.build ()
 		;
@@ -175,7 +177,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 			fBucketId = evaledConfig.getString ( "bucket" );
 			fPrefix = evaledConfig.optString ( "prefix", "" );
 
-			fCache = new ShardedExpiringCache.Builder<String,ModelObject> ()
+			fCache = new ShardedExpiringCache.Builder<String,ModelDataTransfer> ()
 				.named ( "object cache" )
 				.build ()
 			;
@@ -244,6 +246,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	public ModelPathList listChildrenOfPath ( ModelRequestContext context, Path prefix ) throws ModelServiceException, ModelRequestException
 	{
 		final LinkedList<Path> pending = new LinkedList<> ();
+		final TreeSet<Path> seen = new TreeSet<> ();
 
 		final ListObjectsV2Request req = new ListObjectsV2Request ()
 			.withBucketName ( fBucketId )
@@ -268,17 +271,19 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 					{
 						final String key = objectSummary.getKey ();
 						final Path asPath = s3KeyToPath ( key );
-						if ( !asPath.equals ( prefix ) )
+						if ( !asPath.equals ( prefix ) && !seen.contains ( asPath ) )
 						{
 							pending.add ( asPath );
+							seen.add ( asPath );
 						}
 					}
 					for ( String commonPrefix : result.getCommonPrefixes () )
 					{
 						final Path asPath = s3KeyToPath ( commonPrefix );
-						if ( !asPath.equals ( prefix ) )
+						if ( !asPath.equals ( prefix ) && !seen.contains ( asPath ) )
 						{
 							pending.add ( asPath );
+							seen.add ( asPath );
 						}
 					}
 					final String token = result.getNextContinuationToken ();
@@ -306,31 +311,31 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	private class S3ModelQuery extends SimpleModelQuery
 	{
 		@Override
-		public ModelObjectList execute ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException
+		public <T> ModelObjectList<T> execute ( ModelRequestContext context, ModelObjectFactory<T> factory, DataAccessor<T> accessor ) throws ModelRequestException, ModelServiceException
 		{
-			ModelObjectComparator orderBy = getOrdering ();
+			Comparator<ModelDataObjectAccess> orderBy = getOrdering ();
 			if ( orderBy != null )
 			{
-				return fullLoad ( context );
+				return fullLoad ( context, factory, accessor );
 			}
 			else
 			{
-				return streamLoad ( context );
+				return streamLoad ( context, factory, accessor );
 			}
 		}
 
-		private ModelObjectList fullLoad ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException
+		private <T> ModelObjectList<T> fullLoad ( ModelRequestContext context, ModelObjectFactory<T> factory, DataAccessor<T> accessor ) throws ModelRequestException, ModelServiceException
 		{
-			final LinkedList<ModelObjectAndPath> result = new LinkedList<> ();
+			final LinkedList<ModelObjectAndPath<T>> result = new LinkedList<> ();
 
 			final ModelPathList objectPaths = listChildrenOfPath ( context, getPathPrefix () );
 			for ( Path objectPath : objectPaths )
 			{
-				final ModelObject mo = load ( context, objectPath );
+				final T mo = load ( context, objectPath, factory );
 				boolean match = true;
 				for ( Filter f : getFilters() )
 				{
-					match = f.matches ( mo );
+					match = f.matches ( accessor.getDataFrom ( mo ) );
 					if ( !match )
 					{
 						break;
@@ -343,42 +348,45 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 			}
 
 			// now sort our list
-			ModelObjectComparator orderBy = getOrdering ();
+			Comparator<ModelDataObjectAccess> orderBy = getOrdering ();
 			if ( orderBy != null )
 			{
-				Collections.sort ( result, new java.util.Comparator<ModelObjectAndPath> ()
+				Collections.sort ( result, new java.util.Comparator<ModelObjectAndPath<T>> ()
 				{
 					@Override
-					public int compare ( ModelObjectAndPath o1, ModelObjectAndPath o2 )
+					public int compare ( ModelObjectAndPath<T> o1, ModelObjectAndPath<T> o2 )
 					{
-						return orderBy.compare ( o1.getObject (), o2.getObject () );
+						return orderBy.compare (
+							accessor.getDataFrom ( o1.getObject () ),
+							accessor.getDataFrom ( o2.getObject () )
+						);
 					}
 				} );
 			}
 
-			return new ModelObjectList ()
+			return new ModelObjectList<T> ()
 			{
 				@Override
-				public Iterator<ModelObjectAndPath> iterator ()
+				public Iterator<ModelObjectAndPath<T>> iterator ()
 				{
 					return result.iterator ();
 				}
 			};
 		}
 
-		private ModelObjectList streamLoad ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException
+		private <T> ModelObjectList<T> streamLoad ( ModelRequestContext context, ModelObjectFactory<T> factory, DataAccessor<T> accessor ) throws ModelRequestException, ModelServiceException
 		{
 			final ModelPathList objectPaths = listChildrenOfPath ( context, getPathPrefix () );
 			final Iterator<Path> paths = objectPaths.iterator ();
 
-			final LinkedList<ModelObjectAndPath> pending = new LinkedList<> ();
+			final LinkedList<ModelObjectAndPath<T>> pending = new LinkedList<> ();
 
-			return new ModelObjectList ()
+			return new ModelObjectList<T> ()
 			{
 				@Override
-				public Iterator<ModelObjectAndPath> iterator ()
+				public Iterator<ModelObjectAndPath<T>> iterator ()
 				{
-					return new Iterator<ModelObjectAndPath> ()
+					return new Iterator<ModelObjectAndPath<T>> ()
 					{
 						@Override
 						public boolean hasNext ()
@@ -394,11 +402,11 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 								final Path p = paths.next ();
 								try
 								{
-									final ModelObject mo = load ( context, p );
+									final T mo = load ( context, p, factory );
 									boolean match = true;
 									for ( Filter f : getFilters() )
 									{
-										match = f.matches ( mo );
+										match = f.matches ( accessor.getDataFrom ( mo ) );
 										if ( !match )
 										{
 											break;
@@ -419,7 +427,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 						}
 
 						@Override
-						public ModelObjectAndPath next ()
+						public ModelObjectAndPath<T> next ()
 						{
 							return pending.removeFirst ();
 						}
@@ -529,7 +537,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		try
 		{
 			final String s3Path = pathToS3Path ( objectPath );
-			final ModelObject mo = fCache.read ( s3Path );
+			final ModelDataTransfer mo = fCache.read ( s3Path );
 			if ( mo != null ) return true;
 
 			final Boolean notFound = fNotFoundCache.read ( s3Path );
@@ -553,13 +561,13 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	}
 
 	@Override
-	protected ModelObject loadObject ( ModelRequestContext context, final Path objectPath ) throws ModelServiceException, ModelRequestException
+	protected ModelDataTransfer loadObject ( ModelRequestContext context, final Path objectPath ) throws ModelServiceException, ModelRequestException
 	{
 		final String s3Path = pathToS3Path ( objectPath );
 
 		try ( Timer.Context timingContext = fReadTimer.time () )
 		{
-			ModelObject result = fCache.read ( s3Path );
+			ModelDataTransfer result = fCache.read ( s3Path );
 			if ( result != null )
 			{
 				fCacheHitCounter.mark ();
@@ -592,7 +600,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 					throw new ModelServiceException ( x );
 				}
 
-				result = new CommonJsonDbObject ( objectPath.toString (), rawData );
+				result = new CommonDataTransfer ( objectPath, rawData );
 				fCache.write ( s3Path, result );
 
 				return result;
@@ -612,7 +620,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 					if ( ol.getObjectSummaries ().size () > 0 )
 					{
 						// it's a "folder"; return an empty object
-						final ModelObject result = new CommonJsonDbObject ( objectPath.toString (), new JSONObject () );
+						final CommonDataTransfer result = new CommonDataTransfer ( objectPath, new JSONObject () );
 						fCache.write ( s3Path, result );
 						return result;
 					}
@@ -631,11 +639,11 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	}
 
 	@Override
-	protected void internalStore ( ModelRequestContext context, Path objectPath, ModelObject o ) throws ModelRequestException, ModelServiceException
+	protected void internalStore ( ModelRequestContext context, Path objectPath, ModelDataTransfer o ) throws ModelRequestException, ModelServiceException
 	{
 		try (
 			final Timer.Context timingContext = fWriteTimer.time ();
-			final ByteArrayInputStream bais = new ByteArrayInputStream ( o.toJson ().toString ( 4 ).getBytes ( kUtf8 ) )
+			final ByteArrayInputStream bais = new ByteArrayInputStream ( CommonDataTransfer.toDataObject ( o ).toString ( 4 ).getBytes ( kUtf8 ) )
 		)
 		{
 			final String s3Path = pathToS3Path ( objectPath );
@@ -673,7 +681,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	private final S3SysRelnMgr fRelnMgr;
 	private final boolean fFoldersAsObjects;
 
-	private final ShardedExpiringCache<String,ModelObject> fCache;
+	private final ShardedExpiringCache<String,ModelDataTransfer> fCache;
 	private final ShardedExpiringCache<String,Boolean> fNotFoundCache;	// because null means not-found :-(
 
 	private enum Version

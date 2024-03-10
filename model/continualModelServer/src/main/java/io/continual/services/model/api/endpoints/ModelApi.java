@@ -28,11 +28,12 @@ import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.iam.exceptions.IamSvcException;
 import io.continual.services.ServiceContainer;
 import io.continual.services.model.core.Model;
-import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRelationList;
 import io.continual.services.model.core.ModelRequestContext;
+import io.continual.services.model.core.data.BasicModelObject;
+import io.continual.services.model.core.data.JsonObjectAccess;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
@@ -172,7 +173,7 @@ public class ModelApi extends ModelApiContextHelper
 
 					if ( io == IncludeOptions.DATA || io == IncludeOptions.BOTH )
 					{
-						final ModelObject mo = ms.getModel ().load ( mrc, requestedPath );
+						final BasicModelObject mo = ms.getModel ().load ( mrc, requestedPath );
 						or
 							.withData ( mo )
 						;
@@ -235,7 +236,7 @@ public class ModelApi extends ModelApiContextHelper
 				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
 
 				ms.getModel ().createUpdate ( mrc, requestedPath )
-					.overwrite ( obj )
+					.overwrite ( new JsonObjectAccess ( obj ) )
 					.execute ()
 				;
 
@@ -258,7 +259,7 @@ public class ModelApi extends ModelApiContextHelper
 				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
 
 				ms.getModel ().createUpdate ( mrc, requestedPath )
-					.merge ( obj )
+					.merge ( new JsonObjectAccess ( obj ) )
 					.execute ()
 				;
 

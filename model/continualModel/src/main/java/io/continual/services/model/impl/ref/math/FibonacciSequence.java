@@ -9,7 +9,7 @@ import org.json.JSONObject;
 
 import io.continual.iam.access.AccessControlEntry;
 import io.continual.iam.access.AccessControlList;
-import io.continual.services.model.core.ModelObject;
+import io.continual.services.model.core.ModelObjectFactory;
 import io.continual.services.model.core.ModelObjectMetadata;
 import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelQuery;
@@ -17,6 +17,7 @@ import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRelationList;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelTraversal;
+import io.continual.services.model.core.data.JsonObjectAccess;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
@@ -91,39 +92,53 @@ public class FibonacciSequence extends ReadOnlyModel
 	@Override
 	public ModelQuery startQuery () throws ModelRequestException
 	{
-		// TODO Auto-generated method stub
-		return null;
+		throw new RuntimeException ( "query is not implemented" );
 	}
 
 	@Override
 	public ModelTraversal startTraversal () throws ModelRequestException
 	{
-		// TODO Auto-generated method stub
-		return null;
+		throw new RuntimeException ( "traversal is not implemented" );
 	}
 
 	private static final AccessControlList kAcl = AccessControlList.builder ()
 		.withEntry ( AccessControlEntry.builder ().permit ().operation ( AccessControlList.READ ).forAllUsers ().build () )
 		.build ()
 	;
-	
+
+	private static final ModelObjectMetadata kMeta = new ModelObjectMetadata ()
+	{
+		@Override
+		public JSONObject toJson () { return new JSONObject (); }
+
+		@Override
+		public AccessControlList getAccessControlList () { return kAcl; }
+
+		@Override
+		public Set<String> getLockedTypes () { return new TreeSet<> (); }
+
+		@Override
+		public long getCreateTimeMs () { return 0L; }
+
+		@Override
+		public long getLastUpdateTimeMs () { return 0L; }
+	};
+
 	@Override
-	public ModelObject load ( ModelRequestContext context, Path objectPath ) throws ModelItemDoesNotExistException
+	public <T> T load ( ModelRequestContext context, Path objectPath, ModelObjectFactory<T> factory ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
 		if ( !exists ( context, objectPath ) )
 		{
 			throw new ModelItemDoesNotExistException ( objectPath );
 		}
 
-		if ( objectPath.isRootPath () )
+		JSONObject data = new JSONObject ();
+		if ( !objectPath.isRootPath () )
 		{
-			return new FibModelObject ( objectPath.toString () );
+			data.put ( "number", getNumberFrom ( objectPath ) );
 		}
-		else
-		{
-			final long num = getNumberFrom ( objectPath );
-			return new FibModelObject ( objectPath.toString (), num );
-		}		
+
+		return factory.create ( objectPath, kMeta, new JsonObjectAccess ( data ) );
 	}
 
 	@Override
@@ -244,70 +259,4 @@ public class FibonacciSequence extends ReadOnlyModel
 
 	private static final String kFirst = "first";
 	private static final String kNext = "next";
-
-	private class FibModelObject implements ModelObject
-	{
-		private final Long fNumber;
-		
-		public FibModelObject ( String id )
-		{
-			this ( id, null );
-		}
-		
-		public FibModelObject ( String id, Long num )
-		{
-			fNumber = num;
-		}
-
-		@Override
-		public AccessControlList getAccessControlList () { return kAcl; }
-
-		@Override
-		public JSONObject toJson ()
-		{
-			if ( fNumber == null ) return new JSONObject ();
-			return new JSONObject ()
-				.put ( "number", fNumber )
-			;
-		}
-
-		@Override
-		public ModelObjectMetadata getMetadata ()
-		{
-			return new ModelObjectMetadata ()
-			{
-				@Override
-				public JSONObject toJson () { return new JSONObject (); }
-
-				@Override
-				public AccessControlList getAccessControlList () { return kAcl; }
-
-				@Override
-				public Set<String> getLockedTypes () { return new TreeSet<>(); }
-
-				@Override
-				public long getCreateTimeMs () { return 0; }
-
-				@Override
-				public long getLastUpdateTimeMs () { return 0; }
-			};
-		}
-
-		@Override
-		public JSONObject getData ()
-		{
-			return toJson ();
-		}
-
-		@Override
-		public void putData ( JSONObject data )
-		{
-		}
-
-		@Override
-		public void patchData ( JSONObject data )
-		{
-		}
-	};
-
 }

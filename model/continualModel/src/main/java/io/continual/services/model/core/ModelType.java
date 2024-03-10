@@ -1,5 +1,7 @@
 package io.continual.services.model.core;
 
+import io.continual.services.model.core.data.ModelDataObjectAccess;
+
 /**
  * An object type
  */
@@ -16,5 +18,5 @@ public interface ModelType
 	 * @param obj
 	 * @return true if the object complies to this type spec
 	 */
-	boolean isA ( ModelObject obj );
+	boolean isA ( ModelDataObjectAccess obj );
 }

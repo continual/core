@@ -30,6 +30,8 @@ import io.continual.services.model.core.ModelObjectAndPath;
 import io.continual.services.model.core.ModelObjectList;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRequestContext;
+import io.continual.services.model.core.data.BasicModelObject;
+import io.continual.services.model.core.data.ModelDataToJson;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.processor.config.readers.ConfigLoadContext;
@@ -59,7 +61,7 @@ public class ModelSource extends BasicSource
 	}
 
 	private final String fModelSvcName;
-	private ModelObjectList fResults;
+	private ModelObjectList<BasicModelObject> fResults;
 	
 	private static final Logger log = LoggerFactory.getLogger ( ModelSource.class );
 
@@ -76,7 +78,7 @@ public class ModelSource extends BasicSource
 				if ( ms == null )
 				{
 					spc.fail ( "No model service named " + fModelSvcName + "." );
-					fResults = ModelObjectList.emptyList ();	// prevent re-run
+					fResults = ModelObjectList.emptyList ( BasicModelObject.class );	// prevent re-run
 					return null;
 				}
 
@@ -91,12 +93,13 @@ public class ModelSource extends BasicSource
 				fResults = fQuery.execute ( mrc );
 			}
 
-			final Iterator<ModelObjectAndPath> iter = fResults.iterator ();
+			final Iterator<ModelObjectAndPath<BasicModelObject>> iter = fResults.iterator ();
 			if ( iter.hasNext () )
 			{
-				final ModelObjectAndPath mop = iter.next ();
-				final JSONObject asJson = mop.getObject ().toJson ().getJSONObject ( "data" );
+				final ModelObjectAndPath<BasicModelObject> mop = iter.next ();
+				final JSONObject asJson = ModelDataToJson.translate ( mop.getObject().getData () );
 				asJson.put ( "modelPath", mop.getPath().toString () );
+
 				final Message msg = Message.adoptJsonAsMessage ( asJson );
 				return makeDefRoutingMessage ( msg );
 			}

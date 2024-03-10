@@ -11,6 +11,7 @@ import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelObjectAndPath;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRequestContext;
+import io.continual.services.model.core.data.BasicModelObject;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.processor.engine.model.MessageAndRouting;
@@ -88,7 +89,7 @@ public class ModelQueryFetcher extends BaseFetcher implements ObjectFetcher
 			if ( !fResultSet.hasNext () ) return null;
 
 			// get the next object
-			final ModelObjectAndPath mo = fResultSet.next ();
+			final ModelObjectAndPath<BasicModelObject> mo = fResultSet.next ();
 			return buildMessageAndRouting ( mo.getPath (), mo.getObject (), pipeline );
 		}
 		catch ( BuildFailure | ModelServiceException | ModelRequestException e )
@@ -104,7 +105,7 @@ public class ModelQueryFetcher extends BaseFetcher implements ObjectFetcher
 	
 	private int fLastPageNumber = 0;
 
-	private Iterator<ModelObjectAndPath> fResultSet;
+	private Iterator<ModelObjectAndPath<BasicModelObject>> fResultSet;
 
 	private boolean isPaging ()
 	{

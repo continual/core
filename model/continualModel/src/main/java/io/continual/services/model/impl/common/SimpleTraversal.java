@@ -5,12 +5,13 @@ import java.util.LinkedList;
 import java.util.TreeSet;
 
 import io.continual.services.model.core.Model;
-import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelItemFilter;
 import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelTraversal;
+import io.continual.services.model.core.data.BasicModelObject;
+import io.continual.services.model.core.data.ModelDataObjectAccess;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.util.naming.Path;
@@ -119,7 +120,7 @@ public class SimpleTraversal implements ModelTraversal
 	}
 
 	@Override
-	public ModelTraversal filterSet ( ModelItemFilter<ModelObject> filter )
+	public ModelTraversal filterSet ( ModelItemFilter<ModelDataObjectAccess> filter )
 	{
 		fSteps.add ( new Step ()
 		{
@@ -128,8 +129,9 @@ public class SimpleTraversal implements ModelTraversal
 				final TreeSet<Path> newSet = new TreeSet<> ();
 				for ( Path p : sc.fCurrentSet )
 				{
-					final ModelObject mo = fModel.load ( sc.fMrc, p );
-					if ( filter.matches ( mo ) )
+					final BasicModelObject mo = fModel.load ( sc.fMrc, p );
+					final ModelDataObjectAccess moda = mo.getData ();
+					if ( filter.matches ( moda ) )
 					{
 						newSet.add ( p );
 					}

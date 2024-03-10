@@ -8,10 +8,11 @@ import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.ServiceContainer;
-import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRequestContext;
+import io.continual.services.model.core.data.BasicModelObject;
+import io.continual.services.model.core.data.JsonObjectAccess;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.model.impl.client.ModelClient;
@@ -43,25 +44,26 @@ public class ModelTest
 			final Path foo = Path.fromString ( "/foo" );
 			final Path bar = Path.fromString ( "/bar" );
 
-			final ModelObject mo = mc.load ( mrc, foo );
+			final BasicModelObject mo = mc.load ( mrc, foo );
 			final String data = mo.getData ().toString ();
 			log.info ( "/foo: " + data );
 
 			mc.createUpdate ( mrc, foo )
-				.merge ( new JSONObject ().put ( "ModelTestClient", Clock.now () ) )
-				.merge ( new JSONObject ().put ( "MTC_artist", new JSONObject ()
-					.put ( "playback", true )
-					.put ( "composer", "Jóhann Jóhannsson" )
-					.put ( "track", "Odi et Amo" )
-				) )
+				.merge ( new JsonObjectAccess ( new JSONObject ().put ( "ModelTestClient", Clock.now () ) ) )
+				.merge ( new JsonObjectAccess ( new JSONObject ().put ( "MTC_artist",
+					new JSONObject ()
+						.put ( "playback", true )
+						.put ( "composer", "Jóhann Jóhannsson" )
+						.put ( "track", "Odi et Amo" )
+				) ) )
 				.execute ()
 			;
 
 			mc.createUpdate ( mrc, bar )
-				.overwrite ( new JSONObject ()
+				.overwrite ( new JsonObjectAccess ( new JSONObject ()
 					.put ( "details", "this is a target for relation testing" )
 					.put ( "writetime", Clock.now () )
-				)
+				) )
 				.execute ()
 			;
 

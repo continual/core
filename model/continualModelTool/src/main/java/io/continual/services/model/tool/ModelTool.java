@@ -22,14 +22,14 @@ import io.continual.iam.identity.Group;
 import io.continual.iam.identity.Identity;
 import io.continual.services.ServiceContainer;
 import io.continual.services.model.core.Model;
-import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRequestContext;
+import io.continual.services.model.core.data.BasicModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelSchemaViolationException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
-import io.continual.services.model.impl.json.CommonJsonDbObject;
+import io.continual.services.model.impl.json.CommonJsonDbObjectContainer;
 import io.continual.util.console.CmdLineParser;
 import io.continual.util.console.CmdLinePrefs;
 import io.continual.util.console.ConfiguredConsole;
@@ -149,8 +149,8 @@ public class ModelTool extends ConfiguredConsole
 
 				final Path tgtChild = translatePath ( srcPath, baseSrc, baseTgt );
 
-				final ModelObject mo = src.fModel.load ( srcMrc, srcObj );
-				if ( !mo.getMetadata ().getLockedTypes ().contains ( CommonJsonDbObject.kStdType_ObjectContainer ) )
+				final BasicModelObject mo = src.fModel.load ( srcMrc, srcObj );
+				if ( !mo.getMetadata ().getLockedTypes ().contains ( CommonJsonDbObjectContainer.kContainerType ) )
 				{
 					tgt.fModel
 						.createUpdate ( tgtMrc, tgtChild )

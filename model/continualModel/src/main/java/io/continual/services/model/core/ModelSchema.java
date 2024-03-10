@@ -3,6 +3,7 @@ package io.continual.services.model.core;
 import java.util.LinkedList;
 import java.util.List;
 
+import io.continual.services.model.core.data.ModelDataObjectAccess;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 
 public interface ModelSchema
@@ -22,5 +23,5 @@ public interface ModelSchema
 		public List<String> getProblems () { return new LinkedList<> (); }
 	}; }
 	
-	ValidationResult isValid ( ModelObject object ) throws ModelServiceException;
+	ValidationResult isValid ( ModelDataObjectAccess object ) throws ModelServiceException;
 }

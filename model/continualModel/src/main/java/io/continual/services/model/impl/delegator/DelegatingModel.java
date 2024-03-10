@@ -15,7 +15,7 @@ import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelItemList;
-import io.continual.services.model.core.ModelObject;
+import io.continual.services.model.core.ModelObjectFactory;
 import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRelation;
@@ -30,6 +30,7 @@ import io.continual.services.model.impl.common.BaseRelationSelector;
 import io.continual.services.model.impl.common.BasicModelRequestContextBuilder;
 import io.continual.services.model.impl.common.SimpleTraversal;
 import io.continual.services.model.impl.json.CommonJsonDbObjectContainer;
+import io.continual.services.model.impl.json.CommonDataTransfer;
 import io.continual.services.model.impl.mem.InMemoryModel;
 import io.continual.util.naming.Name;
 import io.continual.util.naming.Path;
@@ -239,20 +240,20 @@ public class DelegatingModel extends SimpleService implements Model
 	}
 
 	@Override
-	public ModelObject load ( ModelRequestContext context, Path objectPath ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
+	public <T> T load ( ModelRequestContext context, Path objectPath, ModelObjectFactory<T> factory ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
 		final ModelMount mm = getModelForPath ( objectPath );
 
 		// if the requested path is in a delegated model, just forward the request
 		if ( mm.getModel () != this )
 		{
-			return mm.getModel ().load ( context, mm.getPathWithinModel ( objectPath ) );
+			return mm.getModel ().load ( context, mm.getPathWithinModel ( objectPath ), factory );
 		}
 
 		// or if it's part of the backing model
 		if ( !objectPath.isRootPath () && fBackingModel.exists ( context, objectPath ) )
 		{
-			return fBackingModel.load ( context, objectPath );
+			return fBackingModel.load ( context, objectPath, factory );
 		}
 
 		// here, the path is a partial path that may contain model mounts (including "/")
@@ -290,7 +291,8 @@ public class DelegatingModel extends SimpleService implements Model
 			}
 		}
 
-		return CommonJsonDbObjectContainer.createObjectContainer ( objectPath.toString (), result );
+		final CommonDataTransfer ld = CommonJsonDbObjectContainer.createObjectContainer ( objectPath, result );
+		return factory.create ( objectPath, ld.getMetadata (), ld.getObjectData () );
 	}
 
 	@Override

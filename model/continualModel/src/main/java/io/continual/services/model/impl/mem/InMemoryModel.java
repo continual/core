@@ -1,6 +1,8 @@
 package io.continual.services.model.impl.mem;
 
+import java.util.AbstractMap;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -15,20 +17,20 @@ import org.json.JSONObject;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.ServiceContainer;
 import io.continual.services.model.core.Model;
-import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelObjectAndPath;
-import io.continual.services.model.core.ModelObjectComparator;
+import io.continual.services.model.core.ModelObjectFactory;
 import io.continual.services.model.core.ModelObjectList;
 import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRequestContext;
+import io.continual.services.model.core.data.ModelDataObjectAccess;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.model.impl.common.SimpleModelQuery;
+import io.continual.services.model.impl.json.CommonDataTransfer;
 import io.continual.services.model.impl.json.CommonJsonDbModel;
-import io.continual.services.model.impl.json.CommonJsonDbObject;
 import io.continual.util.collections.MultiMap;
 import io.continual.util.data.json.JsonUtil;
 import io.continual.util.data.json.JsonVisitor;
@@ -76,7 +78,7 @@ public class InMemoryModel extends CommonJsonDbModel
 		final LinkedList<Path> paths = new LinkedList<> ();
 		for ( String key : current.keySet () )
 		{
-			if ( !key.equals ( CommonJsonDbObject.kDataTag ) && !key.equals ( CommonJsonDbObject.kMetaTag ) &&  null != current.optJSONObject ( key ) )
+			if ( !key.equals ( kLocalDataNode ) &&  null != current.optJSONObject ( key ) )
 			{
 				paths.add ( parentPath.makeChildItem ( Name.fromString ( key ) ) );
 			}
@@ -215,7 +217,7 @@ public class InMemoryModel extends CommonJsonDbModel
 	}
 
 	@Override
-	protected ModelObject loadObject ( ModelRequestContext context, Path objectPath ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
+	protected CommonDataTransfer loadObject ( ModelRequestContext context, Path objectPath ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
 		JSONObject current = getDataRoot ();
 		for ( Name name : objectPath.getSegments () )
@@ -223,26 +225,41 @@ public class InMemoryModel extends CommonJsonDbModel
 			current = current.optJSONObject ( name.toString () );
 			if ( current == null ) throw new ModelItemDoesNotExistException ( objectPath );
 		}
-		return new CommonJsonDbObject ( objectPath.toString (), current );
+		
+		final JSONObject objData = current.optJSONObject ( kLocalDataNode );
+		if ( objData == null ) throw new ModelItemDoesNotExistException ( objectPath );
+
+		return new CommonDataTransfer ( objectPath, objData );
 	}
 
 	@Override
-	protected void internalStore ( ModelRequestContext context, Path objectPath, ModelObject o ) throws ModelRequestException, ModelServiceException
+	protected void internalStore ( ModelRequestContext context, Path objectPath, ModelDataTransfer o ) throws ModelRequestException, ModelServiceException
 	{
 		// make a backup...
 		final JSONObject rootCopy = JsonUtil.clone ( fRoot );
 		try
 		{
-			JSONObject current = getDataRoot ();
+			JSONObject container = getDataRoot ();
 			for ( Name name : objectPath.getParentPath ().getSegments () )
 			{
-				current = current.optJSONObject ( name.toString () );
-				if ( current == null )
+				container = container.optJSONObject ( name.toString () );
+				if ( container == null )
 				{
 					throw new ModelRequestException ( objectPath.toString () + " parent path unavailable at " + name.toString () );
 				}
 			}
-			current.put ( objectPath.getItemName ().toString (), o.toJson () );
+
+			// this container may have data below the current level, so just make sure it exists
+			final String nodeName = objectPath.getItemName ().toString ();
+			JSONObject obj = container.optJSONObject ( nodeName );
+			if ( obj == null )
+			{
+				obj = new JSONObject ();
+				container.put ( nodeName, obj );
+			}
+
+			// overwrite the data at this level
+			obj.put ( kLocalDataNode, CommonDataTransfer.toDataObject ( o.getMetadata (), o.getObjectData () ) );
 		}
 		catch ( ModelRequestException x )
 		{
@@ -275,14 +292,25 @@ public class InMemoryModel extends CommonJsonDbModel
 				}
 			}
 
-			final String itemName = objectPath.getItemName ().toString ();
-			if ( current.has ( itemName ) && null != current.optJSONObject ( itemName ) )
-			{
-				current.remove ( itemName );
-				removeRelnsFor ( objectPath );
+			boolean result = false;
 
-				return true;
+			final String itemName = objectPath.getItemName ().toString ();
+			final JSONObject node = current.optJSONObject ( itemName );
+			if ( node != null )
+			{
+				final JSONObject localData = node.optJSONObject ( kLocalDataNode );
+				if ( localData != null )
+				{
+					node.remove ( kLocalDataNode );
+					removeRelnsFor ( objectPath );
+					result = true;
+				}
 			}
+
+			// now work back upward pruning any empty objects
+			prune ( objectPath );
+
+			return result;
 		}
 		catch ( Exception x )
 		{
@@ -290,7 +318,30 @@ public class InMemoryModel extends CommonJsonDbModel
 			fRoot = rootCopy;
 			throw new ModelServiceException ( x );
 		}
-		return false;
+	}
+
+	private void prune ( Path objectPath )
+	{
+		final LinkedList<AbstractMap.SimpleEntry<String,JSONObject>> components = new LinkedList<> ();
+		
+		// drill down to container
+		JSONObject current = getDataRoot ();
+		for ( Name name : objectPath.getSegments () )
+		{
+			current = current.optJSONObject ( name.toString () );
+			if ( current == null )
+			{
+				break;
+			}
+			components.addFirst ( new AbstractMap.SimpleEntry<String,JSONObject> ( name.toString (), current ) );
+		}
+
+		// test for empty objects and remove them
+		while ( components.size () > 0 && components.getFirst ().getValue ().isEmpty () )
+		{
+			final AbstractMap.SimpleEntry<String,JSONObject> e = components.remove ();
+			components.getFirst ().getValue ().remove ( e.getKey () );
+		}
 	}
 
 	private void removeRelnsFor ( Path objectPath )
@@ -380,6 +431,8 @@ public class InMemoryModel extends CommonJsonDbModel
 	private static final String kObjectsNode = "objects";
 	private static final String kRelnsNode = "relations";
 
+	private static final String kLocalDataNode = "~~local~~";
+	
 	private JSONObject getDataRoot ()
 	{
 		return fRoot.getJSONObject ( kObjectsNode );
@@ -417,19 +470,19 @@ public class InMemoryModel extends CommonJsonDbModel
 		}
 		
 		@Override
-		public ModelObjectList execute ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException
+		public <T> ModelObjectList<T> execute ( ModelRequestContext context, ModelObjectFactory<T> factory, DataAccessor<T> accessor ) throws ModelRequestException, ModelServiceException
 		{
-			final LinkedList<ModelObjectAndPath> result = new LinkedList<> ();
+			final LinkedList<ModelObjectAndPath<T>> result = new LinkedList<> ();
 
 			for ( Path p : collectObjectsUnder ( getPathPrefix () ) )
 			{
-				final ModelObject mo = load ( context, p );
+				final T mo = load ( context, p, factory );
 				if ( mo != null )
 				{
 					boolean match = true;
 					for ( SimpleModelQuery.Filter filter : getFilters () )
 					{
-						if ( !filter.matches ( mo ) )
+						if ( !filter.matches ( accessor.getDataFrom ( mo ) ) )
 						{
 							match = false;
 							break;
@@ -444,15 +497,18 @@ public class InMemoryModel extends CommonJsonDbModel
 			}
 
 			// now sort our list
-			final ModelObjectComparator orderBy = getOrdering ();
+			final Comparator<ModelDataObjectAccess> orderBy = getOrdering ();
 			if ( orderBy != null )
 			{
-				Collections.sort ( result, new java.util.Comparator<ModelObjectAndPath> ()
+				Collections.sort ( result, new java.util.Comparator<ModelObjectAndPath<T>> ()
 				{
 					@Override
-					public int compare ( ModelObjectAndPath o1, ModelObjectAndPath o2 )
+					public int compare ( ModelObjectAndPath<T> o1, ModelObjectAndPath<T> o2 )
 					{
-						return orderBy.compare ( o1.getObject (), o2.getObject () );
+						return orderBy.compare (
+							accessor.getDataFrom ( o1.getObject () ),
+							accessor.getDataFrom ( o2.getObject () )
+						);
 					}
 				} );
 			}
@@ -470,10 +526,10 @@ public class InMemoryModel extends CommonJsonDbModel
 			}
 			
 			// wrap our result
-			return new ModelObjectList ()
+			return new ModelObjectList<T> ()
 			{
 				@Override
-				public Iterator<ModelObjectAndPath> iterator ()
+				public Iterator<ModelObjectAndPath<T>> iterator ()
 				{
 					return result.iterator ();
 				}

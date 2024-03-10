@@ -9,6 +9,7 @@ import io.continual.metrics.MetricsCatalog.PathPopper;
 import io.continual.services.model.core.Model;
 import io.continual.services.model.core.Model.ObjectUpdater;
 import io.continual.services.model.core.ModelRequestContext;
+import io.continual.services.model.core.data.JsonObjectAccess;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.processor.config.readers.ConfigLoadContext;
@@ -54,7 +55,7 @@ public class ModelSink extends ModelConnector implements Sink
 			final Message msg = context.getMessage ();
 
 			// we look for the same fields populated by the modelSource - id, metadata, data
-			final Path path = Path.fromString ( msg.getValueAsString ( "id" ) );
+			final Path path = Path.fromString ( msg.getString ( "id" ) );
 
 			final Model model = getModel ();
 			final ModelRequestContext mrc = model.getRequestContextBuilder ()
@@ -76,7 +77,7 @@ public class ModelSink extends ModelConnector implements Sink
 				ou = ou.replaceAcl ( newAcl );
 			}
 			ou
-				.overwrite ( msg.accessRawJson ().getJSONObject ( "data" ) )
+				.overwrite ( new JsonObjectAccess ( msg.accessRawJson ().getJSONObject ( "data" ) ) )
 				.execute ()
 			;
 		}

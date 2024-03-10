@@ -22,7 +22,6 @@ import java.util.TreeSet;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.iam.identity.Identity;
 import io.continual.services.model.core.ModelNotificationService;
-import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelSchemaRegistry;
 import io.continual.util.naming.Path;
@@ -57,13 +56,14 @@ public class BasicModelRequestContext implements ModelRequestContext
 	}
 
 	@Override
-	public ModelObject get ( Path key )
+	public <T> T get ( Path key, Class<T> clazz )
 	{
-		return fObjects.get ( key );
+		final Object o = fObjects.get ( key );
+		return clazz.cast ( o );
 	}
 
 	@Override
-	public void put ( Path key, ModelObject o )
+	public void put ( Path key, Object o )
 	{
 		fObjects.put ( key, o );
 		fKnownNotToExist.remove ( key );
@@ -106,6 +106,6 @@ public class BasicModelRequestContext implements ModelRequestContext
 	private final ModelSchemaRegistry fSchemaReg;
 	private final ModelNotificationService fNotificationService;
 
-	private final HashMap<Path,ModelObject> fObjects;
+	private final HashMap<Path,Object> fObjects;
 	private final TreeSet<Path> fKnownNotToExist;
 }

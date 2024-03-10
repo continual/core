@@ -27,6 +27,31 @@ import io.continual.util.nv.NvReadable;
 
 public class StringUtils
 {
+	/**
+	 * Return true if the string is not empty.
+	 * @param s
+	 * @return true if the string is not null and not empty
+	 */
+	public static boolean isNotEmpty ( String s )
+	{
+		return s != null && s.length () > 0;
+	}
+
+	/**
+	 * Return true if the string is empty or null
+	 * @param s
+	 * @return true if the string is empty or null
+	 */
+	public static boolean isEmpty ( String s )
+	{
+		return !isNotEmpty ( s );
+	}
+
+	/**
+	 * If the input string is null, return an empty string. Otherwise return the input string.
+	 * @param s
+	 * @return a non-null string
+	 */
 	public static String emptyIfNull ( String s )
 	{
 		return s == null ? "" : s;
