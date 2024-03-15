@@ -98,12 +98,13 @@ public interface ModelQuery
 	{
 		return execute (
 			context,
-			new ModelObjectAutoFactory<BasicModelObject> ( BasicModelObject.class ),
+			new ModelObjectAutoFactory<BasicModelObject,Object> ( BasicModelObject.class ),
 			new DataAccessor<BasicModelObject> ()
 			{
 				@Override
 				public ModelObject getDataFrom ( BasicModelObject obj ) { return obj.getData (); }
-			}
+			},
+			null
 		);
 	}
 
@@ -121,9 +122,10 @@ public interface ModelQuery
 	 * @param context a model request context
 	 * @param factory
 	 * @param accessor
+	 * @param userContext
 	 * @return a object list
 	 * @throws ModelRequestException
 	 * @throws ModelServiceException
 	 */
-	<T> ModelObjectList<T> execute ( ModelRequestContext context, ModelObjectFactory<T> factory, DataAccessor<T> accessor ) throws ModelRequestException, ModelServiceException;
+	<T,K> ModelObjectList<T> execute ( ModelRequestContext context, ModelObjectFactory<T,K> factory, DataAccessor<T> accessor, K userContext ) throws ModelRequestException, ModelServiceException;
 }

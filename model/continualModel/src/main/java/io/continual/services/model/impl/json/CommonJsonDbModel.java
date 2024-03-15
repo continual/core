@@ -128,7 +128,7 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 	}
 
 	@Override
-	public <T> T load ( ModelRequestContext context, Path objectPath, ModelObjectFactory<T> factory ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
+	public <T,K> T load ( ModelRequestContext context, Path objectPath, ModelObjectFactory<T,K> factory, K userContext ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
 		if ( context.knownToNotExist ( objectPath ) )
 		{
@@ -147,7 +147,23 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 			context.put ( objectPath, ld );
 		}
 
-		return factory.create ( objectPath, ld.getMetadata (), ld.getObjectData () );
+		final ModelDataTransfer ldf = ld;
+		final ModelObjectFactory.ObjectCreateContext<K> createContext = new ModelObjectFactory.ObjectCreateContext<K> ()
+		{
+			@Override
+			public Path getPath () { return objectPath; }
+
+			@Override
+			public ModelObjectMetadata getMetadata () { return ldf.getMetadata (); }
+
+			@Override
+			public ModelObject getData () { return ldf.getObjectData (); }
+
+			@Override
+			public K getUserContext () { return userContext; }
+		};
+		
+		return factory.create ( createContext );
 	}
 
 	@Override

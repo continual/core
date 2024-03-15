@@ -23,6 +23,9 @@ import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRelationList;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelTraversal;
+import io.continual.services.model.core.data.ModelObject;
+import io.continual.services.model.core.ModelObjectFactory.ObjectCreateContext;
+import io.continual.services.model.core.ModelObjectMetadata;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
@@ -240,20 +243,20 @@ public class DelegatingModel extends SimpleService implements Model
 	}
 
 	@Override
-	public <T> T load ( ModelRequestContext context, Path objectPath, ModelObjectFactory<T> factory ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
+	public <T,K> T load ( ModelRequestContext context, Path objectPath, ModelObjectFactory<T,K> factory, K userContext ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
 		final ModelMount mm = getModelForPath ( objectPath );
 
 		// if the requested path is in a delegated model, just forward the request
 		if ( mm.getModel () != this )
 		{
-			return mm.getModel ().load ( context, mm.getPathWithinModel ( objectPath ), factory );
+			return mm.getModel ().load ( context, mm.getPathWithinModel ( objectPath ), factory, userContext );
 		}
 
 		// or if it's part of the backing model
 		if ( !objectPath.isRootPath () && fBackingModel.exists ( context, objectPath ) )
 		{
-			return fBackingModel.load ( context, objectPath, factory );
+			return fBackingModel.load ( context, objectPath, factory, userContext );
 		}
 
 		// here, the path is a partial path that may contain model mounts (including "/")
@@ -292,7 +295,20 @@ public class DelegatingModel extends SimpleService implements Model
 		}
 
 		final CommonDataTransfer ld = CommonJsonDbObjectContainer.createObjectContainer ( objectPath, result );
-		return factory.create ( objectPath, ld.getMetadata (), ld.getObjectData () );
+		return factory.create ( new ObjectCreateContext<K> ()
+		{
+			@Override
+			public Path getPath () { return objectPath; }
+
+			@Override
+			public ModelObjectMetadata getMetadata () { return ld.getMetadata (); }
+
+			@Override
+			public ModelObject getData () { return ld.getObjectData (); }
+
+			@Override
+			public K getUserContext () { return userContext; }
+		} );
 	}
 
 	@Override

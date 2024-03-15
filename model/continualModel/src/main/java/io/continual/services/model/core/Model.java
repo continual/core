@@ -131,7 +131,23 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	 */
 	default <T> T load ( ModelRequestContext context, Path objectPath, Class<T> clazz ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
-		return load ( context, objectPath, new ModelObjectAutoFactory<T> ( clazz ) );
+		return load ( context, objectPath, new ModelObjectAutoFactory<T,Object> ( clazz ), null );
+	}
+
+	/**
+	 * Load an object into the given class
+	 * @param context
+	 * @param objectPath
+	 * @param clazz
+	 * @param userContext
+	 * @return an object
+	 * @throws ModelItemDoesNotExistException
+	 * @throws ModelServiceException
+	 * @throws ModelRequestException
+	 */
+	default <T,K> T load ( ModelRequestContext context, Path objectPath, Class<T> clazz, K userContext ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
+	{
+		return load ( context, objectPath, new ModelObjectAutoFactory<T,K> ( clazz ), userContext );
 	}
 
 	/**
@@ -139,12 +155,13 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	 * @param context
 	 * @param objectPath
 	 * @param factory
+	 * @param userContext
 	 * @return an object
 	 * @throws ModelItemDoesNotExistException
 	 * @throws ModelServiceException
 	 * @throws ModelRequestException
 	 */
-	<T> T load ( ModelRequestContext context, Path objectPath, ModelObjectFactory<T> factory ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException;
+	<T,K> T load ( ModelRequestContext context, Path objectPath, ModelObjectFactory<T,K> factory, K userContext ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException;
 
 	/**
 	 * An object updater

@@ -18,7 +18,9 @@ import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRelationList;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelTraversal;
+import io.continual.services.model.core.ModelObjectFactory.ObjectCreateContext;
 import io.continual.services.model.core.data.JsonModelObject;
+import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
@@ -124,9 +126,9 @@ public class CollatzSequence extends ReadOnlyModel
 		@Override
 		public long getLastUpdateTimeMs () { return 0L; }
 	};
-	
+
 	@Override
-	public <T> T load ( ModelRequestContext context, Path objectPath, ModelObjectFactory<T> factory ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
+	public <T,K> T load ( ModelRequestContext context, Path objectPath, ModelObjectFactory<T,K> factory, K userContext ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
 		if ( !exists ( context, objectPath ) )
 		{
@@ -139,7 +141,20 @@ public class CollatzSequence extends ReadOnlyModel
 			data.put ( "number", getNumberFrom ( objectPath ) );
 		}
 
-		return factory.create ( objectPath, kMeta, new JsonModelObject ( data ) );
+		return factory.create ( new ObjectCreateContext<K> ()
+		{
+			@Override
+			public Path getPath () { return objectPath; }
+
+			@Override
+			public ModelObjectMetadata getMetadata () { return kMeta; }
+
+			@Override
+			public ModelObject getData () { return new JsonModelObject ( data ); }
+
+			@Override
+			public K getUserContext () { return userContext; }
+		} );
 	}
 
 	@Override

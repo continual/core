@@ -10,6 +10,7 @@ import org.json.JSONObject;
 import io.continual.iam.access.AccessControlEntry;
 import io.continual.iam.access.AccessControlList;
 import io.continual.services.model.core.ModelObjectFactory;
+import io.continual.services.model.core.ModelObjectFactory.ObjectCreateContext;
 import io.continual.services.model.core.ModelObjectMetadata;
 import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelQuery;
@@ -18,6 +19,7 @@ import io.continual.services.model.core.ModelRelationList;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelTraversal;
 import io.continual.services.model.core.data.JsonModelObject;
+import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
@@ -125,7 +127,7 @@ public class FibonacciSequence extends ReadOnlyModel
 	};
 
 	@Override
-	public <T> T load ( ModelRequestContext context, Path objectPath, ModelObjectFactory<T> factory ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
+	public <T,K> T load ( ModelRequestContext context, Path objectPath, ModelObjectFactory<T,K> factory, K userContext ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
 		if ( !exists ( context, objectPath ) )
 		{
@@ -138,7 +140,20 @@ public class FibonacciSequence extends ReadOnlyModel
 			data.put ( "number", getNumberFrom ( objectPath ) );
 		}
 
-		return factory.create ( objectPath, kMeta, new JsonModelObject ( data ) );
+		return factory.create ( new ObjectCreateContext<K> ()
+		{
+			@Override
+			public Path getPath () { return objectPath; }
+
+			@Override
+			public ModelObjectMetadata getMetadata () { return kMeta; }
+
+			@Override
+			public ModelObject getData () { return new JsonModelObject ( data ); }
+
+			@Override
+			public K getUserContext () { return userContext; }
+		} );
 	}
 
 	@Override

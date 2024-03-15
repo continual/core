@@ -128,9 +128,9 @@ public class SubpathWrapperModel extends SimpleService implements Model
 	}
 
 	@Override
-	public <T> T load ( ModelRequestContext context, Path objectPath, ModelObjectFactory<T> factory ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
+	public <T,K> T load ( ModelRequestContext context, Path objectPath, ModelObjectFactory<T,K> factory, K userContext ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
-		return fBackingModel.load ( context, userPathToBackingModel ( objectPath ), factory );
+		return fBackingModel.load ( context, userPathToBackingModel ( objectPath ), factory, userContext );
 	}
 
 	@Override

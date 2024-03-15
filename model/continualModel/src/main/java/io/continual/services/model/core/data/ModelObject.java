@@ -41,8 +41,19 @@ public interface ModelObject
 	 */
 	default String getString ( String key )
 	{
+		return optString ( key, null );
+	}
+
+	/**
+	 * Get an optional value as a string
+	 * @param key
+	 * @param defval 
+	 * @return the value, or defval if the key doesnt exist
+	 */
+	default String optString ( String key, String defval )
+	{
 		final Object val = get ( key );
-		return val == null ? null : (String) val;
+		return val == null ? defval : (String) val;
 	}
 
 	/**
@@ -65,6 +76,29 @@ public interface ModelObject
 	default Number getNumber ( String key )
 	{
 		return (Number) get ( key );
+	}
+
+	/**
+	 * Get a value as a long
+	 * @param key
+	 * @return a long value
+	 * @throws ClassCastException
+	 */
+	default Long getLong ( String key )
+	{
+		return optLong ( key, null );
+	}
+
+	/**
+	 * Get a value as a long or return the default value provided if it does not exist as a key.
+	 * @param key
+	 * @param defval
+	 * @return a long
+	 */
+	default Long optLong ( String key, Long defval )
+	{
+		final Number n = getNumber ( key );
+		return n == null ? defval : n.longValue ();
 	}
 
 	/**
@@ -93,7 +127,6 @@ public interface ModelObject
 	 */
 	default Iterable<Entry<String, Object>> entrySet ()
 	{
-		// simple implementation: just make a map and return its entry set
 		final HashMap<String,Object> map = new HashMap<> ();
 		for ( String key : getKeys () )
 		{

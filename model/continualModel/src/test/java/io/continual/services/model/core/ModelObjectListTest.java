@@ -2,11 +2,11 @@ package io.continual.services.model.core;
 
 import java.util.Iterator;
 
-import org.json.JSONObject;
 import org.junit.Test;
 
 import io.continual.services.model.core.data.BasicModelObject;
 import io.continual.services.model.core.data.JsonModelObject;
+import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.impl.json.CommonModelObjectMetadata;
 import io.continual.util.naming.Path;
 import junit.framework.TestCase;
@@ -91,6 +91,21 @@ public class ModelObjectListTest extends TestCase
 
 	private static BasicModelObject makeObj ()
 	{
-		return new BasicModelObject ( Path.getRootPath (), new CommonModelObjectMetadata(), new JsonModelObject ( new JSONObject () ) );
+		final ModelObjectFactory.ObjectCreateContext<?> occ = new ModelObjectFactory.ObjectCreateContext<Object> ()
+		{
+			@Override
+			public Path getPath () { return Path.getRootPath (); }
+
+			@Override
+			public ModelObjectMetadata getMetadata () { return new CommonModelObjectMetadata(); }
+
+			@Override
+			public ModelObject getData () { return new JsonModelObject (); }
+
+			@Override
+			public Object getUserContext () { return null; }
+		};
+		
+		return new BasicModelObject ( occ );
 	}
 }

@@ -537,13 +537,13 @@ public class SingleFileModel extends CommonJsonDbModel
 		}
 		
 		@Override
-		public <T> ModelObjectList<T> execute ( ModelRequestContext context, ModelObjectFactory<T> factory, DataAccessor<T> accessor ) throws ModelRequestException, ModelServiceException
+		public <T,K> ModelObjectList<T> execute ( ModelRequestContext context, ModelObjectFactory<T,K> factory, DataAccessor<T> accessor, K userContext ) throws ModelRequestException, ModelServiceException
 		{
 			final LinkedList<ModelObjectAndPath<T>> result = new LinkedList<> ();
 
 			for ( Path p : collectObjectsUnder ( getPathPrefix () ) )
 			{
-				final T mo = load ( context, p, factory );
+				final T mo = load ( context, p, factory, userContext );
 				if ( mo != null )
 				{
 					boolean match = true;

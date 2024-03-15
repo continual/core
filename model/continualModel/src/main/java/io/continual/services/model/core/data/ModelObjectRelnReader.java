@@ -27,9 +27,9 @@ public interface ModelObjectRelnReader
 	 * @throws ModelRequestException
 	 * @throws ModelServiceException 
 	 */
-	default <T> Set<T> getRemoteObjects ( Class<T> clazz ) throws ModelRequestException, ModelServiceException
+	default <T,K> Set<T> getRemoteObjects ( Class<T> clazz ) throws ModelRequestException, ModelServiceException
 	{
-		return getRemoteObjects ( new ModelObjectAutoFactory<T> ( clazz ) );
+		return getRemoteObjects ( new ModelObjectAutoFactory<T,K> ( clazz ) );
 	}
 
 	/**
@@ -40,7 +40,7 @@ public interface ModelObjectRelnReader
 	 * @throws ModelRequestException
 	 * @throws ModelServiceException 
 	 */
-	<T> Set<T> getRemoteObjects ( ModelObjectFactory<T> factory ) throws ModelRequestException, ModelServiceException;
+	<T,K> Set<T> getRemoteObjects ( ModelObjectFactory<T,K> factory ) throws ModelRequestException, ModelServiceException;
 
 	/**
 	 * Return a generic empty accessor
@@ -54,7 +54,7 @@ public interface ModelObjectRelnReader
 			public Set<Path> getRemoteObjects () { return new TreeSet<> (); }
 
 			@Override
-			public <T> Set<T> getRemoteObjects ( ModelObjectFactory<T> factory ) { return new TreeSet<> (); }
+			public <T,K> Set<T> getRemoteObjects ( ModelObjectFactory<T,K> factory ) { return new TreeSet<> (); }
 		};
 	}
 

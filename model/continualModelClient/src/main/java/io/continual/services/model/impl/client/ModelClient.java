@@ -43,7 +43,9 @@ import io.continual.services.SimpleService;
 import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelObjectAndPath;
 import io.continual.services.model.core.ModelObjectFactory;
+import io.continual.services.model.core.ModelObjectFactory.ObjectCreateContext;
 import io.continual.services.model.core.ModelObjectList;
+import io.continual.services.model.core.ModelObjectMetadata;
 import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRelation;
@@ -329,7 +331,7 @@ public class ModelClient extends SimpleService implements Model
 	}
 
 	@Override
-	public <T> T load ( ModelRequestContext context, Path objectPath, ModelObjectFactory<T> factory ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
+	public <T,K> T load ( ModelRequestContext context, Path objectPath, ModelObjectFactory<T,K> factory, K userContext ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
 		// check if the cache knows there's no such object
 		if ( context.knownToNotExist ( objectPath ) )
@@ -379,7 +381,21 @@ public class ModelClient extends SimpleService implements Model
 		}
 
 		// now create the instance
-		return factory.create ( objectPath, ld.getMetadata (), ld.getObjectData () );
+		final CommonDataTransfer ldf = ld;
+		return factory.create ( new ObjectCreateContext<K> ()
+		{
+			@Override
+			public Path getPath () { return objectPath; }
+
+			@Override
+			public ModelObjectMetadata getMetadata () { return ldf.getMetadata (); }
+
+			@Override
+			public ModelObject getData () { return ldf.getObjectData (); }
+
+			@Override
+			public K getUserContext () { return userContext; }
+		} );
 	}
 
 	@Override
@@ -636,14 +652,14 @@ public class ModelClient extends SimpleService implements Model
 	private class RemoteModelQuery extends SimpleModelQuery
 	{
 		@Override
-		public <T> ModelObjectList<T> execute ( ModelRequestContext context, ModelObjectFactory<T> factory, DataAccessor<T> accessor ) throws ModelRequestException, ModelServiceException
+		public <T,K> ModelObjectList<T> execute ( ModelRequestContext context, ModelObjectFactory<T,K> factory, DataAccessor<T> accessor, K userContext ) throws ModelRequestException, ModelServiceException
 		{
 			final LinkedList<ModelObjectAndPath<T>> result = new LinkedList<> ();
 
 			final ModelPathList objectPaths = listChildrenOfPath ( context, getPathPrefix () );
 			for ( Path objectPath : objectPaths )
 			{
-				final T mo = load ( context, objectPath, factory );
+				final T mo = load ( context, objectPath, factory, userContext );
 				boolean match = true;
 				for ( Filter f : getFilters() )
 				{

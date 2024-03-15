@@ -1,17 +1,17 @@
 package io.continual.services.model.core.data;
 
+import io.continual.services.model.core.ModelObjectFactory;
 import io.continual.services.model.core.ModelObjectMetadata;
-import io.continual.util.naming.Path;
 
 /**
  * A straightforward data access object.
  */
 public class BasicModelObject
 {
-	public BasicModelObject ( Path p, ModelObjectMetadata meta, ModelObject data )
+	public BasicModelObject ( ModelObjectFactory.ObjectCreateContext<?> occ )
 	{
-		fMetadata = meta;
-		fOrigData = data;
+		fMetadata = occ.getMetadata ();
+		fOrigData = occ.getData ();
 	}
 
 	/**

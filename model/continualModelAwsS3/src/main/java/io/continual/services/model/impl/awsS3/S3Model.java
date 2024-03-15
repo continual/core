@@ -311,27 +311,27 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	private class S3ModelQuery extends SimpleModelQuery
 	{
 		@Override
-		public <T> ModelObjectList<T> execute ( ModelRequestContext context, ModelObjectFactory<T> factory, DataAccessor<T> accessor ) throws ModelRequestException, ModelServiceException
+		public <T,K> ModelObjectList<T> execute ( ModelRequestContext context, ModelObjectFactory<T,K> factory, DataAccessor<T> accessor, K userContext ) throws ModelRequestException, ModelServiceException
 		{
 			Comparator<ModelObject> orderBy = getOrdering ();
 			if ( orderBy != null )
 			{
-				return fullLoad ( context, factory, accessor );
+				return fullLoad ( context, factory, accessor, userContext );
 			}
 			else
 			{
-				return streamLoad ( context, factory, accessor );
+				return streamLoad ( context, factory, accessor, userContext );
 			}
 		}
 
-		private <T> ModelObjectList<T> fullLoad ( ModelRequestContext context, ModelObjectFactory<T> factory, DataAccessor<T> accessor ) throws ModelRequestException, ModelServiceException
+		private <T,K> ModelObjectList<T> fullLoad ( ModelRequestContext context, ModelObjectFactory<T,K> factory, DataAccessor<T> accessor, K userContext ) throws ModelRequestException, ModelServiceException
 		{
 			final LinkedList<ModelObjectAndPath<T>> result = new LinkedList<> ();
 
 			final ModelPathList objectPaths = listChildrenOfPath ( context, getPathPrefix () );
 			for ( Path objectPath : objectPaths )
 			{
-				final T mo = load ( context, objectPath, factory );
+				final T mo = load ( context, objectPath, factory, userContext );
 				boolean match = true;
 				for ( Filter f : getFilters() )
 				{
@@ -374,7 +374,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 			};
 		}
 
-		private <T> ModelObjectList<T> streamLoad ( ModelRequestContext context, ModelObjectFactory<T> factory, DataAccessor<T> accessor ) throws ModelRequestException, ModelServiceException
+		private <T,K> ModelObjectList<T> streamLoad ( ModelRequestContext context, ModelObjectFactory<T,K> factory, DataAccessor<T> accessor, K userContext ) throws ModelRequestException, ModelServiceException
 		{
 			final ModelPathList objectPaths = listChildrenOfPath ( context, getPathPrefix () );
 			final Iterator<Path> paths = objectPaths.iterator ();
@@ -402,7 +402,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 								final Path p = paths.next ();
 								try
 								{
-									final T mo = load ( context, p, factory );
+									final T mo = load ( context, p, factory, userContext );
 									boolean match = true;
 									for ( Filter f : getFilters() )
 									{
