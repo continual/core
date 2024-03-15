@@ -65,7 +65,7 @@ import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRequestContext;
-import io.continual.services.model.core.data.ModelDataObjectAccess;
+import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
@@ -313,7 +313,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		@Override
 		public <T> ModelObjectList<T> execute ( ModelRequestContext context, ModelObjectFactory<T> factory, DataAccessor<T> accessor ) throws ModelRequestException, ModelServiceException
 		{
-			Comparator<ModelDataObjectAccess> orderBy = getOrdering ();
+			Comparator<ModelObject> orderBy = getOrdering ();
 			if ( orderBy != null )
 			{
 				return fullLoad ( context, factory, accessor );
@@ -348,7 +348,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 			}
 
 			// now sort our list
-			Comparator<ModelDataObjectAccess> orderBy = getOrdering ();
+			Comparator<ModelObject> orderBy = getOrdering ();
 			if ( orderBy != null )
 			{
 				Collections.sort ( result, new java.util.Comparator<ModelObjectAndPath<T>> ()

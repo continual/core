@@ -4,8 +4,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
 
-import io.continual.services.model.core.data.JsonObjectAccess;
-import io.continual.services.model.core.data.ModelDataObjectAccess;
+import io.continual.services.model.core.data.JsonModelObject;
+import io.continual.services.model.core.data.ModelObject;
 import junit.framework.TestCase;
 
 public class FieldValueEqualsTest extends TestCase
@@ -15,13 +15,13 @@ public class FieldValueEqualsTest extends TestCase
 	{
 		final FieldValueEquals fve = new FieldValueEquals ( "foo", 123 );
 
-		ModelDataObjectAccess mdoa = new JsonObjectAccess ( new JSONObject () );
+		ModelObject mdoa = new JsonModelObject ( new JSONObject () );
 		assertFalse ( fve.matches ( mdoa ) );
 
-		mdoa = new JsonObjectAccess ( new JSONObject ().put ( "foo", "bar" ) );
+		mdoa = new JsonModelObject ( new JSONObject ().put ( "foo", "bar" ) );
 		assertFalse ( fve.matches ( mdoa ) );
 
-		mdoa = new JsonObjectAccess ( new JSONObject ().put ( "foo", 123 ) );
+		mdoa = new JsonModelObject ( new JSONObject ().put ( "foo", 123 ) );
 		assertTrue ( fve.matches ( mdoa ) );
 	}
 
@@ -30,13 +30,13 @@ public class FieldValueEqualsTest extends TestCase
 	{
 		final FieldValueEquals fve = new FieldValueEquals ( "foo.bar", 123 );
 
-		ModelDataObjectAccess mdoa = new JsonObjectAccess ( new JSONObject () );
+		ModelObject mdoa = new JsonModelObject ( new JSONObject () );
 		assertFalse ( fve.matches ( mdoa ) );
 
-		mdoa = new JsonObjectAccess ( new JSONObject ().put ( "foo", "bar" ) );
+		mdoa = new JsonModelObject ( new JSONObject ().put ( "foo", "bar" ) );
 		assertFalse ( fve.matches ( mdoa ) );
 
-		mdoa = new JsonObjectAccess ( new JSONObject ().put ( "foo", new JSONObject ().put ( "bar", 123 ) ) );
+		mdoa = new JsonModelObject ( new JSONObject ().put ( "foo", new JSONObject ().put ( "bar", 123 ) ) );
 		assertTrue ( fve.matches ( mdoa ) );
 	}
 
@@ -45,16 +45,16 @@ public class FieldValueEqualsTest extends TestCase
 	{
 		final FieldValueEquals fve = new FieldValueEquals ( "foo.bar[2]", 123 );
 
-		ModelDataObjectAccess mdoa = new JsonObjectAccess ( new JSONObject () );
+		ModelObject mdoa = new JsonModelObject ( new JSONObject () );
 		assertFalse ( fve.matches ( mdoa ) );
 
-		mdoa = new JsonObjectAccess ( new JSONObject ().put ( "foo", "bar" ) );
+		mdoa = new JsonModelObject ( new JSONObject ().put ( "foo", "bar" ) );
 		assertFalse ( fve.matches ( mdoa ) );
 
-		mdoa = new JsonObjectAccess ( new JSONObject ().put ( "foo", new JSONObject ().put ( "bar", 123 ) ) );
+		mdoa = new JsonModelObject ( new JSONObject ().put ( "foo", new JSONObject ().put ( "bar", 123 ) ) );
 		assertFalse ( fve.matches ( mdoa ) );
 
-		mdoa = new JsonObjectAccess ( new JSONObject ().put ( "foo", new JSONObject ().put ( "bar", new JSONArray ().put ( 0 ).put ( 1 ).put ( 123 ) ) ) );
+		mdoa = new JsonModelObject ( new JSONObject ().put ( "foo", new JSONObject ().put ( "bar", new JSONArray ().put ( 0 ).put ( 1 ).put ( 123 ) ) ) );
 		assertTrue ( fve.matches ( mdoa ) );
 	}
 }

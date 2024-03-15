@@ -1,11 +1,18 @@
-package io.continual.services.model.core.data;
+package io.continual.services.model.impl.common;
 
+import io.continual.services.model.core.data.JsonModelList;
+import io.continual.services.model.core.data.JsonModelObject;
+import io.continual.services.model.core.data.ModelList;
+import io.continual.services.model.core.data.ModelObject;
 import io.continual.util.data.TypeConvertor;
 import io.continual.util.data.exprEval.ExprDataSource;
 
-public class ModelDataObjectExprSource implements ExprDataSource
+/**
+ * Use a Model data object as a data source for expression evaluation
+ */
+public class ModelObjectExprSource implements ExprDataSource
 {
-	public ModelDataObjectExprSource ( ModelDataObjectAccess obj )
+	public ModelObjectExprSource ( ModelObject obj )
 	{
 		fObj = obj;
 	}
@@ -23,7 +30,7 @@ public class ModelDataObjectExprSource implements ExprDataSource
 	 * @param expression an expression to evaluate
 	 * @return a string
 	 */
-	public static String evalToString ( ModelDataObjectAccess root, String expression )
+	public static String evalToString ( ModelObject root, String expression )
 	{
 		final Object result = eval ( root, expression );
 		if ( result == null ) return "";
@@ -40,7 +47,7 @@ public class ModelDataObjectExprSource implements ExprDataSource
 	 * @param expression an expression to evaluate
 	 * @return true or false
 	 */
-	public static boolean evalToBoolean ( ModelDataObjectAccess root, String expression )
+	public static boolean evalToBoolean ( ModelObject root, String expression )
 	{
 		final Object result = eval ( root, expression );
 		if ( result == null ) return false;
@@ -63,7 +70,7 @@ public class ModelDataObjectExprSource implements ExprDataSource
 	 * @param defaultValue the default int value to use if the evaluation results in null
 	 * @return an integer
 	 */
-	public static int evalToInt ( ModelDataObjectAccess root, String expression, int defaultValue )
+	public static int evalToInt ( ModelObject root, String expression, int defaultValue )
 	{
 		final Object result = eval ( root, expression );
 		if ( result == null ) return defaultValue;
@@ -86,7 +93,7 @@ public class ModelDataObjectExprSource implements ExprDataSource
 	 * @param defaultValue the default int value to use if the evaluation results in null
 	 * @return an integer
 	 */
-	public static long evalToLong ( ModelDataObjectAccess root, String expression, long defaultValue )
+	public static long evalToLong ( ModelObject root, String expression, long defaultValue )
 	{
 		final Object result = eval ( root, expression );
 		if ( result == null ) return defaultValue;
@@ -109,7 +116,7 @@ public class ModelDataObjectExprSource implements ExprDataSource
 	 * @param defaultValue the default double value to use if the evaluation results in null
 	 * @return a double
 	 */
-	public static double evalToDouble ( ModelDataObjectAccess root, String expression, double defaultValue )
+	public static double evalToDouble ( ModelObject root, String expression, double defaultValue )
 	{
 		final Object result = eval ( root, expression );
 		if ( result == null ) return defaultValue;
@@ -129,13 +136,13 @@ public class ModelDataObjectExprSource implements ExprDataSource
 	 * @param expression an expression to evaluate
 	 * @return an object, which is empty if none exists at the expression
 	 */
-	public static ModelDataObjectAccess evalToObject ( ModelDataObjectAccess root, String expression ) throws IllegalArgumentException
+	public static ModelObject evalToObject ( ModelObject root, String expression ) throws IllegalArgumentException
 	{
 		final Object result = eval ( root, expression );
-		if ( result == null ) return ModelDataObjectAccess.emptyMap ();
-		if ( result instanceof ModelDataObjectAccess )
+		if ( result == null ) return new JsonModelObject ();
+		if ( result instanceof ModelObject )
 		{
-			return (ModelDataObjectAccess) result;
+			return (ModelObject) result;
 		}
 		throw new IllegalArgumentException ( expression + " is not an object." );
 	}
@@ -149,18 +156,18 @@ public class ModelDataObjectExprSource implements ExprDataSource
 	 * @param expression an expression to evaluate
 	 * @return a list, which is empty if none exists at the expression
 	 */
-	public static ModelDataListAccess evalToArray ( ModelDataObjectAccess root, String expression ) throws IllegalArgumentException
+	public static ModelList evalToArray ( ModelObject root, String expression ) throws IllegalArgumentException
 	{
 		final Object result = eval ( root, expression );
-		if ( result == null ) return ModelDataListAccess.emptyList ();
-		if ( result instanceof ModelDataListAccess )
+		if ( result == null ) return new JsonModelList ();
+		if ( result instanceof ModelList )
 		{
-			return (ModelDataListAccess) result;
+			return (ModelList) result;
 		}
 		throw new IllegalArgumentException ( expression + " is not a list." );
 	}
 
-	private static Object eval ( ModelDataObjectAccess root, String expression )
+	private static Object eval ( ModelObject root, String expression )
 	{
 		final String[] parts = expression.split ( "\\." );
 		if ( parts.length == 1 )
@@ -169,7 +176,7 @@ public class ModelDataObjectExprSource implements ExprDataSource
 		}
 		else
 		{
-			final ModelDataObjectAccess o = evalToContainer ( root, parts[0] );
+			final ModelObject o = evalToContainer ( root, parts[0] );
 			if ( o != null )
 			{
 				return eval ( o, expression.substring ( expression.indexOf ( '.' ) + 1 ) );
@@ -178,9 +185,9 @@ public class ModelDataObjectExprSource implements ExprDataSource
 		return null;
 	}
 
-	private final ModelDataObjectAccess fObj;
+	private final ModelObject fObj;
 
-	private static Object evalToValue ( ModelDataObjectAccess root, String term )
+	private static Object evalToValue ( ModelObject root, String term )
 	{
 		final int openBrace = term.indexOf ( '[' );
 		if ( openBrace > -1 && term.endsWith ( "]" ))		// note: foo[0[1]] would pass
@@ -193,15 +200,15 @@ public class ModelDataObjectExprSource implements ExprDataSource
 		}
 	}
 
-	private static ModelDataObjectAccess evalToContainer ( ModelDataObjectAccess root, String term )
+	private static ModelObject evalToContainer ( ModelObject root, String term )
 	{
 		final int openBrace = term.indexOf ( '[' );
 		if ( openBrace > -1 && term.endsWith ( "]" ))		// note: foo[0[1]] would pass
 		{
 			final Object element = termToArrayValue ( root, term );
-			if ( element instanceof ModelDataObjectAccess )
+			if ( element instanceof ModelObject )
 			{
-				return (ModelDataObjectAccess) element;
+				return (ModelObject) element;
 			}
 		}
 		else
@@ -219,7 +226,7 @@ public class ModelDataObjectExprSource implements ExprDataSource
 		return null;
 	}
 
-	private static Object termToArrayValue ( ModelDataObjectAccess root, String term )
+	private static Object termToArrayValue ( ModelObject root, String term )
 	{
 		final int openBrace = term.indexOf ( '[' );
 		if ( openBrace > -1 && term.endsWith ( "]" ))		// note: foo[0[1]] would pass
@@ -227,7 +234,7 @@ public class ModelDataObjectExprSource implements ExprDataSource
 			final String key = term.substring ( 0, openBrace );
 			try
 			{
-				final ModelDataListAccess a = root.getList ( key );
+				final ModelList a = root.getList ( key );
 				if ( a != null )
 				{
 					try

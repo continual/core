@@ -50,8 +50,8 @@ import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelTraversal;
-import io.continual.services.model.core.data.ModelDataObjectAccess;
-import io.continual.services.model.core.data.ModelDataToJson;
+import io.continual.services.model.core.data.JsonModelObject;
+import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelSchemaViolationException;
@@ -388,14 +388,14 @@ public class ModelClient extends SimpleService implements Model
 		return new ObjectUpdater ()
 		{
 			@Override
-			public ObjectUpdater overwrite ( ModelDataObjectAccess withData )
+			public ObjectUpdater overwrite ( ModelObject withData )
 			{
 				fUpdates.add ( new Update ( objectPath, UpdateType.OVERWRITE, withData ) );
 				return this;
 			}
 
 			@Override
-			public ObjectUpdater merge ( ModelDataObjectAccess withData )
+			public ObjectUpdater merge ( ModelObject withData )
 			{
 				fUpdates.add ( new Update ( objectPath, UpdateType.MERGE, withData ) );
 				return this;
@@ -434,7 +434,7 @@ public class ModelClient extends SimpleService implements Model
 	}
 	private class Update
 	{
-		public Update ( Path path, UpdateType ut, ModelDataObjectAccess data )
+		public Update ( Path path, UpdateType ut, ModelObject data )
 		{
 			fPath = path;
 			fType = ut;
@@ -456,8 +456,8 @@ public class ModelClient extends SimpleService implements Model
 
 			try ( 
 				final HttpResponse resp = fType == UpdateType.OVERWRITE ?
-					req.put ( ModelDataToJson.translate ( fData ) ) :
-					req.patch ( ModelDataToJson.translate ( fData ) )
+					req.put ( JsonModelObject.modelObjectToJson ( fData ) ) :
+					req.patch ( JsonModelObject.modelObjectToJson ( fData ) )
 			)
 			{
 				if ( resp.isClientError () )
@@ -487,7 +487,7 @@ public class ModelClient extends SimpleService implements Model
 
 		private final Path fPath;
 		private final UpdateType fType;
-		private final ModelDataObjectAccess fData;
+		private final ModelObject fData;
 //		private final AccessControlList fAcl;
 	}
 
@@ -660,7 +660,7 @@ public class ModelClient extends SimpleService implements Model
 			}
 
 			// now sort our list
-			Comparator<ModelDataObjectAccess> orderBy = getOrdering ();
+			Comparator<ModelObject> orderBy = getOrdering ();
 			if ( orderBy != null )
 			{
 				Collections.sort ( result, new Comparator<ModelObjectAndPath<T>> ()

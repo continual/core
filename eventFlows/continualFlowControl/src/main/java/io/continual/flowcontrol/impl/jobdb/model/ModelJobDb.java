@@ -33,8 +33,7 @@ import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.data.BasicModelObject;
-import io.continual.services.model.core.data.JsonObjectAccess;
-import io.continual.services.model.core.data.ModelDataToJson;
+import io.continual.services.model.core.data.JsonModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
@@ -196,7 +195,7 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 			final Path path = jobNameToPath ( name );
 
 			fModel.createUpdate ( mrc, path )
-				.overwrite ( new JsonObjectAccess ( ((ModelFcJob)job).toJson() ) )
+				.overwrite ( new JsonModelObject ( ((ModelFcJob)job).toJson() ) )
 				.execute ()
 			;
 
@@ -341,7 +340,7 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 
 		public ModelFcJob ( String name, BasicModelObject mo )
 		{
-			super ( name, fEnc, ModelDataToJson.translate ( mo.getData() ) );
+			super ( name, fEnc, JsonModelObject.modelObjectToJson ( mo.getData() ) );
 		}
 	}
 

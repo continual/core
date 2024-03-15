@@ -11,7 +11,7 @@ import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelTraversal;
 import io.continual.services.model.core.data.BasicModelObject;
-import io.continual.services.model.core.data.ModelDataObjectAccess;
+import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.util.naming.Path;
@@ -120,7 +120,7 @@ public class SimpleTraversal implements ModelTraversal
 	}
 
 	@Override
-	public ModelTraversal filterSet ( ModelItemFilter<ModelDataObjectAccess> filter )
+	public ModelTraversal filterSet ( ModelItemFilter<ModelObject> filter )
 	{
 		fSteps.add ( new Step ()
 		{
@@ -130,7 +130,7 @@ public class SimpleTraversal implements ModelTraversal
 				for ( Path p : sc.fCurrentSet )
 				{
 					final BasicModelObject mo = fModel.load ( sc.fMrc, p );
-					final ModelDataObjectAccess moda = mo.getData ();
+					final ModelObject moda = mo.getData ();
 					if ( filter.matches ( moda ) )
 					{
 						newSet.add ( p );

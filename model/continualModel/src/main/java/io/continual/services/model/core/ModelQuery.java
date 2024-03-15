@@ -3,7 +3,7 @@ package io.continual.services.model.core;
 import java.util.Comparator;
 
 import io.continual.services.model.core.data.BasicModelObject;
-import io.continual.services.model.core.data.ModelDataObjectAccess;
+import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.util.naming.Path;
@@ -75,7 +75,7 @@ public interface ModelQuery
 	 * @param comparator a comparator
 	 * @return this query
 	 */
-	ModelQuery orderBy ( Comparator<ModelDataObjectAccess> comparator );
+	ModelQuery orderBy ( Comparator<ModelObject> comparator );
 
 	/**
 	 * Limit the result set to the given page size and start at page number. At most
@@ -102,7 +102,7 @@ public interface ModelQuery
 			new DataAccessor<BasicModelObject> ()
 			{
 				@Override
-				public ModelDataObjectAccess getDataFrom ( BasicModelObject obj ) { return obj.getData (); }
+				public ModelObject getDataFrom ( BasicModelObject obj ) { return obj.getData (); }
 			}
 		);
 	}
@@ -113,7 +113,7 @@ public interface ModelQuery
 	 */
 	interface DataAccessor<T>
 	{
-		ModelDataObjectAccess getDataFrom ( T obj );
+		ModelObject getDataFrom ( T obj );
 	}
 	
 	/**

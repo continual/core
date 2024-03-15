@@ -13,7 +13,7 @@ import io.continual.builder.Builder.BuildFailure;
 import io.continual.iam.impl.common.CommonJsonIdentity;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRequestContext;
-import io.continual.services.model.core.data.JsonObjectAccess;
+import io.continual.services.model.core.data.JsonModelObject;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelSchemaViolationException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
@@ -38,11 +38,11 @@ public class FileSystemModelTest extends TestCase
 				;
 
 				model.createUpdate ( mrc, Path.fromString ( "/foo/bar" ) )
-					.overwrite ( new JsonObjectAccess ( new JSONObject () ) )
+					.overwrite ( new JsonModelObject ( new JSONObject () ) )
 					.execute ()
 				;
 				model.createUpdate ( mrc, Path.fromString ( "/foo/baz" ) )
-					.overwrite ( new JsonObjectAccess ( new JSONObject () ) )
+					.overwrite ( new JsonModelObject ( new JSONObject () ) )
 					.execute ()
 				;
 

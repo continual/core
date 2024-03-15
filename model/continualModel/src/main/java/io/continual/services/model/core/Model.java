@@ -23,13 +23,11 @@ import io.continual.iam.access.AccessControlList;
 import io.continual.iam.identity.Identity;
 import io.continual.services.Service;
 import io.continual.services.model.core.data.BasicModelObject;
-import io.continual.services.model.core.data.JsonObjectAccess;
-import io.continual.services.model.core.data.ModelDataObjectAccess;
+import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelSchemaViolationException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
-import io.continual.util.data.json.JsonUtil;
 import io.continual.util.naming.Path;
 
 public interface Model extends ModelIdentification, ModelCapabilities, Closeable, Service
@@ -149,87 +147,32 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	<T> T load ( ModelRequestContext context, Path objectPath, ModelObjectFactory<T> factory ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException;
 
 	/**
-	 * Store the given JSON string as an object at the given path
-	 * @param context
-	 * @param objectPath
-	 * @param jsonData
-	 * @throws ModelRequestException
-	 * @throws ModelSchemaViolationException
-	 * @throws ModelServiceException
-	 */
-	@Deprecated
-	default Model store ( ModelRequestContext context, Path objectPath, String jsonData ) throws ModelRequestException, ModelSchemaViolationException, ModelServiceException
-	{
-		createUpdate ( context, objectPath )
-			.overwrite ( new JsonObjectAccess ( JsonUtil.readJsonObject ( jsonData ) ) )
-			.execute ()
-		;
-		return this;
-	}
-
-	/**
-	 * Store the given data as an object at the given path
-	 * @param context
-	 * @param objectPath
-	 * @param objData
-	 * @throws ModelRequestException
-	 * @throws ModelSchemaViolationException
-	 * @throws ModelServiceException
-	 */
-	@Deprecated
-	default Model store ( ModelRequestContext context, Path objectPath, ModelDataObjectAccess objData ) throws ModelRequestException, ModelSchemaViolationException, ModelServiceException
-	{
-		createUpdate ( context, objectPath )
-			.overwrite ( objData )
-			.execute ()
-		;
-		return this;
-	}
-
-	/**
-	 * Merge the given JSON into the object at the given path. If the object doesn't exist, it's created.
-	 * @param context
-	 * @param objectPath
-	 * @param objData
-	 * @throws ModelRequestException
-	 * @throws ModelSchemaViolationException
-	 * @throws ModelServiceException
-	 */
-	@Deprecated
-	default Model update ( ModelRequestContext context, Path objectPath, ModelDataObjectAccess objData ) throws ModelRequestException, ModelSchemaViolationException, ModelServiceException
-	{
-		createUpdate ( context, objectPath )
-			.merge ( objData )
-			.execute ()
-		;
-		return this;
-	}
-
-	/**
 	 * An object updater
 	 */
 	interface ObjectUpdater
 	{
-		/**
-		 * overwrite the object with this data 
-		 * @param withData
-		 * @return this updater
-		 */
-		ObjectUpdater overwrite ( ModelDataObjectAccess withData );
-
-		/**
-		 * merge this data into the existing object
-		 * @param withData
-		 * @return this updater
-		 */
-		ObjectUpdater merge ( ModelDataObjectAccess withData );
-
 		/**
 		 * Replace the ACL on this object
 		 * @param acl
 		 * @return this updater
 		 */
 		ObjectUpdater replaceAcl ( AccessControlList acl );
+
+		/**
+		 * Overwrite an existing object with the given data, or write a new object if the
+		 * object doesn't exist
+		 * @param withData
+		 * @return this updater
+		 */
+		ObjectUpdater overwrite ( ModelObject withData );
+		
+		/**
+		 * Merge the given data into an existing object, or write a new object if the
+		 * object doesn't exist
+		 * @param withData
+		 * @return this updater
+		 */
+		ObjectUpdater merge ( ModelObject withData );
 
 		/**
 		 * Execute the update

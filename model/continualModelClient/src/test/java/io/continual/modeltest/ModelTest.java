@@ -12,7 +12,7 @@ import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.data.BasicModelObject;
-import io.continual.services.model.core.data.JsonObjectAccess;
+import io.continual.services.model.core.data.JsonModelObject;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.model.impl.client.ModelClient;
@@ -49,8 +49,8 @@ public class ModelTest
 			log.info ( "/foo: " + data );
 
 			mc.createUpdate ( mrc, foo )
-				.merge ( new JsonObjectAccess ( new JSONObject ().put ( "ModelTestClient", Clock.now () ) ) )
-				.merge ( new JsonObjectAccess ( new JSONObject ().put ( "MTC_artist",
+				.merge ( new JsonModelObject ( new JSONObject ().put ( "ModelTestClient", Clock.now () ) ) )
+				.merge ( new JsonModelObject ( new JSONObject ().put ( "MTC_artist",
 					new JSONObject ()
 						.put ( "playback", true )
 						.put ( "composer", "Jóhann Jóhannsson" )
@@ -60,7 +60,7 @@ public class ModelTest
 			;
 
 			mc.createUpdate ( mrc, bar )
-				.overwrite ( new JsonObjectAccess ( new JSONObject ()
+				.overwrite ( new JsonModelObject ( new JSONObject ()
 					.put ( "details", "this is a target for relation testing" )
 					.put ( "writetime", Clock.now () )
 				) )

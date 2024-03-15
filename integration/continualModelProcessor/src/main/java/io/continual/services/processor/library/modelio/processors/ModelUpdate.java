@@ -10,8 +10,7 @@ import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.data.BasicModelObject;
-import io.continual.services.model.core.data.JsonObjectAccess;
-import io.continual.services.model.core.data.ModelDataToJson;
+import io.continual.services.model.core.data.JsonModelObject;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.processor.config.readers.ConfigLoadContext;
@@ -62,7 +61,7 @@ public class ModelUpdate implements Processor
 					final JSONArray evaled = Setter.evaluate ( context, data, context.getMessage () );
 
 					final BasicModelObject mo = model.load ( mrc, path );
-					final JSONObject modelData = ModelDataToJson.translate ( mo.getData () );
+					final JSONObject modelData = JsonModelObject.modelObjectToJson ( mo.getData () );
 
 					for ( int j=0; j<evaled.length (); j++ )
 					{
@@ -73,7 +72,7 @@ public class ModelUpdate implements Processor
 					}
 
 					model.createUpdate ( mrc, path )
-						.overwrite ( new JsonObjectAccess ( modelData ) )
+						.overwrite ( new JsonModelObject ( modelData ) )
 						.execute ()
 					;
 				}
@@ -82,7 +81,7 @@ public class ModelUpdate implements Processor
 					final JSONObject data = updateBlock.getJSONObject ( "patch" );
 					final JSONObject evaled = Setter.evaluate ( context, data, context.getMessage () );
 					model.createUpdate ( mrc, path )
-						.merge ( new JsonObjectAccess ( evaled ) )
+						.merge ( new JsonModelObject ( evaled ) )
 						.execute ()
 					;
 				}
@@ -91,7 +90,7 @@ public class ModelUpdate implements Processor
 					final JSONObject data = updateBlock.getJSONObject ( "put" );
 					final JSONObject evaled = Setter.evaluate ( context, data, context.getMessage () );
 					model.createUpdate ( mrc, path )
-						.overwrite ( new JsonObjectAccess ( evaled ) )
+						.overwrite ( new JsonModelObject ( evaled ) )
 						.execute ()
 					;
 				}

@@ -45,7 +45,7 @@ import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRequestContext;
-import io.continual.services.model.core.data.ModelDataObjectAccess;
+import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
@@ -213,7 +213,7 @@ public class FileSystemModel extends CommonJsonDbModel
 			}
 
 			// now sort our list
-			final Comparator<ModelDataObjectAccess> orderBy = getOrdering ();
+			final Comparator<ModelObject> orderBy = getOrdering ();
 			if ( orderBy != null )
 			{
 				Collections.sort ( result, new java.util.Comparator<ModelObjectAndPath<T>> ()

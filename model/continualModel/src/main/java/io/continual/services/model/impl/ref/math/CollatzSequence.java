@@ -18,7 +18,7 @@ import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRelationList;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelTraversal;
-import io.continual.services.model.core.data.JsonObjectAccess;
+import io.continual.services.model.core.data.JsonModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
@@ -139,7 +139,7 @@ public class CollatzSequence extends ReadOnlyModel
 			data.put ( "number", getNumberFrom ( objectPath ) );
 		}
 
-		return factory.create ( objectPath, kMeta, new JsonObjectAccess ( data ) );
+		return factory.create ( objectPath, kMeta, new JsonModelObject ( data ) );
 	}
 
 	@Override

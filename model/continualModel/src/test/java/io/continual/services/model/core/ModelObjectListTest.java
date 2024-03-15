@@ -6,7 +6,7 @@ import org.json.JSONObject;
 import org.junit.Test;
 
 import io.continual.services.model.core.data.BasicModelObject;
-import io.continual.services.model.core.data.JsonObjectAccess;
+import io.continual.services.model.core.data.JsonModelObject;
 import io.continual.services.model.impl.json.CommonModelObjectMetadata;
 import io.continual.util.naming.Path;
 import junit.framework.TestCase;
@@ -91,6 +91,6 @@ public class ModelObjectListTest extends TestCase
 
 	private static BasicModelObject makeObj ()
 	{
-		return new BasicModelObject ( Path.getRootPath (), new CommonModelObjectMetadata(), new JsonObjectAccess ( new JSONObject () ) );
+		return new BasicModelObject ( Path.getRootPath (), new CommonModelObjectMetadata(), new JsonModelObject ( new JSONObject () ) );
 	}
 }

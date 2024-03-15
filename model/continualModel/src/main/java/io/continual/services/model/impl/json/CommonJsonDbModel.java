@@ -41,10 +41,7 @@ import io.continual.services.model.core.ModelSchema.ValidationResult;
 import io.continual.services.model.core.ModelSchemaRegistry;
 import io.continual.services.model.core.ModelTraversal;
 import io.continual.services.model.core.data.BasicModelObject;
-import io.continual.services.model.core.data.JsonObjectAccess;
-import io.continual.services.model.core.data.ModelDataObjectAccess;
-import io.continual.services.model.core.data.ModelDataObjectWriter;
-import io.continual.services.model.core.data.ModelDataToJson;
+import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelSchemaViolationException;
@@ -157,17 +154,18 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 	public ObjectUpdater createUpdate ( final ModelRequestContext context, final Path objectPath ) throws ModelRequestException, ModelServiceException
 	{
 		checkReadOnly ();
+
 		return new ObjectUpdater ()
 		{
 			@Override
-			public ObjectUpdater overwrite ( ModelDataObjectAccess withData )
+			public ObjectUpdater overwrite ( ModelObject withData )
 			{
 				fUpdates.add ( new Update ( UpdateType.OVERWRITE, withData ) );
 				return this;
 			}
 
 			@Override
-			public ObjectUpdater merge ( ModelDataObjectAccess withData )
+			public ObjectUpdater merge ( ModelObject withData )
 			{
 				fUpdates.add ( new Update ( UpdateType.MERGE, withData ) );
 				return this;
@@ -188,7 +186,7 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 					final boolean isCreate = !exists ( context, objectPath );
 
 					final ModelObjectMetadata meta;
-					final ModelDataObjectWriter data;
+					final CommonObjectData data;
 
 					if ( isCreate )
 					{
@@ -197,13 +195,13 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 							.setOwner ( context.getOperator ().getId () )
 							.permit ( AccessControlEntry.kOwner, ModelOperation.kAllOperationStrings )
 						;
-						data = new JsonObjectAccess ( new JSONObject () );
+						data = new CommonObjectData ();
 					}
 					else
 					{
 						final BasicModelObject o = load ( context, objectPath );
 						meta = o.getMetadata ();
-						data = new JsonObjectAccess ( ModelDataToJson.translate ( o.getData () ) );
+						data = new CommonObjectData ( o.getData () );
 					}
 
 					for ( Update mu : fUpdates )
@@ -245,7 +243,7 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 						public ModelObjectMetadata getMetadata () { return meta; }
 
 						@Override
-						public ModelDataObjectAccess getObjectData () { return data; }
+						public ModelObject getObjectData () { return data; }
 					};
 					internalStore ( context, objectPath, mdt );
 					log.info ( "wrote {}", objectPath );
@@ -279,14 +277,14 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 	}
 	private class Update
 	{
-		public Update ( UpdateType ut, ModelDataObjectAccess data )
+		public Update ( UpdateType ut, ModelObject data )
 		{
 			fType = ut;
 			fData = data;
 			fAcl = null;
 		}
 
-		public void update ( ModelRequestContext context, ModelObjectMetadata meta, ModelDataObjectWriter data )
+		public void update ( ModelRequestContext context, ModelObjectMetadata meta, CommonObjectData workingData )
 		{
 			switch ( fType )
 			{
@@ -300,13 +298,12 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 					}					
 					break;
 
-				case MERGE:
-					data.merge ( fData );
-					break;
-
 				case OVERWRITE:
-					data.clear ();
-					data.merge ( fData );
+					workingData.clear ();
+					// no break...
+
+				case MERGE:
+					workingData.merge ( fData );
 					break;
 
 				default:
@@ -334,7 +331,7 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 		}
 
 		public final UpdateType fType;
-		public final ModelDataObjectAccess fData;
+		public final ModelObject fData;
 		public final AccessControlList fAcl;
 	}
 
@@ -389,7 +386,7 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 	protected interface ModelDataTransfer
 	{
 		ModelObjectMetadata getMetadata ();
-		ModelDataObjectAccess getObjectData ();
+		ModelObject getObjectData ();
 	}
 	
 	protected abstract ModelDataTransfer loadObject ( ModelRequestContext context, Path objectPath ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException;

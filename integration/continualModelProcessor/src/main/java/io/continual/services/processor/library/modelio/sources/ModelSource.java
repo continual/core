@@ -31,7 +31,7 @@ import io.continual.services.model.core.ModelObjectList;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.data.BasicModelObject;
-import io.continual.services.model.core.data.ModelDataToJson;
+import io.continual.services.model.core.data.JsonModelObject;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.processor.config.readers.ConfigLoadContext;
@@ -97,7 +97,7 @@ public class ModelSource extends BasicSource
 			if ( iter.hasNext () )
 			{
 				final ModelObjectAndPath<BasicModelObject> mop = iter.next ();
-				final JSONObject asJson = ModelDataToJson.translate ( mop.getObject().getData () );
+				final JSONObject asJson = JsonModelObject.modelObjectToJson ( mop.getObject().getData () );
 				asJson.put ( "modelPath", mop.getPath().toString () );
 
 				final Message msg = Message.adoptJsonAsMessage ( asJson );

@@ -9,7 +9,7 @@ import io.continual.metrics.MetricsCatalog.PathPopper;
 import io.continual.services.model.core.Model;
 import io.continual.services.model.core.Model.ObjectUpdater;
 import io.continual.services.model.core.ModelRequestContext;
-import io.continual.services.model.core.data.JsonObjectAccess;
+import io.continual.services.model.core.data.JsonModelObject;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.processor.config.readers.ConfigLoadContext;
@@ -77,7 +77,7 @@ public class ModelSink extends ModelConnector implements Sink
 				ou = ou.replaceAcl ( newAcl );
 			}
 			ou
-				.overwrite ( new JsonObjectAccess ( msg.accessRawJson ().getJSONObject ( "data" ) ) )
+				.overwrite ( new JsonModelObject ( msg.accessRawJson ().getJSONObject ( "data" ) ) )
 				.execute ()
 			;
 		}

@@ -3,19 +3,18 @@ package io.continual.services.model.impl.json;
 import org.json.JSONObject;
 
 import io.continual.services.model.core.ModelObjectMetadata;
-import io.continual.services.model.core.data.JsonObjectAccess;
-import io.continual.services.model.core.data.ModelDataObjectAccess;
-import io.continual.services.model.core.data.ModelDataToJson;
+import io.continual.services.model.core.data.JsonModelObject;
+import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.impl.json.CommonJsonDbModel.ModelDataTransfer;
 import io.continual.util.data.json.JsonUtil;
 import io.continual.util.naming.Path;
 
 public class CommonDataTransfer implements CommonJsonDbModel.ModelDataTransfer
 {
-	public static JSONObject toDataObject ( ModelObjectMetadata meta, ModelDataObjectAccess data )
+	public static JSONObject toDataObject ( ModelObjectMetadata meta, ModelObject data )
 	{
 		return new JSONObject ()
-			.put ( kDataTag, ModelDataToJson.translate ( data ) )
+			.put ( kDataTag, JsonModelObject.modelObjectToJson ( data ) )
 			.put ( kMetaTag, meta.toJson () )
 		;
 	}
@@ -50,9 +49,9 @@ public class CommonDataTransfer implements CommonJsonDbModel.ModelDataTransfer
 	}
 
 	@Override
-	public ModelDataObjectAccess getObjectData ()
+	public ModelObject getObjectData ()
 	{
-		return new JsonObjectAccess ( fData );
+		return new JsonModelObject ( fData );
 	}
 
 	private final JSONObject fData;

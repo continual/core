@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelRequestContext;
-import io.continual.services.model.core.data.JsonObjectAccess;
+import io.continual.services.model.core.data.JsonModelObject;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.processor.config.readers.ConfigLoadContext;
@@ -94,7 +94,7 @@ public class ModelSink implements Sink
 			log.info ( "Writing to {}", modelPathText );
 
 			model.createUpdate ( mrc, modelPath )
-				.merge ( new JsonObjectAccess ( msg.toJson () ) )
+				.merge ( new JsonModelObject ( msg.toJson () ) )
 				.execute ()
 			;
 		}

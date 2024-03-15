@@ -9,7 +9,7 @@ import org.junit.Test;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.data.BasicModelObject;
-import io.continual.services.model.core.data.JsonObjectAccess;
+import io.continual.services.model.core.data.JsonModelObject;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelSchemaViolationException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
@@ -30,15 +30,15 @@ public class SubpathWrapperModelTest extends TestCase
 			.build ()
 		;
 		mem.createUpdate ( context, Path.fromString ( "/foo" ) )
-			.overwrite ( new JsonObjectAccess ( new JSONObject () ) )
+			.overwrite ( new JsonModelObject ( new JSONObject () ) )
 			.execute ()
 		;
 		mem.createUpdate ( context, Path.fromString ( "/foo/bar" ) )
-			.overwrite ( new JsonObjectAccess ( new JSONObject () ) )
+			.overwrite ( new JsonModelObject ( new JSONObject () ) )
 			.execute ()
 		;
 		mem.createUpdate ( context, Path.fromString ( "/foo/bar/baz" ) )
-			.overwrite ( new JsonObjectAccess ( new JSONObject ()
+			.overwrite ( new JsonModelObject ( new JSONObject ()
 				.put ( "status", "expired" )
 			) )
 			.execute ()

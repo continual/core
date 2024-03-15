@@ -20,7 +20,7 @@ public class ModelDataAccessTest extends TestCase
 			.put ( "arr", new JSONArray ().put ( "foo" ) )
 		;
 
-		final ModelDataObjectAccess mda = new JsonObjectAccess ( data );
+		final ModelObject mda = new JsonModelObject ( data );
 		assertTrue ( mda.getBoolean ( "b" ) );
 		assertEquals ( 1, mda.getNumber ( "n1" ) );
 		assertEquals ( 2.3, mda.getNumber ( "n2" ) );

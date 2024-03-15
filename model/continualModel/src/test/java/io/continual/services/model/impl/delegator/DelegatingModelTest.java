@@ -15,7 +15,7 @@ import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRelationList;
 import io.continual.services.model.core.ModelRequestContext;
-import io.continual.services.model.core.data.JsonObjectAccess;
+import io.continual.services.model.core.data.JsonModelObject;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelSchemaViolationException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
@@ -43,21 +43,21 @@ public class DelegatingModelTest extends TestCase
 		// place a few objects...
 		final ModelRequestContext mrc1 = model1.getRequestContextBuilder ().forUser ( user ).build ();
 		model1.createUpdate ( mrc1, Path.fromString ( "/foo" ) )
-			.overwrite ( new JsonObjectAccess ( new JSONObject ().put ( "helloMyNameIs", "foo" ) ) )
+			.overwrite ( new JsonModelObject ( new JSONObject ().put ( "helloMyNameIs", "foo" ) ) )
 			.execute ()
 		;
 		model1.createUpdate ( mrc1, Path.fromString ( "/bar" ) )
-			.overwrite ( new JsonObjectAccess ( new JSONObject ().put ( "helloMyNameIs", "bar" ) ) )
+			.overwrite ( new JsonModelObject ( new JSONObject ().put ( "helloMyNameIs", "bar" ) ) )
 			.execute ()
 		;
 
 		final ModelRequestContext mrc2 = model2.getRequestContextBuilder ().forUser ( user ).build ();
 		model2.createUpdate ( mrc2, Path.fromString ( "/baz" ) )
-			.overwrite ( new JsonObjectAccess ( new JSONObject ().put ( "helloMyNameIs", "baz" ) ) )
+			.overwrite ( new JsonModelObject ( new JSONObject ().put ( "helloMyNameIs", "baz" ) ) )
 			.execute ()
 		;
 		model2.createUpdate ( mrc2, Path.fromString ( "/bee" ) )
-			.overwrite ( new JsonObjectAccess ( new JSONObject ().put ( "helloMyNameIs", "bee" ) ) )
+			.overwrite ( new JsonModelObject ( new JSONObject ().put ( "helloMyNameIs", "bee" ) ) )
 			.execute ()
 		;
 

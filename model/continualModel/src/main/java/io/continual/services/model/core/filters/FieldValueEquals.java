@@ -1,11 +1,11 @@
 package io.continual.services.model.core.filters;
 
 import io.continual.services.model.core.ModelItemFilter;
-import io.continual.services.model.core.data.ModelDataObjectAccess;
-import io.continual.services.model.core.data.ModelDataObjectExprSource;
+import io.continual.services.model.core.data.ModelObject;
+import io.continual.services.model.impl.common.ModelObjectExprSource;
 import io.continual.util.data.exprEval.ExpressionEvaluator;
 
-public class FieldValueEquals implements ModelItemFilter<ModelDataObjectAccess>
+public class FieldValueEquals implements ModelItemFilter<ModelObject>
 {
 	public FieldValueEquals ( String field, Object val )
 	{
@@ -14,9 +14,9 @@ public class FieldValueEquals implements ModelItemFilter<ModelDataObjectAccess>
 	}
 
 	@Override
-	public boolean matches ( ModelDataObjectAccess obj )
+	public boolean matches ( ModelObject obj )
 	{
-		final Object val = ExpressionEvaluator.evaluateSymbol ( fField, new ModelDataObjectExprSource ( obj ) );
+		final Object val = ExpressionEvaluator.evaluateSymbol ( fField, new ModelObjectExprSource ( obj ) );
 
 		if ( val == null && fValue == null ) return true;
 		if ( val == null || fValue == null ) return false;

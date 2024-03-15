@@ -6,9 +6,8 @@ import java.util.List;
 
 import io.continual.services.model.core.ModelItemFilter;
 import io.continual.services.model.core.ModelQuery;
-import io.continual.services.model.core.data.ModelDataObjectAccess;
-import io.continual.services.model.core.data.ModelDataObjectExprSource;
-import io.continual.services.model.core.data.ModelDataToJson;
+import io.continual.services.model.core.data.JsonModelObject;
+import io.continual.services.model.core.data.ModelObject;
 import io.continual.util.data.json.JsonPathEval;
 import io.continual.util.naming.Path;
 
@@ -22,7 +21,7 @@ public abstract class SimpleModelQuery implements ModelQuery
 	}
 
 	@Override
-	public ModelQuery orderBy ( Comparator<ModelDataObjectAccess> comparator )
+	public ModelQuery orderBy ( Comparator<ModelObject> comparator )
 	{
 		fOrderBy = comparator;
 		return this;
@@ -42,9 +41,9 @@ public abstract class SimpleModelQuery implements ModelQuery
 		fFilters.add ( new Filter ()
 		{
 			@Override
-			public boolean matches ( ModelDataObjectAccess mo )
+			public boolean matches ( ModelObject mo )
 			{
-				return JsonPathEval.evaluateJsonPath ( ModelDataToJson.translate ( mo ), jsonPath ).size() > 0;
+				return JsonPathEval.evaluateJsonPath ( JsonModelObject.modelObjectToJson ( mo ), jsonPath ).size() > 0;
 			}
 		} );
 		return this;
@@ -56,9 +55,9 @@ public abstract class SimpleModelQuery implements ModelQuery
 		fFilters.add ( new Filter ()
 		{
 			@Override
-			public boolean matches ( ModelDataObjectAccess mo )
+			public boolean matches ( ModelObject mo )
 			{
-				final String objVal = ModelDataObjectExprSource.evalToString ( mo, key );
+				final String objVal = ModelObjectExprSource.evalToString ( mo, key );
 				return (
 					( val == null && objVal == null ) ||
 					( val != null && objVal != null && val.equals ( objVal ) )
@@ -74,9 +73,9 @@ public abstract class SimpleModelQuery implements ModelQuery
 		fFilters.add ( new Filter ()
 		{
 			@Override
-			public boolean matches ( ModelDataObjectAccess mo )
+			public boolean matches ( ModelObject mo )
 			{
-				return val == ModelDataObjectExprSource.evalToLong ( mo, key, 0L );
+				return val == ModelObjectExprSource.evalToLong ( mo, key, 0L );
 			}
 		} );
 		return this;
@@ -88,9 +87,9 @@ public abstract class SimpleModelQuery implements ModelQuery
 		fFilters.add ( new Filter ()
 		{
 			@Override
-			public boolean matches ( ModelDataObjectAccess mo )
+			public boolean matches ( ModelObject mo )
 			{
-				return val == ModelDataObjectExprSource.evalToBoolean ( mo, key );
+				return val == ModelObjectExprSource.evalToBoolean ( mo, key );
 			}
 		} );
 		return this;
@@ -102,9 +101,9 @@ public abstract class SimpleModelQuery implements ModelQuery
 		fFilters.add ( new Filter ()
 		{
 			@Override
-			public boolean matches ( ModelDataObjectAccess mo )
+			public boolean matches ( ModelObject mo )
 			{
-				return val == ModelDataObjectExprSource.evalToDouble ( mo, key, 0.0 );
+				return val == ModelObjectExprSource.evalToDouble ( mo, key, 0.0 );
 			}
 		} );
 		return this;
@@ -116,12 +115,12 @@ public abstract class SimpleModelQuery implements ModelQuery
 		fFilters.add ( new Filter ()
 		{
 			@Override
-			public boolean matches ( ModelDataObjectAccess mo )
+			public boolean matches ( ModelObject mo )
 			{
 				if ( val == null ) return false;
 				if ( val.length () == 0 ) return true;
 
-				final String objVal = ModelDataObjectExprSource.evalToString ( mo, key );
+				final String objVal = ModelObjectExprSource.evalToString ( mo, key );
 				return objVal != null && objVal.length () > 0 && objVal.contains ( val );
 			}
 		} );
@@ -132,15 +131,15 @@ public abstract class SimpleModelQuery implements ModelQuery
 	protected int getPageSize () { return fPageSize; }
 	protected int getPageNumber () { return fPageNumber; }
 	protected List<Filter> getFilters () { return fFilters; }
-	protected Comparator<ModelDataObjectAccess> getOrdering() { return fOrderBy; }
+	protected Comparator<ModelObject> getOrdering() { return fOrderBy; }
 
 	Path fPathPrefix = Path.getRootPath ();
-	Comparator<ModelDataObjectAccess> fOrderBy = null;
+	Comparator<ModelObject> fOrderBy = null;
 	int fPageSize = Integer.MAX_VALUE;
 	int fPageNumber = 0;
 	final LinkedList<Filter> fFilters = new LinkedList<> ();
 
-	protected static interface Filter extends ModelItemFilter<ModelDataObjectAccess>
+	protected static interface Filter extends ModelItemFilter<ModelObject>
 	{
 	}
 }
