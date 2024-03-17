@@ -151,9 +151,6 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 		final ModelObjectFactory.ObjectCreateContext<K> createContext = new ModelObjectFactory.ObjectCreateContext<K> ()
 		{
 			@Override
-			public Path getPath () { return objectPath; }
-
-			@Override
 			public ModelObjectMetadata getMetadata () { return ldf.getMetadata (); }
 
 			@Override

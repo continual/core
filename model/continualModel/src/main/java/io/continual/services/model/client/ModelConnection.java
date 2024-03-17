@@ -116,12 +116,12 @@ public class ModelConnection
 	 * @throws ModelRequestException
 	 * @throws ModelServiceException
 	 */
-	public <T extends ModelObjectWriter> void store ( T obj ) throws ModelRequestException, ModelServiceException
+	public <T extends ModelObjectWriter> void store ( Path objPath, T obj ) throws ModelRequestException, ModelServiceException
 	{
 		final JsonModelObject data = new JsonModelObject ();
 		obj.serializeTo ( data );
 		
-		createUpdate ( obj.getId () )
+		createUpdate ( objPath )
 			.overwrite ( data )
 			.execute ()
 		;
@@ -161,60 +161,53 @@ public class ModelConnection
 	/**
 	 * Relation Selector
 	 */
-	public interface RelationSelector<K>
+	public interface RelationSelector
 	{
 		/**
 		 * Select relations with any name
 		 * @return this selector
 		 */
-		default RelationSelector<K> withAnyName () { return named ( null ); }
+		default RelationSelector withAnyName () { return named ( null ); }
 
 		/**
 		 * Select relations with the given name only
 		 * @param name Use null to mean any name
 		 * @return this selector
 		 */
-		RelationSelector<K> named ( String name );
+		RelationSelector named ( String name );
 
 		/**
 		 * Select inbound relations only
 		 * @return this selector
 		 */
-		default RelationSelector<K> inboundOnly () { return inbound(true).outbound(false); } 
+		default RelationSelector inboundOnly () { return inbound(true).outbound(false); } 
 
 		/**
 		 * Select inbound relations if the parameter is true 
 		 * @param wantInbound
 		 * @return this selector
 		 */
-		RelationSelector<K> inbound ( boolean wantInbound );
+		RelationSelector inbound ( boolean wantInbound );
 
 		/**
 		 * Select outbound relations only
 		 * @return this selector
 		 */
-		default RelationSelector<K> outboundOnly () { return inbound(false).outbound(true); }
+		default RelationSelector outboundOnly () { return inbound(false).outbound(true); }
 
 		/**
 		 * Select outbound relations if the parameter is true
 		 * @param wantOutbound
 		 * @return this selector
 		 */
-		RelationSelector<K> outbound ( boolean wantOutbound );
+		RelationSelector outbound ( boolean wantOutbound );
 
 		/**
 		 * Select both inbound and outbound relations
 		 * @return this selector
 		 */
-		default RelationSelector<K> inboundAndOutbound () { return inbound(true).outbound (true); }
+		default RelationSelector inboundAndOutbound () { return inbound(true).outbound (true); }
 
-		/**
-		 * Instantiate objects with the given context
-		 * @param userContext
-		 * @return this selector
-		 */
-		RelationSelector<K> withContext ( K userContext );
-		
 		/**
 		 * Get the requested relations
 		 * @return a model relation list
@@ -223,9 +216,19 @@ public class ModelConnection
 		 */
 		ModelRelationList getRelations ( ) throws ModelServiceException, ModelRequestException;
 
-		interface Loadable<T>
+		interface Loadable
 		{
-			T load () throws ModelServiceException, ModelRequestException;
+			default BasicModelObject load () throws ModelServiceException, ModelRequestException
+			{
+				return load ( BasicModelObject.class );
+			}
+			
+			default <T> T load ( Class<T> clazz ) throws ModelServiceException, ModelRequestException
+			{
+				return load ( clazz, null );
+			}
+
+			<T,K> T load ( Class<T> clazz, K userContext ) throws ModelServiceException, ModelRequestException;
 		}
 		
 		/**
@@ -236,31 +239,24 @@ public class ModelConnection
 		 * @throws ModelServiceException
 		 * @throws ModelRequestException
 		 */
-		<T> ModelObjectList<Loadable<T>> getRelatedObjects ( Class<T> clazz ) throws ModelServiceException, ModelRequestException;
+		ModelObjectList<Loadable> getRelatedObjects () throws ModelServiceException, ModelRequestException;
 	};
 
-	public <K> RelationSelector<K> selectRelations ( Path objectPath )
+	public RelationSelector selectRelations ( Path objectPath )
 	{
 		final ModelConnection mc = this;
 
 		final Model.RelationSelector mrs = fModel.selectRelations ( objectPath );
-		return new RelationSelector<K> ()
+		return new RelationSelector ()
 		{
 			@Override
-			public RelationSelector<K> named ( String name ) { mrs.named ( name ); return this; }
+			public RelationSelector named ( String name ) { mrs.named ( name ); return this; }
 
 			@Override
-			public RelationSelector<K> inbound ( boolean wantInbound ) { mrs.inbound ( wantInbound ); return this; }
+			public RelationSelector inbound ( boolean wantInbound ) { mrs.inbound ( wantInbound ); return this; }
 
 			@Override
-			public RelationSelector<K> outbound ( boolean wantOutbound ) { mrs.outbound ( wantOutbound ); return this; }
-
-			@Override
-			public RelationSelector<K> withContext ( K userContext )
-			{
-				fUserContext = userContext;
-				return this;
-			}
+			public RelationSelector outbound ( boolean wantOutbound ) { mrs.outbound ( wantOutbound ); return this; }
 
 			@Override
 			public ModelRelationList getRelations () throws ModelServiceException, ModelRequestException
@@ -269,17 +265,17 @@ public class ModelConnection
 			}
 
 			@Override
-			public <T> ModelObjectList<Loadable<T>> getRelatedObjects ( Class<T> clazz ) throws ModelServiceException, ModelRequestException
+			public ModelObjectList<Loadable> getRelatedObjects () throws ModelServiceException, ModelRequestException
 			{
 				final ModelRelationList relns = getRelations ();
 				final Iterator<ModelRelationInstance> iter = relns.iterator ();
 
-				return new ModelObjectList<Loadable<T>> ()
+				return new ModelObjectList<Loadable> ()
 				{
 					@Override
-					public Iterator<ModelObjectAndPath<Loadable<T>>> iterator ()
+					public Iterator<ModelObjectAndPath<Loadable>> iterator ()
 					{
-						return new Iterator<ModelObjectAndPath<Loadable<T>>> ()
+						return new Iterator<ModelObjectAndPath<Loadable>> ()
 						{
 							@Override
 							public boolean hasNext ()
@@ -288,25 +284,25 @@ public class ModelConnection
 							}
 
 							@Override
-							public ModelObjectAndPath<Loadable<T>> next ()
+							public ModelObjectAndPath<Loadable> next ()
 							{
 								final ModelRelationInstance mri = iter.next ();
 								final Path farEnd = mri.getFrom ().equals ( objectPath ) ? mri.getTo () : mri.getFrom ();
 
-								return new ModelObjectAndPath<Loadable<T>> ()
+								return new ModelObjectAndPath<Loadable> ()
 								{
 									@Override
 									public Path getPath () { return farEnd; }
 
 									@Override
-									public Loadable<T> getObject ()
+									public Loadable getObject ()
 									{
-										return new Loadable<T> ()
+										return new Loadable ()
 										{
 											@Override
-											public T load () throws ModelServiceException, ModelRequestException
+											public <T,K> T load ( Class<T> clazz, K userContext ) throws ModelServiceException, ModelRequestException
 											{
-												return mc.load ( farEnd, clazz, fUserContext );
+												return mc.load ( farEnd, clazz, userContext );
 											}
 										};
 									}
@@ -316,8 +312,6 @@ public class ModelConnection
 					}
 				};
 			}
-
-			private K fUserContext;
 		};
 	}
 

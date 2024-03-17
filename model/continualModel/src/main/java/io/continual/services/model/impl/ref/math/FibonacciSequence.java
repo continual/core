@@ -143,9 +143,6 @@ public class FibonacciSequence extends ReadOnlyModel
 		return factory.create ( new ObjectCreateContext<K> ()
 		{
 			@Override
-			public Path getPath () { return objectPath; }
-
-			@Override
 			public ModelObjectMetadata getMetadata () { return kMeta; }
 
 			@Override

@@ -94,9 +94,6 @@ public class ModelObjectListTest extends TestCase
 		final ModelObjectFactory.ObjectCreateContext<?> occ = new ModelObjectFactory.ObjectCreateContext<Object> ()
 		{
 			@Override
-			public Path getPath () { return Path.getRootPath (); }
-
-			@Override
 			public ModelObjectMetadata getMetadata () { return new CommonModelObjectMetadata(); }
 
 			@Override

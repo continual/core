@@ -285,30 +285,38 @@ public class DelegatingModel extends SimpleService implements Model
 			}
 		}
 
+		// work with the backing model...
+		final ModelPathList backingModelChildren = fBackingModel.listChildrenOfPath ( context, objectPath );
+		
 		// if this is top-level, include the top-level paths in the backing model
 		if ( objectPath.isRootPath () )
 		{
-			for ( Path p : fBackingModel.listChildrenOfPath ( context, objectPath ) )
+			for ( Path p : backingModelChildren )
 			{
 				result.add ( p );
 			}
 		}
 
-		final CommonDataTransfer ld = CommonJsonDbObjectContainer.createObjectContainer ( objectPath, result );
-		return factory.create ( new ObjectCreateContext<K> ()
+		// the requested path could be a parent path for an object in the backing model. If so,
+		// we want to produce a container here.
+		if ( backingModelChildren.iterator ().hasNext () )
 		{
-			@Override
-			public Path getPath () { return objectPath; }
-
-			@Override
-			public ModelObjectMetadata getMetadata () { return ld.getMetadata (); }
-
-			@Override
-			public ModelObject getData () { return ld.getObjectData (); }
-
-			@Override
-			public K getUserContext () { return userContext; }
-		} );
+			final CommonDataTransfer ld = CommonJsonDbObjectContainer.createObjectContainer ( objectPath, result );
+			return factory.create ( new ObjectCreateContext<K> ()
+			{
+				@Override
+				public ModelObjectMetadata getMetadata () { return ld.getMetadata (); }
+	
+				@Override
+				public ModelObject getData () { return ld.getObjectData (); }
+	
+				@Override
+				public K getUserContext () { return userContext; }
+			} );
+		}
+		
+		// not here
+		throw new ModelItemDoesNotExistException ( objectPath );
 	}
 
 	@Override

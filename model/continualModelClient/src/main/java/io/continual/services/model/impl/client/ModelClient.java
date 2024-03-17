@@ -385,9 +385,6 @@ public class ModelClient extends SimpleService implements Model
 		return factory.create ( new ObjectCreateContext<K> ()
 		{
 			@Override
-			public Path getPath () { return objectPath; }
-
-			@Override
 			public ModelObjectMetadata getMetadata () { return ldf.getMetadata (); }
 
 			@Override
