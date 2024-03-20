@@ -233,8 +233,6 @@ public class ModelConnection
 		
 		/**
 		 * Get the requested relations as instantiated objects
-		 * @param <T>
-		 * @param clazz
 		 * @return a list of objects
 		 * @throws ModelServiceException
 		 * @throws ModelRequestException
