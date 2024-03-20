@@ -62,7 +62,7 @@ public class CsvLineBuilderTest {
 		CsvLineBuilder builder = new CsvLineBuilder('*','-',true);
 		builder.appendLiteral("UT");
 		builder.appendLiteral("GW");
-		Assert.assertEquals("UT,GW", builder.toString());
+		Assert.assertEquals("UT-GW", builder.toString());
     }
 	
 	
