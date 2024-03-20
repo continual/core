@@ -85,6 +85,20 @@ public class ExpressionEvaluator
 	}
 
 	/**
+	 * Evaluate the given expression against the given data sources and return 
+	 * a string. If no source can resolve the symbol, an empty string is returned.
+	 * @param symbol the symbol to evaluate
+	 * @param srcs a set of data sources, evaluated in order
+	 * @return an object if found
+	 */
+	public static String evaluateSymbolToString ( String symbol, ExprDataSource... srcs )
+	{
+		final Object val = evaluateSymbol ( symbol, srcs );
+		return val == null ? "" : val.toString ();
+	}
+
+	
+	/**
 	 * substitute any occurrence of ${&lt;expr&gt;} with the evaluation of that expression 
 	 * @param sourceString the original string
 	 * @param srcs a set of data sources, evaluated in order 

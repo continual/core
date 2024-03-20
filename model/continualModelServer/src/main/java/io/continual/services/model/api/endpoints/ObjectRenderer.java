@@ -19,15 +19,15 @@ package io.continual.services.model.api.endpoints;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRelationList;
+import io.continual.services.model.core.data.BasicModelObject;
 import io.continual.util.naming.Path;
 
 public class ObjectRenderer
 {
 	public ObjectRenderer atPath ( Path p ) { fPath = p; return this; }
-	public ObjectRenderer withData ( ModelObject o ) { fMoc = o; return this; }
+	public ObjectRenderer withData ( BasicModelObject o ) { fMoc = o; return this; }
 
 	public ObjectRenderer withRelations ( ModelRelationList relns ) { fRelns = relns; return this; }
 	public ObjectRenderer withInboundRelnsOnly () { fDir = "in"; return this; }
@@ -112,7 +112,7 @@ public class ObjectRenderer
 	}
 
 	private Path fPath = null;
-	private ModelObject fMoc = null;
+	private BasicModelObject fMoc = null;
 	private ModelRelationList fRelns = null;
 	private String fDir = null;
 	private String fRelnName = null;

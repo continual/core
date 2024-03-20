@@ -19,34 +19,55 @@ package io.continual.services.model.core;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
  * A list of model objects. This list could be thousands of entries long and is therefore
  * presented only as an iterator.
  */
-public interface ModelObjectList extends ModelItemList<ModelObjectAndPath>
+public interface ModelObjectList<T> extends ModelItemList<ModelObjectAndPath<T>>
 {
 	/**
 	 * Construct an empty object list
 	 * @return an empty list
 	 */
-	static ModelObjectList emptyList ()
+	static ModelObjectList<?> emptyList ()
 	{
 		return simpleList ();
+	}
+
+	/**
+	 * Create an empty object list of the given type
+	 * @param <T>
+	 * @param clazz
+	 * @return an empty list
+	 */
+	static <T> ModelObjectList<T> emptyList ( Class<T> clazz )
+	{
+		final List<ModelObjectAndPath<T>> list = new LinkedList<> ();
+		return new ModelObjectList<T> ()
+		{
+			@Override
+			public Iterator<ModelObjectAndPath<T>> iterator ()
+			{
+				return list.iterator ();
+			}
+		};
 	}
 
 	/**
 	 * Convenience method for creating a small list of objects.
 	 * @return a list of objects
 	 */
-	static ModelObjectList simpleList ( ModelObjectAndPath... instances )
+	@SafeVarargs
+	static <T> ModelObjectList<T> simpleList ( ModelObjectAndPath<T>... instances )
 	{
-		final List<ModelObjectAndPath> list = Arrays.asList ( instances );
-		return new ModelObjectList ()
+		final List<ModelObjectAndPath<T>> list = Arrays.asList ( instances );
+		return new ModelObjectList<T> ()
 		{
 			@Override
-			public Iterator<ModelObjectAndPath> iterator ()
+			public Iterator<ModelObjectAndPath<T>> iterator ()
 			{
 				return list.iterator ();
 			}
@@ -58,12 +79,12 @@ public interface ModelObjectList extends ModelItemList<ModelObjectAndPath>
 	 * @param instances
 	 * @return a list of objects
 	 */
-	static ModelObjectList simpleListOfCollection ( Collection<ModelObjectAndPath> instances )
+	static <T> ModelObjectList<T> simpleListOfCollection ( Collection<ModelObjectAndPath<T>> instances )
 	{
-		return new ModelObjectList ()
+		return new ModelObjectList<T> ()
 		{
 			@Override
-			public Iterator<ModelObjectAndPath> iterator ()
+			public Iterator<ModelObjectAndPath<T>> iterator ()
 			{
 				return instances.iterator ();
 			}

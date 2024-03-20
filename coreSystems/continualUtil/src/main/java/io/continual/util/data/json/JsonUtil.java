@@ -126,6 +126,16 @@ public class JsonUtil
 		}
 	}
 
+	/**
+	 * For each key in the overlay object, write its value into the same key
+	 * in the target object. If the value is itself an object, the overlay process
+	 * is performed recursively. If the overlay value is an explicit null value, the
+	 * key is removed from the target. Any other value (including array) is simply
+	 * overwritten into the target object.
+	 * @param target
+	 * @param overlay
+	 * @return the target argument
+	 */
 	public static JSONObject overlay ( JSONObject target, JSONObject overlay )
 	{
 		if ( overlay == null ) return target;

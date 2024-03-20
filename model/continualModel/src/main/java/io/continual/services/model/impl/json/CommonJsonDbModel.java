@@ -27,12 +27,12 @@ import org.slf4j.LoggerFactory;
 import io.continual.iam.access.AccessControlEntry;
 import io.continual.iam.access.AccessControlList;
 import io.continual.iam.exceptions.IamSvcException;
-import io.continual.iam.identity.Identity;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelNotificationService;
-import io.continual.services.model.core.ModelObject;
+import io.continual.services.model.core.ModelObjectFactory;
+import io.continual.services.model.core.ModelObjectMetadata;
 import io.continual.services.model.core.ModelOperation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRequestContext;
@@ -40,6 +40,8 @@ import io.continual.services.model.core.ModelSchema;
 import io.continual.services.model.core.ModelSchema.ValidationResult;
 import io.continual.services.model.core.ModelSchemaRegistry;
 import io.continual.services.model.core.ModelTraversal;
+import io.continual.services.model.core.data.BasicModelObject;
+import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelSchemaViolationException;
@@ -126,44 +128,57 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 	}
 
 	@Override
-	public ModelObject load ( ModelRequestContext context, Path objectPath ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
+	public <T,K> T load ( ModelRequestContext context, Path objectPath, ModelObjectFactory<T,K> factory, K userContext ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
 		if ( context.knownToNotExist ( objectPath ) )
 		{
 			throw new ModelItemDoesNotExistException ( objectPath );
 		}
 
-		ModelObject result = context.get ( objectPath );
-		if ( result != null ) return result;
+		ModelDataTransfer ld = context.get ( objectPath, ModelDataTransfer.class );
+		if ( ld == null )
+		{
+			ld = loadObject ( context, objectPath );
+			if ( ld == null )
+			{
+				context.doesNotExist ( objectPath );
+				throw new ModelItemDoesNotExistException ( objectPath );
+			}
+			context.put ( objectPath, ld );
+		}
 
-		result = loadObject ( context, objectPath );
-		if ( result == null )
+		final ModelDataTransfer ldf = ld;
+		final ModelObjectFactory.ObjectCreateContext<K> createContext = new ModelObjectFactory.ObjectCreateContext<K> ()
 		{
-			context.doesNotExist ( objectPath );
-			throw new ModelItemDoesNotExistException ( objectPath );
-		}
-		else
-		{
-			context.put ( objectPath, result );
-		}
-		return result;
+			@Override
+			public ModelObjectMetadata getMetadata () { return ldf.getMetadata (); }
+
+			@Override
+			public ModelObject getData () { return ldf.getObjectData (); }
+
+			@Override
+			public K getUserContext () { return userContext; }
+		};
+		
+		return factory.create ( createContext );
 	}
 
 	@Override
 	public ObjectUpdater createUpdate ( final ModelRequestContext context, final Path objectPath ) throws ModelRequestException, ModelServiceException
 	{
 		checkReadOnly ();
+
 		return new ObjectUpdater ()
 		{
 			@Override
-			public ObjectUpdater overwrite ( JSONObject withData )
+			public ObjectUpdater overwrite ( ModelObject withData )
 			{
 				fUpdates.add ( new Update ( UpdateType.OVERWRITE, withData ) );
 				return this;
 			}
 
 			@Override
-			public ObjectUpdater merge ( JSONObject withData )
+			public ObjectUpdater merge ( ModelObject withData )
 			{
 				fUpdates.add ( new Update ( UpdateType.MERGE, withData ) );
 				return this;
@@ -183,19 +198,28 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 				{
 					final boolean isCreate = !exists ( context, objectPath );
 
-					ModelObject o;
+					final ModelObjectMetadata meta;
+					final CommonObjectData data;
+
 					if ( isCreate )
 					{
-						o = initializeObject ( context );
+						meta = new CommonModelObjectMetadata ();
+						meta.getAccessControlList ()
+							.setOwner ( context.getOperator ().getId () )
+							.permit ( AccessControlEntry.kOwner, ModelOperation.kAllOperationStrings )
+						;
+						data = new CommonObjectData ();
 					}
 					else
 					{
-						o = load ( context, objectPath );
+						final BasicModelObject o = load ( context, objectPath );
+						meta = o.getMetadata ();
+						data = new CommonObjectData ( o.getData () );
 					}
 
 					for ( Update mu : fUpdates )
 					{
-						final AccessControlList acl = o.getAccessControlList ();
+						final AccessControlList acl = meta.getAccessControlList ();
 						final ModelOperation[] accessList = mu.getAccessRequired ();
 						for ( ModelOperation access : accessList )
 						{
@@ -204,19 +228,19 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 								throw new ModelRequestException ( context.getOperator ().getId () + " may not " + access + " " + objectPath.toString () + "." );
 							}
 						}
-						mu.update ( context, o );
+						mu.update ( context, meta, data );
 					}
 
 					// validate the update
 					final ModelSchemaRegistry schemas = context.getSchemaRegistry ();
-					for ( String type : o.getMetadata ().getLockedTypes () )
+					for ( String type : meta.getLockedTypes () )
 					{
 						final ModelSchema ms = schemas.getSchema ( type );
 						if ( ms == null )
 						{
 							throw new ModelRequestException ( "Unknown type " + type );
 						}
-						final ValidationResult vr = ms.isValid ( o );
+						final ValidationResult vr = ms.isValid ( data );
 						if ( !vr.isValid () )
 						{
 							throw new ModelRequestException ( "The object does not meet type " + type,
@@ -226,9 +250,17 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 						}
 					}
 
-					internalStore ( context, objectPath, o );
+					final ModelDataTransfer mdt = new ModelDataTransfer ()
+					{
+						@Override
+						public ModelObjectMetadata getMetadata () { return meta; }
+
+						@Override
+						public ModelObject getObjectData () { return data; }
+					};
+					internalStore ( context, objectPath, mdt );
 					log.info ( "wrote {}", objectPath );
-					context.put ( objectPath, o );
+					context.put ( objectPath, mdt );
 
 					final ModelNotificationService ns = context.getNotificationService();
 					if ( isCreate ) 
@@ -258,19 +290,19 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 	}
 	private class Update
 	{
-		public Update ( UpdateType ut, JSONObject data )
+		public Update ( UpdateType ut, ModelObject data )
 		{
 			fType = ut;
 			fData = data;
 			fAcl = null;
 		}
 
-		public void update ( ModelRequestContext context, ModelObject o )
+		public void update ( ModelRequestContext context, ModelObjectMetadata meta, CommonObjectData workingData )
 		{
 			switch ( fType )
 			{
 				case ACL:
-					final AccessControlList targetAcl = o.getAccessControlList ();
+					final AccessControlList targetAcl = meta.getAccessControlList ();
 					targetAcl.clear ();
 					targetAcl.setOwner ( fAcl.getOwner () );
 					for ( AccessControlEntry e : fAcl.getEntries () )
@@ -279,12 +311,12 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 					}					
 					break;
 
-				case MERGE:
-					o.patchData ( fData );
-					break;
-
 				case OVERWRITE:
-					o.putData ( fData );
+					workingData.clear ();
+					// no break...
+
+				case MERGE:
+					workingData.merge ( fData );
 					break;
 
 				default:
@@ -312,7 +344,7 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 		}
 
 		public final UpdateType fType;
-		public final JSONObject fData;
+		public final ModelObject fData;
 		public final AccessControlList fAcl;
 	}
 
@@ -351,22 +383,6 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 	private final String fModelId;
 	private final boolean fReadOnly;
 
-	protected ModelObject initializeObject ( ModelRequestContext context ) throws ModelRequestException
-	{
-		final Identity id = context.getOperator ();
-		if ( id == null )
-		{
-			throw new ModelRequestException ( "No operator identity provided in request context." );
-		}
-
-		final CommonJsonDbObject result = new CommonJsonDbObject ();
-		result.getAccessControlList ()
-			.setOwner ( id.getId () )
-			.permit ( AccessControlEntry.kOwner, ModelOperation.kAllOperationStrings )
-		;
-		return result;
-	}
-
 	protected boolean objectExists ( ModelRequestContext context, Path objectPath ) throws ModelServiceException, ModelRequestException
 	{
 		try
@@ -380,11 +396,19 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 		}
 	}
 
-	protected abstract ModelObject loadObject ( ModelRequestContext context, Path objectPath ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException;
-	protected abstract void internalStore ( ModelRequestContext context, Path objectPath, ModelObject o ) throws ModelRequestException, ModelServiceException;
+	protected interface ModelDataTransfer
+	{
+		ModelObjectMetadata getMetadata ();
+		ModelObject getObjectData ();
+	}
+	
+	protected abstract ModelDataTransfer loadObject ( ModelRequestContext context, Path objectPath ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException;
+	protected abstract void internalStore ( ModelRequestContext context, Path objectPath, ModelDataTransfer o ) throws ModelRequestException, ModelServiceException;
 	protected abstract boolean internalRemove ( ModelRequestContext context, Path objectPath ) throws ModelRequestException, ModelServiceException;
 
+	@Deprecated
 	public static final String kMetadataTag = "Ⓜ";
+	@Deprecated
 	public static final String kUserDataTag = "Ⓤ";
 
 	/**

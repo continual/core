@@ -330,7 +330,7 @@ public class BucketingService extends SimpleProcessingService
 		public long getTimestamp ( Message m ) { return m.getLong ( kTimestamp, -1 ); }
 
 		@Override
-		public String getKey ( Message m ) { return m.getValueAsString ( kMetricName ); }
+		public String getKey ( Message m ) { return m.getString ( kMetricName ); }
 
 		@Override
 		public Message cloneWithTime ( long tsBucket, Message m )

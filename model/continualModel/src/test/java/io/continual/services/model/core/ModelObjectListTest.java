@@ -4,7 +4,10 @@ import java.util.Iterator;
 
 import org.junit.Test;
 
-import io.continual.services.model.impl.json.CommonJsonDbObject;
+import io.continual.services.model.core.data.BasicModelObject;
+import io.continual.services.model.core.data.JsonModelObject;
+import io.continual.services.model.core.data.ModelObject;
+import io.continual.services.model.impl.json.CommonModelObjectMetadata;
 import io.continual.util.naming.Path;
 import junit.framework.TestCase;
 
@@ -13,7 +16,7 @@ public class ModelObjectListTest extends TestCase
 	@Test
 	public void testEmptyList ()
 	{
-		final ModelObjectList mol = ModelObjectList.emptyList ();
+		final ModelObjectList<?> mol = ModelObjectList.emptyList ();
 		assertNotNull ( mol );
 		assertNotNull ( mol.iterator () );
 		assertFalse ( mol.iterator ().hasNext () );
@@ -22,7 +25,7 @@ public class ModelObjectListTest extends TestCase
 	@Test
 	public void testEmptyListAsSimpleList ()
 	{
-		final ModelObjectList mol = ModelObjectList.simpleList ();
+		final ModelObjectList<?> mol = ModelObjectList.simpleList ();
 		assertNotNull ( mol );
 		assertNotNull ( mol.iterator () );
 		assertFalse ( mol.iterator ().hasNext () );
@@ -31,11 +34,11 @@ public class ModelObjectListTest extends TestCase
 	@Test
 	public void testOneItemList ()
 	{
-		final ModelObject m1 = new CommonJsonDbObject ();
-		final ModelObjectList mol = ModelObjectList.simpleList ( mp ( "/p1", m1 ) );
+		final BasicModelObject m1 = makeObj ();
+		final ModelObjectList<BasicModelObject> mol = ModelObjectList.simpleList ( mp ( "/p1", m1 ) );
 		assertNotNull ( mol );
 		
-		final Iterator<ModelObjectAndPath> iter = mol.iterator ();
+		final Iterator<ModelObjectAndPath<BasicModelObject>> iter = mol.iterator ();
 		assertNotNull ( iter );
 		assertTrue ( iter.hasNext () );
 		assertEquals ( m1, iter.next ().getObject () );
@@ -45,13 +48,13 @@ public class ModelObjectListTest extends TestCase
 	@Test
 	public void testMultiItemList ()
 	{
-		final ModelObject m1 = new CommonJsonDbObject ();
-		final ModelObject m2 = new CommonJsonDbObject ();
-		final ModelObject m3 = new CommonJsonDbObject ();
-		final ModelObjectList mol = ModelObjectList.simpleList ( mp ( "/p1", m1 ), mp ( "/p2", m2 ), mp ( "/p3", m3 ) );
+		final BasicModelObject m1 = makeObj ();
+		final BasicModelObject m2 = makeObj ();
+		final BasicModelObject m3 = makeObj ();
+		final ModelObjectList<BasicModelObject> mol = ModelObjectList.simpleList ( mp ( "/p1", m1 ), mp ( "/p2", m2 ), mp ( "/p3", m3 ) );
 		assertNotNull ( mol );
 		
-		final Iterator<ModelObjectAndPath> iter = mol.iterator ();
+		final Iterator<ModelObjectAndPath<BasicModelObject>> iter = mol.iterator ();
 		assertNotNull ( iter );
 		assertTrue ( iter.hasNext () );
 		assertEquals ( m1, iter.next ().getObject () );
@@ -65,14 +68,14 @@ public class ModelObjectListTest extends TestCase
 	@Test
 	public void testSeparateIteration ()
 	{
-		final ModelObject m1 = new CommonJsonDbObject ();
-		final ModelObject m2 = new CommonJsonDbObject ();
-		final ModelObject m3 = new CommonJsonDbObject ();
-		final ModelObjectList mol = ModelObjectList.simpleList ( mp ( "/p1", m1 ), mp ( "/p2", m2 ), mp ( "/p3", m3 ) );
+		final BasicModelObject m1 = makeObj ();
+		final BasicModelObject m2 = makeObj ();
+		final BasicModelObject m3 = makeObj ();
+		final ModelObjectList<BasicModelObject> mol = ModelObjectList.simpleList ( mp ( "/p1", m1 ), mp ( "/p2", m2 ), mp ( "/p3", m3 ) );
 		assertNotNull ( mol );
-		
-		final Iterator<ModelObjectAndPath> iter1 = mol.iterator ();
-		final Iterator<ModelObjectAndPath> iter2 = mol.iterator ();
+
+		final Iterator<ModelObjectAndPath<BasicModelObject>> iter1 = mol.iterator ();
+		final Iterator<ModelObjectAndPath<BasicModelObject>> iter2 = mol.iterator ();
 
 		iter1.next ();
 		iter1.next ();
@@ -81,8 +84,25 @@ public class ModelObjectListTest extends TestCase
 		assertEquals ( m1, iter2.next ().getObject () );
 	}
 
-	private static ModelObjectAndPath mp ( String p, ModelObject mo )
+	private static ModelObjectAndPath<BasicModelObject> mp ( String p, BasicModelObject mo )
 	{
 		return ModelObjectAndPath.from ( Path.fromString ( p ), mo );
+	}
+
+	private static BasicModelObject makeObj ()
+	{
+		final ModelObjectFactory.ObjectCreateContext<?> occ = new ModelObjectFactory.ObjectCreateContext<Object> ()
+		{
+			@Override
+			public ModelObjectMetadata getMetadata () { return new CommonModelObjectMetadata(); }
+
+			@Override
+			public ModelObject getData () { return new JsonModelObject (); }
+
+			@Override
+			public Object getUserContext () { return null; }
+		};
+		
+		return new BasicModelObject ( occ );
 	}
 }

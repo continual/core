@@ -1,5 +1,6 @@
 package io.continual.util.collections;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -245,16 +246,20 @@ public class ShardedExpiringCache<K,V>
 			final CacheEntry e = fItemCache.get ( key );
 			if ( e != null )
 			{
-				if ( validator == null || validator.isValid ( e.fVal ) )
+				final V val = e.getValue ();
+				if ( val != null && ( validator == null || validator.isValid ( val ) ) )
 				{
 					fMonitor.onCacheHit ();
 					log.info ( "Read/returned {} from cache {}/{}.", key.toString (), fName, fId );
-					return e.fVal;
+					return val;
 				}
-
-				// else: this entry timed out or isn't valid
-				log.debug ( "Read {} from cache {}/{}, but it's not valid.", key.toString (), fName, fId );
-				fItemCache.remove ( key );
+				else
+				{
+					// else: this entry timed out. isn't valid, or was garbage collected
+					log.debug ( "Read {} from cache {}/{}, but {}.", key.toString (), fName, fId,
+						( val == null ? "it was cleaned up" : "it's not valid" ) );
+					fItemCache.remove ( key );
+				}
 			}
 			log.debug ( "No valid entry for {} in cache {}/{}.", key.toString (), fName, fId );
 
@@ -310,6 +315,15 @@ public class ShardedExpiringCache<K,V>
 			fItemCleanups.clear ();
 		}
 
+		private synchronized void $testGc ( K key )
+		{
+			final CacheEntry ce = fItemCache.get ( key );
+			if ( ce != null )
+			{
+				ce.$testGc ();
+			}
+		}
+		
 		private final int fId;
 		private final HashMap<K, CacheEntry> fItemCache;
 		private final LinkedList<CacheEntry> fItemCleanups;	// time-ordered list of entries created
@@ -317,14 +331,14 @@ public class ShardedExpiringCache<K,V>
 		private void cleanupCache ()
 		{
 			final long now = now ();
-			while ( fItemCleanups.size () > 0 && fItemCleanups.get ( 0 ).fExpiresAtMs < now )
+			while ( fItemCleanups.size () > 0 && fItemCleanups.get ( 0 ).getExpiresAtMs() < now )
 			{
 				final CacheEntry cleanupEntry = fItemCleanups.remove ();
-				final CacheEntry cacheEntry = fItemCache.get ( cleanupEntry.fKey );
+				final CacheEntry cacheEntry = fItemCache.get ( cleanupEntry.getKey () );
 				if ( cacheEntry != null && cacheEntry == cleanupEntry )
 				{
 					// the cache entry is still the same entry as the cleanup task entry, so remove from cache
-					fItemCache.remove ( cleanupEntry.fKey );
+					fItemCache.remove ( cleanupEntry.getKey() );
 					log.info ( "Removed cache entry for \"{}\" in cache {}.", cleanupEntry.toString (), fName );
 				}
 				else
@@ -340,16 +354,24 @@ public class ShardedExpiringCache<K,V>
 		public CacheEntry ( K key, V val, long expiresAtMs )
 		{
 			fKey = key;
-			fVal = val;
+			fVal = new WeakReference<V> ( val );
 			fExpiresAtMs = expiresAtMs;
 		}
 
+		public K getKey () { return fKey; }
+		
+		public V getValue () { return fVal.get (); }
+
+		public long getExpiresAtMs () { return fExpiresAtMs; }
+		
 		@Override
 		public String toString () { return fKey.toString (); }
 	
-		public final K fKey;
-		public final V fVal;
-		public final long fExpiresAtMs;
+		private void $testGc () { fVal.clear (); }
+
+		private final K fKey;
+		private final WeakReference<V> fVal;
+		private final long fExpiresAtMs;
 	}
 
 	private ShardedExpiringCache ( Builder<K,V> b )
@@ -399,4 +421,12 @@ public class ShardedExpiringCache<K,V>
 	private static final long skWarnOnLockDurationMs = 10 * 1000L;
 
 	private static final Logger log = LoggerFactory.getLogger ( ShardedExpiringCache.class );
+
+	void $testDropWeakRef ( K key )
+	{
+		try ( ShardCallWrap lw = new ShardCallWrap ( "for gc test" ) )
+		{
+			getShard ( key ).$testGc ( key );
+		}
+	}
 }

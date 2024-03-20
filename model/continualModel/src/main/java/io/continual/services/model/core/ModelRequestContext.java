@@ -62,19 +62,20 @@ public interface ModelRequestContext extends AutoCloseable
 	CacheControl getCacheControl ();
 
 	/**
-	 * Get a previously loaded object from this context.
+	 * Get a previously stored raw data.
 	 *  
 	 * @param key
-	 * @return the object, if previously loaded (and stored here). Otherwise, null.
+	 * @return the raw data, if previously loaded (and stored here). Otherwise, null.
+	 * @throws ClassCastException
 	 */
-	ModelObject get ( Path key );
+	<T> T get ( Path key, Class<T> clazz );
 
 	/**
 	 * Put an object into the context
 	 * @param key the object path
-	 * @param o the object
+	 * @param rawData the raw data
 	 */
-	void put ( Path key, ModelObject o );
+	void put ( Path key, Object rawData );
 
 	/**
 	 * Remove an object a given path.

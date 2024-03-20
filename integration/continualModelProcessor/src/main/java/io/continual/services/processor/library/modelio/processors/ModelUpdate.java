@@ -8,8 +8,9 @@ import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.model.core.Model;
-import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelRequestContext;
+import io.continual.services.model.core.data.BasicModelObject;
+import io.continual.services.model.core.data.JsonModelObject;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.processor.config.readers.ConfigLoadContext;
@@ -59,8 +60,8 @@ public class ModelUpdate implements Processor
 					final JSONArray data = updateBlock.getJSONArray ( "deleteFields" );
 					final JSONArray evaled = Setter.evaluate ( context, data, context.getMessage () );
 
-					final ModelObject mo = model.load ( mrc, path );
-					final JSONObject modelData = mo.getData ();
+					final BasicModelObject mo = model.load ( mrc, path );
+					final JSONObject modelData = JsonModelObject.modelObjectToJson ( mo.getData () );
 
 					for ( int j=0; j<evaled.length (); j++ )
 					{
@@ -71,7 +72,7 @@ public class ModelUpdate implements Processor
 					}
 
 					model.createUpdate ( mrc, path )
-						.overwrite ( modelData )
+						.overwrite ( new JsonModelObject ( modelData ) )
 						.execute ()
 					;
 				}
@@ -80,7 +81,7 @@ public class ModelUpdate implements Processor
 					final JSONObject data = updateBlock.getJSONObject ( "patch" );
 					final JSONObject evaled = Setter.evaluate ( context, data, context.getMessage () );
 					model.createUpdate ( mrc, path )
-						.merge ( evaled )
+						.merge ( new JsonModelObject ( evaled ) )
 						.execute ()
 					;
 				}
@@ -89,7 +90,7 @@ public class ModelUpdate implements Processor
 					final JSONObject data = updateBlock.getJSONObject ( "put" );
 					final JSONObject evaled = Setter.evaluate ( context, data, context.getMessage () );
 					model.createUpdate ( mrc, path )
-						.overwrite ( evaled )
+						.overwrite ( new JsonModelObject ( evaled ) )
 						.execute ()
 					;
 				}

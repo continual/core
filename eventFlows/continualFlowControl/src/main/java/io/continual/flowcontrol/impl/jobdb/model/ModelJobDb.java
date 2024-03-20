@@ -30,9 +30,10 @@ import io.continual.iam.impl.common.CommonJsonIdentity;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.services.model.core.Model;
-import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelRequestContext;
+import io.continual.services.model.core.data.BasicModelObject;
+import io.continual.services.model.core.data.JsonModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
@@ -173,7 +174,7 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 		try
 		{
 			final Path path = jobNameToPath ( name );
-			final ModelObject mo = fModel.load ( mrc, path );
+			final BasicModelObject mo = fModel.load ( mrc, path );
 			return new ModelFcJob ( name, mo );
 		}
 		catch ( ModelItemDoesNotExistException e )
@@ -192,9 +193,9 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 		{
 			final String name = job.getName ();
 			final Path path = jobNameToPath ( name );
-			
+
 			fModel.createUpdate ( mrc, path )
-				.overwrite ( ((ModelFcJob)job).toJson() )
+				.overwrite ( new JsonModelObject ( ((ModelFcJob)job).toJson() ) )
 				.execute ()
 			;
 
@@ -337,9 +338,9 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 			super ( builder.fName, fEnc );
 		}
 
-		public ModelFcJob ( String name, ModelObject mo )
+		public ModelFcJob ( String name, BasicModelObject mo )
 		{
-			super ( name, fEnc, mo.getData() );
+			super ( name, fEnc, JsonModelObject.modelObjectToJson ( mo.getData() ) );
 		}
 	}
 

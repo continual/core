@@ -1,5 +1,7 @@
 package io.continual.services.model.core;
 
+import io.continual.services.model.core.data.ModelObject;
+
 /**
  * An object type
  */

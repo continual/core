@@ -141,6 +141,25 @@ public class ShardedExpiringCacheTest extends TestCase
 		assertFalse( secCachingFor.containsKey( "fooCFtimer" ) );	// Timer Expires
 	}
 
+	@Test
+	public void testGc () throws FetchException, InterruptedException
+	{
+		final ShardedExpiringCache<String,String> c = new ShardedExpiringCache.Builder<String,String> ()
+			.withShardCount ( 32 )
+			.build ()
+		;
+
+		assertNull ( c.read ( "foo" ) );
+
+		c.write ( "foo", "bar" );
+		assertEquals ( "bar", c.read ( "foo" ) );
+
+		c.$testDropWeakRef ( "foo" );
+
+		final String postGc = c.read ( "foo" );
+		assertNull ( postGc );
+	}
+
 	private static final String kMagicValue = "fetched value";
 	private static final Logger log = LoggerFactory.getLogger ( ShardedExpiringCacheTest.class );
 	

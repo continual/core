@@ -18,6 +18,7 @@ package io.continual.services.model.impl.client;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -40,16 +41,19 @@ import io.continual.jsonHttpClient.impl.ok.OkHttp;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.services.model.core.Model;
-import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelObjectAndPath;
-import io.continual.services.model.core.ModelObjectComparator;
+import io.continual.services.model.core.ModelObjectFactory;
+import io.continual.services.model.core.ModelObjectFactory.ObjectCreateContext;
 import io.continual.services.model.core.ModelObjectList;
+import io.continual.services.model.core.ModelObjectMetadata;
 import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelTraversal;
+import io.continual.services.model.core.data.JsonModelObject;
+import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelSchemaViolationException;
@@ -57,8 +61,8 @@ import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.model.impl.common.BasicModelRequestContextBuilder;
 import io.continual.services.model.impl.common.SimpleModelQuery;
 import io.continual.services.model.impl.common.SimpleTraversal;
+import io.continual.services.model.impl.json.CommonDataTransfer;
 import io.continual.services.model.impl.json.CommonJsonDbModel;
-import io.continual.services.model.impl.json.CommonJsonDbObject;
 import io.continual.util.data.TypeConvertor;
 import io.continual.util.data.exprEval.ExpressionEvaluator;
 import io.continual.util.data.json.JsonVisitor;
@@ -327,7 +331,7 @@ public class ModelClient extends SimpleService implements Model
 	}
 
 	@Override
-	public ModelObject load ( ModelRequestContext context, Path objectPath ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
+	public <T,K> T load ( ModelRequestContext context, Path objectPath, ModelObjectFactory<T,K> factory, K userContext ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
 		// check if the cache knows there's no such object
 		if ( context.knownToNotExist ( objectPath ) )
@@ -336,46 +340,59 @@ public class ModelClient extends SimpleService implements Model
 		}
 
 		// check if the cache has the object
+		CommonDataTransfer ld = context.get ( objectPath, CommonDataTransfer.class );
+		if ( ld == null )
 		{
-			final ModelObject result = context.get ( objectPath );
-			if ( result != null ) return result;
+			// otherwise load from server
+			final String path = pathToUrl ( objectPath );
+			try ( 
+				final HttpResponse resp = fClient.newRequest ()
+					.asUser ( fCreds )
+					.onPath ( path )
+					.get ()
+				)
+			{
+				if ( resp.isSuccess () )
+				{
+					final JSONObject respBody = resp.getBody ();
+					final JSONObject obj = respBody.optJSONObject ( "object" );
+					if ( obj == null )
+					{
+						throw new ModelServiceException ( "Expected 'object' in response payload." );
+					}
+					ld = new CommonDataTransfer ( objectPath, obj );
+
+					context.put ( objectPath, ld );
+				}
+				else if ( resp.isNotFound () )
+				{
+					context.doesNotExist ( objectPath );
+					throw new ModelItemDoesNotExistException ( objectPath );
+				}
+				else
+				{
+					throw new ModelServiceException ( "server replied " + resp.getCode () + " " + resp.getMessage () );
+				}
+			}
+			catch ( HttpServiceException | BodyFormatException e )
+			{
+				throw new ModelServiceException ( e );
+			}
 		}
 
-		// otherwise load from server
-		final String path = pathToUrl ( objectPath );
-		try ( 
-			final HttpResponse resp = fClient.newRequest ()
-				.asUser ( fCreds )
-				.onPath ( path )
-				.get ()
-			)
+		// now create the instance
+		final CommonDataTransfer ldf = ld;
+		return factory.create ( new ObjectCreateContext<K> ()
 		{
-			if ( resp.isSuccess () )
-			{
-				final JSONObject respBody = resp.getBody ();
-				final JSONObject obj = respBody.optJSONObject ( "object" );
-				if ( obj == null )
-				{
-					throw new ModelServiceException ( "Expected 'object' in response payload." );
-				}
-				final ModelObject result = new CommonJsonDbObject ( objectPath.toString (), obj );
-				context.put ( objectPath, result );
-				return result;
-			}
-			else if ( resp.isNotFound () )
-			{
-				context.doesNotExist ( objectPath );
-				throw new ModelItemDoesNotExistException ( objectPath );
-			}
-			else
-			{
-				throw new ModelServiceException ( "server replied " + resp.getCode () + " " + resp.getMessage () );
-			}
-		}
-		catch ( HttpServiceException | BodyFormatException e )
-		{
-			throw new ModelServiceException ( e );
-		}
+			@Override
+			public ModelObjectMetadata getMetadata () { return ldf.getMetadata (); }
+
+			@Override
+			public ModelObject getData () { return ldf.getObjectData (); }
+
+			@Override
+			public K getUserContext () { return userContext; }
+		} );
 	}
 
 	@Override
@@ -384,14 +401,14 @@ public class ModelClient extends SimpleService implements Model
 		return new ObjectUpdater ()
 		{
 			@Override
-			public ObjectUpdater overwrite ( JSONObject withData )
+			public ObjectUpdater overwrite ( ModelObject withData )
 			{
 				fUpdates.add ( new Update ( objectPath, UpdateType.OVERWRITE, withData ) );
 				return this;
 			}
 
 			@Override
-			public ObjectUpdater merge ( JSONObject withData )
+			public ObjectUpdater merge ( ModelObject withData )
 			{
 				fUpdates.add ( new Update ( objectPath, UpdateType.MERGE, withData ) );
 				return this;
@@ -430,7 +447,7 @@ public class ModelClient extends SimpleService implements Model
 	}
 	private class Update
 	{
-		public Update ( Path path, UpdateType ut, JSONObject data )
+		public Update ( Path path, UpdateType ut, ModelObject data )
 		{
 			fPath = path;
 			fType = ut;
@@ -442,7 +459,7 @@ public class ModelClient extends SimpleService implements Model
 		{
 			if ( fType == UpdateType.ACL )
 			{
-				throw new ModelRequestException ( "The model service does not currently support ACL updates." );
+				throw new ModelRequestException ( "This model does not currently support ACL updates." );
 			}
 
 			HttpRequest req = fClient.newRequest ()
@@ -452,8 +469,8 @@ public class ModelClient extends SimpleService implements Model
 
 			try ( 
 				final HttpResponse resp = fType == UpdateType.OVERWRITE ?
-					req.put ( fData ) :
-					req.patch ( fData )
+					req.put ( JsonModelObject.modelObjectToJson ( fData ) ) :
+					req.patch ( JsonModelObject.modelObjectToJson ( fData ) )
 			)
 			{
 				if ( resp.isClientError () )
@@ -483,7 +500,7 @@ public class ModelClient extends SimpleService implements Model
 
 		private final Path fPath;
 		private final UpdateType fType;
-		private final JSONObject fData;
+		private final ModelObject fData;
 //		private final AccessControlList fAcl;
 	}
 
@@ -632,18 +649,18 @@ public class ModelClient extends SimpleService implements Model
 	private class RemoteModelQuery extends SimpleModelQuery
 	{
 		@Override
-		public ModelObjectList execute ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException
+		public <T,K> ModelObjectList<T> execute ( ModelRequestContext context, ModelObjectFactory<T,K> factory, DataAccessor<T> accessor, K userContext ) throws ModelRequestException, ModelServiceException
 		{
-			final LinkedList<ModelObjectAndPath> result = new LinkedList<> ();
+			final LinkedList<ModelObjectAndPath<T>> result = new LinkedList<> ();
 
 			final ModelPathList objectPaths = listChildrenOfPath ( context, getPathPrefix () );
 			for ( Path objectPath : objectPaths )
 			{
-				final ModelObject mo = load ( context, objectPath );
+				final T mo = load ( context, objectPath, factory, userContext );
 				boolean match = true;
 				for ( Filter f : getFilters() )
 				{
-					match = f.matches ( mo );
+					match = f.matches ( accessor.getDataFrom ( mo ) );
 					if ( !match )
 					{
 						break;
@@ -656,23 +673,26 @@ public class ModelClient extends SimpleService implements Model
 			}
 
 			// now sort our list
-			ModelObjectComparator orderBy = getOrdering ();
+			Comparator<ModelObject> orderBy = getOrdering ();
 			if ( orderBy != null )
 			{
-				Collections.sort ( result, new java.util.Comparator<ModelObjectAndPath> ()
+				Collections.sort ( result, new Comparator<ModelObjectAndPath<T>> ()
 				{
 					@Override
-					public int compare ( ModelObjectAndPath o1, ModelObjectAndPath o2 )
+					public int compare ( ModelObjectAndPath<T> o1, ModelObjectAndPath<T> o2 )
 					{
-						return orderBy.compare ( o1.getObject (), o2.getObject () );
+						return orderBy.compare (
+							accessor.getDataFrom ( o1.getObject () ),
+							accessor.getDataFrom ( o2.getObject () )
+						);
 					}
 				} );
 			}
 
-			return new ModelObjectList ()
+			return new ModelObjectList<T> ()
 			{
 				@Override
-				public Iterator<ModelObjectAndPath> iterator ()
+				public Iterator<ModelObjectAndPath<T>> iterator ()
 				{
 					return result.iterator ();
 				}
