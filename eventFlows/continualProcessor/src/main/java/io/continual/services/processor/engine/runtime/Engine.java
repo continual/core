@@ -52,6 +52,8 @@ import io.continual.util.data.exprEval.SpecialFnsDataSource;
  */
 public class Engine extends SimpleService
 {
+	public static final long kDefault_MetricsReportSeconds = 60L;
+	
 	public Engine ( Program p )
 	{
 		this ( null, p );
@@ -59,7 +61,7 @@ public class Engine extends SimpleService
 
 	public Engine ( Identity ii, Program p )
 	{
-		this ( ii, p, 5000L );
+		this ( ii, p, 1000L * kDefault_MetricsReportSeconds );
 	}
 
 	// FIXME: create a builder to set options rather than growing the constructor arg list
