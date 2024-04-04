@@ -182,7 +182,7 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 		 * @return this updater
 		 */
 		ObjectUpdater overwrite ( ModelObject withData );
-		
+
 		/**
 		 * Merge the given data into an existing object, or write a new object if the
 		 * object doesn't exist
