@@ -98,7 +98,11 @@ public interface ModelObject
 	default Long optLong ( String key, Long defval )
 	{
 		final Number n = getNumber ( key );
-		return n == null ? defval : n.longValue ();
+		if ( n == null )
+		{
+			return defval;
+		}
+		return n.longValue ();
 	}
 
 	/**
