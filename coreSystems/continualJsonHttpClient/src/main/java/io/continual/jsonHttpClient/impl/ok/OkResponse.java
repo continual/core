@@ -1,6 +1,8 @@
 package io.continual.jsonHttpClient.impl.ok;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.util.zip.GZIPInputStream;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -67,7 +69,22 @@ class OkResponse implements HttpResponse
 		{
 			final long length = fResponse.body ().contentLength ();
 			final MediaType mimeType = fResponse.body ().contentType ();
-			return bf.getBody ( length, mimeType.toString (), fResponse.body ().byteStream () );
+			final String contentEncoding = fResponse.header ( "Content-Encoding" );
+
+			InputStream stream = fResponse.body ().byteStream ();
+			if ( contentEncoding != null && contentEncoding.equalsIgnoreCase ( "gzip" ) )
+			{
+				try
+				{
+					stream = new GZIPInputStream ( stream );
+				}
+				catch ( IOException e )
+				{
+					throw new BodyFormatException ( e );
+				}
+			}
+
+			return bf.getBody ( length, mimeType.toString (), stream );
 		}
 		finally
 		{
