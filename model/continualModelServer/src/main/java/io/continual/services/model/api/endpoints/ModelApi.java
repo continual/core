@@ -24,13 +24,16 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
+import io.continual.http.service.framework.context.CHttpRequest;
 import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.iam.exceptions.IamSvcException;
 import io.continual.services.ServiceContainer;
 import io.continual.services.model.client.ModelConnection;
+import io.continual.services.model.core.ModelPathListPage;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRelationList;
+import io.continual.services.model.core.PageRequest;
 import io.continual.services.model.core.data.BasicModelObject;
 import io.continual.services.model.core.data.JsonModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
@@ -111,6 +114,7 @@ public class ModelApi extends ModelApiContextHelper
 	}
 
 	public static final String kIncludeParam = "incl";
+	public static final String kChildQueryParam = "children";
 
 	public static enum IncludeOptions
 	{
@@ -132,8 +136,8 @@ public class ModelApi extends ModelApiContextHelper
 			throw new ModelRequestException ( "Unrecognized option for " + kIncludeParam + ": " + text );
 		}
 	}
-	
-	public void getObject ( CHttpRequestContext context, final String objectPath ) throws IOException, ModelRequestException
+
+	public void getChildrenOnPath ( CHttpRequestContext context, final String objectPath ) throws IOException, ModelRequestException
 	{
 		handleModelRequest ( context, null, new ModelApiHandler ()
 		{
@@ -150,6 +154,97 @@ public class ModelApi extends ModelApiContextHelper
 
 				final ModelConnection model = ms.getModel ();
 				if ( model.exists ( requestedPath ) )
+				{
+					final JSONObject response = new JSONObject ()
+						.put ( "status", HttpStatusCodes.k200_ok )
+						.put ( "request", requestedPath.toString () )
+					;
+
+					final ObjectRenderer or = new ObjectRenderer ()
+						.atPath ( requestedPath )
+					;
+
+					if ( io == IncludeOptions.DATA || io == IncludeOptions.BOTH )
+					{
+						final BasicModelObject mo = ms.getModel ().load ( requestedPath );
+						or
+							.withData ( mo )
+						;
+					}
+
+					if ( io == IncludeOptions.RELS || io == IncludeOptions.BOTH )
+					{
+						or.withRelations ( ms.getModel ().selectRelations ( requestedPath ).getRelations () );
+					}
+
+					response.put ( "object", or.render () );
+
+					modelApiContext.respondOk ( response );
+				}
+				else
+				{
+					modelApiContext.respondWithStatus ( HttpStatusCodes.k404_notFound, new JSONObject ().put ( "path", objectPath.toString () ) );
+				}
+			}
+		} );
+	}
+
+	private static final String kQueryParam_FirstPage = "pg";
+	private static final int kDefault_FirstPage = 0;
+	private static final String kQueryParam_PageSize = "sz";
+	private static final int kDefault_PageSize = 50;
+	private static final String kQueryResult_ItemsThisPage = "itemsOnPage";
+	private static final String kQueryResult_ItemsTotal = "itemsTotal";
+	private static final String kQueryResult_PagesTotal = "pageCount";
+
+	public void getObject ( CHttpRequestContext context, final String objectPath ) throws IOException, ModelRequestException
+	{
+		handleModelRequest ( context, null, new ModelApiHandler ()
+		{
+			@Override
+			public void handle ( ModelApiContext modelApiContext ) throws IOException, JSONException, IamSvcException, ModelItemDoesNotExistException, ModelRequestException, BuildFailure, ModelServiceException
+			{
+				final CHttpRequest req = context.request ();
+				
+				final ModelSession ms = modelApiContext.getModelSession ();
+				final Path requestedPath = fixupPath ( objectPath );
+
+				final IncludeOptions io = userTextToOption ( 
+					req.getParameter ( kIncludeParam, kIncludeParam_Default )
+				);
+
+				final boolean childQuery = req.getBooleanParameter ( kChildQueryParam, false );
+
+				final ModelConnection model = ms.getModel ();
+				if ( childQuery )
+				{
+					final int reqPg = req.getIntParameter ( kQueryParam_FirstPage, kDefault_FirstPage );
+					final int reqSz = req.getIntParameter ( kQueryParam_PageSize, kDefault_PageSize );
+
+					// this pretty much a different thing from getting the object...
+					final PageRequest pr = new PageRequest ()
+						.startingAtPage ( reqPg )
+						.withPageSize ( reqSz )
+					;
+					final ModelPathListPage mpl = model.listChildrenOfPath ( requestedPath, pr );
+
+					final JSONArray paths = new JSONArray ();
+					for ( Path p : mpl )
+					{
+						paths.put ( p.toString () );
+					}
+					modelApiContext.respondOk ( new JSONObject ()
+						.put ( "children", paths )
+						.put ( "paging", new JSONObject ()
+							.put ( kQueryParam_FirstPage, reqPg )
+							.put ( kQueryParam_PageSize, reqSz )
+							.put ( kQueryResult_ItemsThisPage, mpl.getItemCountOnPage () )
+							.put ( kQueryResult_ItemsTotal, mpl.getTotalItemCount () )
+							.put ( kQueryResult_PagesTotal, mpl.getTotalPageCount () )
+						)
+					);
+				}
+				else if ( model.exists ( requestedPath ) )
 				{
 					final JSONObject response = new JSONObject ()
 						.put ( "status", HttpStatusCodes.k200_ok )

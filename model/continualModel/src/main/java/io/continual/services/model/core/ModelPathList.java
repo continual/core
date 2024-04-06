@@ -39,6 +39,16 @@ public interface ModelPathList extends ModelItemList<Path>
 	}
 
 	/**
+	 * Wrap a collection of paths with a model path list.
+	 * @param paths
+	 * @return a model path list
+	 */
+	static ModelPathList wrap ( Collection<Path> paths, PageRequest pr )
+	{
+		return new ModelPathList () { @Override public Iterator<Path> iterator () { return new PagingIterWrapper<> ( paths.iterator (), pr ); } };
+	}
+
+	/**
 	 * Create an empty list
 	 * @return an empty model path list
 	 */

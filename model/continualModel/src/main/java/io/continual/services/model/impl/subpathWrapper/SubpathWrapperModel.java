@@ -2,7 +2,6 @@ package io.continual.services.model.impl.subpathWrapper;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.LinkedList;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -12,13 +11,14 @@ import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelObjectFactory;
-import io.continual.services.model.core.ModelPathList;
+import io.continual.services.model.core.ModelPathListPage;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRelationList;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelTraversal;
+import io.continual.services.model.core.PageRequest;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
@@ -95,16 +95,12 @@ public class SubpathWrapperModel extends SimpleService implements Model
 	}
 
 	@Override
-	public ModelPathList listChildrenOfPath ( ModelRequestContext context, Path prefix ) throws ModelServiceException, ModelRequestException
+	public ModelPathListPage listChildrenOfPath ( ModelRequestContext context, Path prefix, PageRequest pr ) throws ModelServiceException, ModelRequestException
 	{
-		final ModelPathList backingList = fBackingModel.listChildrenOfPath ( context, userPathToBackingModel ( prefix ) );
-
-		final LinkedList<Path> result = new LinkedList<>();
-		for ( Path p : backingList )
-		{
-			result.add ( backingPathToUser ( p ) );
-		}
-		return ModelPathList.wrap ( result );
+		return ModelPathListPage.wrap (
+			fBackingModel.listChildrenOfPath ( context, userPathToBackingModel ( prefix ), pr ),
+			p -> backingPathToUser ( p )
+		);
 	}
 
 	@Override

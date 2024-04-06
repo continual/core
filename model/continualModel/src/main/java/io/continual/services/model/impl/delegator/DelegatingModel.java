@@ -16,24 +16,25 @@ import io.continual.services.SimpleService;
 import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelItemList;
 import io.continual.services.model.core.ModelObjectFactory;
-import io.continual.services.model.core.ModelPathList;
+import io.continual.services.model.core.ModelObjectFactory.ObjectCreateContext;
+import io.continual.services.model.core.ModelObjectMetadata;
+import io.continual.services.model.core.ModelPathListPage;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRelationList;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelTraversal;
+import io.continual.services.model.core.PageRequest;
 import io.continual.services.model.core.data.ModelObject;
-import io.continual.services.model.core.ModelObjectFactory.ObjectCreateContext;
-import io.continual.services.model.core.ModelObjectMetadata;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.model.impl.common.BaseRelationSelector;
 import io.continual.services.model.impl.common.BasicModelRequestContextBuilder;
 import io.continual.services.model.impl.common.SimpleTraversal;
-import io.continual.services.model.impl.json.CommonJsonDbObjectContainer;
 import io.continual.services.model.impl.json.CommonDataTransfer;
+import io.continual.services.model.impl.json.CommonJsonDbObjectContainer;
 import io.continual.services.model.impl.mem.InMemoryModel;
 import io.continual.util.naming.Name;
 import io.continual.util.naming.Path;
@@ -189,7 +190,7 @@ public class DelegatingModel extends SimpleService implements Model
 	}
 
 	@Override
-	public ModelPathList listChildrenOfPath ( ModelRequestContext context, Path prefix ) throws ModelServiceException, ModelRequestException
+	public ModelPathListPage listChildrenOfPath ( ModelRequestContext context, Path prefix, PageRequest pr ) throws ModelServiceException, ModelRequestException
 	{
 		final ModelMount mm = getModelForPath ( prefix );
 		if ( mm.getModel () == this )
@@ -209,13 +210,13 @@ public class DelegatingModel extends SimpleService implements Model
 			}
 
 			// and also check the backing model
-			final ModelPathList backing = fBackingModel.listChildrenOfPath ( context, prefix );
+			final ModelPathListPage backing = fBackingModel.listChildrenOfPath ( context, prefix );
 			for ( Path p : backing )
 			{
 				result.add ( p );
 			}
 
-			return ModelPathList.wrap ( result );
+			return ModelPathListPage.wrap ( result, pr );
 		}
 		else
 		{
@@ -286,7 +287,7 @@ public class DelegatingModel extends SimpleService implements Model
 		}
 
 		// work with the backing model...
-		final ModelPathList backingModelChildren = fBackingModel.listChildrenOfPath ( context, objectPath );
+		final ModelPathListPage backingModelChildren = fBackingModel.listChildrenOfPath ( context, objectPath );
 		
 		// if this is top-level, include the top-level paths in the backing model
 		if ( objectPath.isRootPath () )
@@ -299,7 +300,7 @@ public class DelegatingModel extends SimpleService implements Model
 
 		// the requested path could be a parent path for an object in the backing model. If so,
 		// we want to produce a container here.
-		if ( backingModelChildren.iterator ().hasNext () )
+		if ( backingModelChildren.iterator ().hasNext () || result.size () > 0 )
 		{
 			final CommonDataTransfer ld = CommonJsonDbObjectContainer.createObjectContainer ( objectPath, result );
 			return factory.create ( new ObjectCreateContext<K> ()

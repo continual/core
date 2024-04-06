@@ -32,6 +32,7 @@ import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.Identity;
 import io.continual.iam.identity.UserContext;
 import io.continual.services.ServiceContainer;
+import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.model.service.ModelService;
@@ -149,6 +150,10 @@ public class ModelApiContextHelper extends TypicalRestApiEndpoint<Identity>
 			};
 		
 			handler.handle ( mac );
+		}
+		catch ( ModelItemDoesNotExistException e )
+		{
+			sendJson ( context, HttpStatusCodes.k404_notFound, new JSONObject ().put ( "status", HttpStatusCodes.k404_notFound ).put ( "message", "Object not found. " + e.getMessage () ) );
 		}
 		catch ( ModelRequestException e )
 		{

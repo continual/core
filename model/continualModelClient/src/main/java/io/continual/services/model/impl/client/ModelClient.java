@@ -46,12 +46,13 @@ import io.continual.services.model.core.ModelObjectFactory;
 import io.continual.services.model.core.ModelObjectFactory.ObjectCreateContext;
 import io.continual.services.model.core.ModelObjectList;
 import io.continual.services.model.core.ModelObjectMetadata;
-import io.continual.services.model.core.ModelPathList;
+import io.continual.services.model.core.ModelPathListPage;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelTraversal;
+import io.continual.services.model.core.PageRequest;
 import io.continual.services.model.core.data.JsonModelObject;
 import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
@@ -154,18 +155,37 @@ public class ModelClient extends SimpleService implements Model
 	}
 
 	@Override
-	public ModelPathList listChildrenOfPath ( ModelRequestContext context, Path prefix ) throws ModelServiceException, ModelRequestException
+	public ModelPathListPage listChildrenOfPath ( ModelRequestContext context, Path prefix, PageRequest pr ) throws ModelServiceException, ModelRequestException
 	{
-		final LinkedList<Path> objects = new LinkedList<> ();
-
-        return new ModelPathList ()
-        {
-			@Override
-			public Iterator<Path> iterator ()
+		try ( 
+			final HttpResponse resp = fClient.newRequest ()
+				.asUser ( fCreds )
+				.onPath ( pathToUrl ( prefix ) )
+				.addQueryParam ( "children", "1" )
+				.addQueryParam ( "pg", pr.getRequestedPage () )
+				.addQueryParam ( "sz", pr.getRequestedPageSize () )
+				.get ()
+			)
+		{
+			final LinkedList<Path> result = new LinkedList<> ();
+			
+			JsonVisitor.forEachElement ( resp.getBody ().optJSONArray ( "children" ), new ArrayVisitor<String,JSONException> () 
 			{
-				return objects.iterator ();
-			}
-		};
+				@Override
+				public boolean visit ( String path ) throws JSONException
+				{
+					result.add ( modelPathToUserPath ( Path.fromString ( path ) ) );
+					return true;
+				}
+			} );
+
+			// FIXME: this paging data won't work - if original request is page 2 with 25 items, this would show page 0 with 25 total
+	        return ModelPathListPage.wrap ( result, pr );
+		}
+		catch ( HttpServiceException | JSONException | BodyFormatException e )
+		{
+			throw new ModelServiceException ( e );
+		}
 	}
 
 	@Override
@@ -182,8 +202,15 @@ public class ModelClient extends SimpleService implements Model
 	}
 
 	@Override
-	public ModelRelationInstance relate ( ModelRequestContext context, ModelRelation reln ) throws ModelServiceException, ModelRequestException
+	public ModelRelationInstance relate ( ModelRequestContext context, ModelRelation userReln ) throws ModelServiceException, ModelRequestException
 	{
+		// rebuild the relation using the base path
+		final ModelRelation reln = ModelRelation.from (
+			userPathToModelPath ( userReln.getFrom () ),
+			userReln.getName (),
+			userPathToModelPath ( userReln.getTo () )
+		);
+
 		final JSONObject relationPayload = new JSONObject ()
 			.put ( "relations", new JSONArray ()
 				.put ( new JSONObject ()
@@ -586,6 +613,16 @@ public class ModelClient extends SimpleService implements Model
 		return getBasePath("model") + "/" + encodePath ( objectPath );
 	}
 
+	private Path userPathToModelPath ( Path p )
+	{
+		return fPathPrefix.makeChildPath ( p );
+	}
+
+	private Path modelPathToUserPath ( Path p )
+	{
+		return p.makePathWithinParent ( fPathPrefix );
+	}
+
 	private List<ModelRelationInstance> getRelns ( Path forObject, boolean inbound, String relnName ) throws ModelItemDoesNotExistException, ModelRequestException, ModelServiceException
 	{
 		final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
@@ -653,7 +690,7 @@ public class ModelClient extends SimpleService implements Model
 		{
 			final LinkedList<ModelObjectAndPath<T>> result = new LinkedList<> ();
 
-			final ModelPathList objectPaths = listChildrenOfPath ( context, getPathPrefix () );
+			final ModelPathListPage objectPaths = listChildrenOfPath ( context, getPathPrefix () );
 			for ( Path objectPath : objectPaths )
 			{
 				final T mo = load ( context, objectPath, factory, userContext );

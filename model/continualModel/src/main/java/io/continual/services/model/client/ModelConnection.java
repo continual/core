@@ -11,13 +11,14 @@ import io.continual.services.model.core.Model.RelationType;
 import io.continual.services.model.core.ModelObjectAndPath;
 import io.continual.services.model.core.ModelObjectFactory;
 import io.continual.services.model.core.ModelObjectList;
-import io.continual.services.model.core.ModelPathList;
+import io.continual.services.model.core.ModelPathListPage;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRelationList;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelTraversal;
+import io.continual.services.model.core.PageRequest;
 import io.continual.services.model.core.data.BasicModelObject;
 import io.continual.services.model.core.data.JsonModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
@@ -68,9 +69,14 @@ public class ModelConnection
 		return fModel.exists ( getContext(), objectPath );
 	}
 
-	public ModelPathList listChildrenOfPath ( Path parentPath ) throws ModelServiceException, ModelItemDoesNotExistException, ModelRequestException
+	public ModelPathListPage listChildrenOfPath ( Path parentPath ) throws ModelServiceException, ModelItemDoesNotExistException, ModelRequestException
 	{
 		return fModel.listChildrenOfPath ( getContext(), parentPath );
+	}
+
+	public ModelPathListPage listChildrenOfPath ( Path parentPath, PageRequest pr ) throws ModelServiceException, ModelItemDoesNotExistException, ModelRequestException
+	{
+		return fModel.listChildrenOfPath ( getContext(), parentPath, pr );
 	}
 
 	public ModelQuery startQuery () throws ModelRequestException, ModelServiceException
