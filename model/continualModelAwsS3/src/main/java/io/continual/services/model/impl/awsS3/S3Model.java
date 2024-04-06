@@ -705,9 +705,13 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		{
 			final boolean existed = exists ( context, objectPath );
 			final String s3Path = pathToS3Path ( objectPath );
+
 			fS3.deleteObject ( fBucketId, s3Path );
+			fRelnMgr.removeAllRelations ( objectPath );
+
 			fCache.remove ( s3Path );
 			fNotFoundCache.write ( s3Path, true );
+
 			return existed;
 		}
 	}
