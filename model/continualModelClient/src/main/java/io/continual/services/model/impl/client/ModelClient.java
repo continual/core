@@ -699,4 +699,10 @@ public class ModelClient extends SimpleService implements Model
 			};
 		}
 	}
+
+	@Override
+	protected void onStopRequested ()
+	{
+		fClient.close ();
+	}
 }

@@ -22,6 +22,7 @@ import org.json.JSONObject;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRelationList;
 import io.continual.services.model.core.data.BasicModelObject;
+import io.continual.services.model.core.data.JsonModelObject;
 import io.continual.util.naming.Path;
 
 public class ObjectRenderer
@@ -46,7 +47,7 @@ public class ObjectRenderer
 		if ( fMoc != null )
 		{
 			result
-				.put ( "data", fMoc.getData () )
+				.put ( "data", JsonModelObject.modelObjectToJson ( fMoc.getData () ) )
 				.put ( "meta", fMoc.getMetadata ().toJson () )
 			;
 		}
