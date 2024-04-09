@@ -11,9 +11,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.continual.resources.ResourceLoader;
-import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelSchema;
 import io.continual.services.model.core.ModelSchemaRegistry;
+import io.continual.services.model.core.data.JsonModelObject;
+import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.util.collections.LruCache;
 import io.continual.util.data.json.CommentedJsonTokener;
@@ -79,7 +80,7 @@ public class BuiltinSchemaReg implements ModelSchemaRegistry
 		{
 			try
 			{
-				fSchema.validate ( object.getData () );
+				fSchema.validate ( JsonModelObject.modelObjectToJson ( object ) );
 				return ModelSchema.buildPassingResult ();
 			}
 			catch ( ValidationException e )

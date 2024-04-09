@@ -7,8 +7,8 @@ import org.json.JSONObject;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.ServiceContainer;
 import io.continual.services.model.core.Model;
-import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelRequestContext;
+import io.continual.services.model.core.data.BasicModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
@@ -43,7 +43,7 @@ public class SingleObjectQuery extends BaseFetcher implements ObjectFetcher
 					.forUser ( spc.getOperator () )
 					.build ()
 				;
-				final ModelObject mo = model.load ( mrc, fPath );
+				final BasicModelObject mo = model.load ( mrc, fPath );
 				return buildMessageAndRouting ( fPath, mo, pipeline );
 			}
 			catch ( ModelItemDoesNotExistException e )

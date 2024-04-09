@@ -1,6 +1,8 @@
 package io.continual.jsonHttpClient.impl.ok;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -35,10 +37,32 @@ class OkRequest implements HttpRequest
 	@Override
 	public HttpRequest onPath ( String url )
 	{
+		try
+		{
+			final URI uri = new URI ( url );
+			final Map<String,String> params = parseQuery ( uri.getQuery () );
+			if ( params.size () > 0 )
+			{
+				fPath = new URI ( uri.getScheme (), uri.getUserInfo (), uri.getHost (), uri.getPort (), uri.getPath (), null, null )
+					.toString ()
+				;
+				for ( Map.Entry<String,String> e : params.entrySet () )
+				{
+					addQueryParam ( e.getKey (), e.getValue () );
+				}
+				return this;
+			}
+		}
+		catch ( URISyntaxException x )
+		{
+			// ignore
+		}
+
 		fPath = url;
+
 		return this;
 	}
-
+	
 	@Override
 	public HttpRequest asUser ( HttpUsernamePasswordCredentials creds )
 	{
@@ -226,6 +250,22 @@ class OkRequest implements HttpRequest
 		{
 			throw new HttpServiceException ( e );
 		}
+	}
+
+	private static Map<String, String> parseQuery ( String query )
+	{
+		Map<String, String> queryPairs = new HashMap<> ();
+		if ( query != null && !query.isEmpty () )
+		{
+			String[] pairs = query.split ( "&" );
+			for ( String pair : pairs )
+			{
+				int idx = pair.indexOf ( "=" );
+				queryPairs.put ( pair.substring ( 0, idx ),
+					pair.substring ( idx + 1 ) );
+			}
+		}
+		return queryPairs;
 	}
 
 	private static final Logger log = LoggerFactory.getLogger ( OkRequest.class );

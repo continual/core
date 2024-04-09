@@ -11,7 +11,7 @@ import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.services.model.core.Model;
-import io.continual.services.model.core.ModelObject;
+import io.continual.services.model.core.ModelObjectFactory;
 import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRelation;
@@ -128,9 +128,9 @@ public class SubpathWrapperModel extends SimpleService implements Model
 	}
 
 	@Override
-	public ModelObject load ( ModelRequestContext context, Path objectPath ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
+	public <T,K> T load ( ModelRequestContext context, Path objectPath, ModelObjectFactory<T,K> factory, K userContext ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
-		return fBackingModel.load ( context, userPathToBackingModel ( objectPath ) );
+		return fBackingModel.load ( context, userPathToBackingModel ( objectPath ), factory, userContext );
 	}
 
 	@Override

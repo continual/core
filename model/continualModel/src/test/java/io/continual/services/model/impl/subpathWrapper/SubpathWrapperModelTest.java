@@ -7,8 +7,9 @@ import org.json.JSONObject;
 import org.junit.Test;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelRequestContext;
+import io.continual.services.model.core.data.BasicModelObject;
+import io.continual.services.model.core.data.JsonModelObject;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelSchemaViolationException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
@@ -29,22 +30,24 @@ public class SubpathWrapperModelTest extends TestCase
 			.build ()
 		;
 		mem.createUpdate ( context, Path.fromString ( "/foo" ) )
-			.overwrite ( new JSONObject ()
-			)
+			.overwrite ( new JsonModelObject ( new JSONObject () ) )
 			.execute ()
 		;
 		mem.createUpdate ( context, Path.fromString ( "/foo/bar" ) )
-			.overwrite ( new JSONObject ()
-			)
+			.overwrite ( new JsonModelObject ( new JSONObject () ) )
 			.execute ()
 		;
 		mem.createUpdate ( context, Path.fromString ( "/foo/bar/baz" ) )
-			.overwrite ( new JSONObject ()
+			.overwrite ( new JsonModelObject ( new JSONObject ()
 				.put ( "status", "expired" )
-			)
+			) )
 			.execute ()
 		;
 
+		final BasicModelObject bmo = mem.load ( context, Path.fromString ( "/foo/bar/baz" ) );
+		assertNotNull ( bmo );
+		assertEquals ( "expired", bmo.getData ().get ( "status" ) );
+		
 		try ( final SubpathWrapperModel spwm = new SubpathWrapperModel ( mem, Path.fromString ( "/foo/bar" ), "sub" ) )
 		{
 	
@@ -53,8 +56,8 @@ public class SubpathWrapperModelTest extends TestCase
 				.build ()
 			;
 	
-			final ModelObject mo = spwm.load ( subctx, Path.fromString ( "/baz") );
-			assertEquals ( "expired", mo.getData ().optString ( "status", null ) );
+			final BasicModelObject mo = spwm.load ( subctx, Path.fromString ( "/baz") );
+			assertEquals ( "expired", mo.getData ().getString ( "status" ) );
 		}
 	}
 }

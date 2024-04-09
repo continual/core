@@ -1,5 +1,6 @@
 package io.continual.services.model.core;
 
+import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.util.naming.Path;
@@ -45,7 +46,7 @@ public interface ModelTraversal
 	ModelTraversal excludeSet ( String label );
 
 	/**
-	 * Filter the current set of objects
+	 * Filter the current set of objects. 
 	 * @param filter
 	 * @return this traversal
 	 */

@@ -15,7 +15,7 @@ import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelItemList;
-import io.continual.services.model.core.ModelObject;
+import io.continual.services.model.core.ModelObjectFactory;
 import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRelation;
@@ -23,6 +23,9 @@ import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRelationList;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelTraversal;
+import io.continual.services.model.core.data.ModelObject;
+import io.continual.services.model.core.ModelObjectFactory.ObjectCreateContext;
+import io.continual.services.model.core.ModelObjectMetadata;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
@@ -30,6 +33,7 @@ import io.continual.services.model.impl.common.BaseRelationSelector;
 import io.continual.services.model.impl.common.BasicModelRequestContextBuilder;
 import io.continual.services.model.impl.common.SimpleTraversal;
 import io.continual.services.model.impl.json.CommonJsonDbObjectContainer;
+import io.continual.services.model.impl.json.CommonDataTransfer;
 import io.continual.services.model.impl.mem.InMemoryModel;
 import io.continual.util.naming.Name;
 import io.continual.util.naming.Path;
@@ -239,20 +243,20 @@ public class DelegatingModel extends SimpleService implements Model
 	}
 
 	@Override
-	public ModelObject load ( ModelRequestContext context, Path objectPath ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
+	public <T,K> T load ( ModelRequestContext context, Path objectPath, ModelObjectFactory<T,K> factory, K userContext ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
 		final ModelMount mm = getModelForPath ( objectPath );
 
 		// if the requested path is in a delegated model, just forward the request
 		if ( mm.getModel () != this )
 		{
-			return mm.getModel ().load ( context, mm.getPathWithinModel ( objectPath ) );
+			return mm.getModel ().load ( context, mm.getPathWithinModel ( objectPath ), factory, userContext );
 		}
 
 		// or if it's part of the backing model
 		if ( !objectPath.isRootPath () && fBackingModel.exists ( context, objectPath ) )
 		{
-			return fBackingModel.load ( context, objectPath );
+			return fBackingModel.load ( context, objectPath, factory, userContext );
 		}
 
 		// here, the path is a partial path that may contain model mounts (including "/")
@@ -281,16 +285,38 @@ public class DelegatingModel extends SimpleService implements Model
 			}
 		}
 
+		// work with the backing model...
+		final ModelPathList backingModelChildren = fBackingModel.listChildrenOfPath ( context, objectPath );
+		
 		// if this is top-level, include the top-level paths in the backing model
 		if ( objectPath.isRootPath () )
 		{
-			for ( Path p : fBackingModel.listChildrenOfPath ( context, objectPath ) )
+			for ( Path p : backingModelChildren )
 			{
 				result.add ( p );
 			}
 		}
 
-		return CommonJsonDbObjectContainer.createObjectContainer ( objectPath.toString (), result );
+		// the requested path could be a parent path for an object in the backing model. If so,
+		// we want to produce a container here.
+		if ( backingModelChildren.iterator ().hasNext () )
+		{
+			final CommonDataTransfer ld = CommonJsonDbObjectContainer.createObjectContainer ( objectPath, result );
+			return factory.create ( new ObjectCreateContext<K> ()
+			{
+				@Override
+				public ModelObjectMetadata getMetadata () { return ld.getMetadata (); }
+	
+				@Override
+				public ModelObject getData () { return ld.getObjectData (); }
+	
+				@Override
+				public K getUserContext () { return userContext; }
+			} );
+		}
+		
+		// not here
+		throw new ModelItemDoesNotExistException ( objectPath );
 	}
 
 	@Override

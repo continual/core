@@ -302,7 +302,14 @@ public class JsonEval
 			if ( current == null )
 			{
 				// not a container we can support
-				throw new IllegalArgumentException ( "Intermediate part " + thisPart + " is not an object." );
+				if ( withCreate )
+				{
+					throw new IllegalArgumentException ( "Intermediate part " + thisPart + " is not an object." );
+				}
+				else
+				{
+					return null;
+				}
 			}
 		}
 		return current;

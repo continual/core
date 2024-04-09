@@ -295,10 +295,15 @@ public class JsonVisitor
 
 	public static JSONObject mapToObject ( Map<String, Integer> list )
 	{
+		return mapToObject ( list, ( i ) -> { return i; } );
+	}
+
+	public static <T,O> JSONObject mapToObject ( Map<String, T> list, ItemRenderer<T,O> renderer )
+	{
 		final JSONObject obj = new JSONObject ();
-		for ( Map.Entry<String,Integer> e : list.entrySet () )
+		for ( Map.Entry<String,T> e : list.entrySet () )
 		{
-			obj.put ( e.getKey (), e.getValue () );
+			obj.put ( e.getKey (), renderer.render ( e.getValue () ) );
 		}
 		return obj;
 	}

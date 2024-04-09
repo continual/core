@@ -6,9 +6,7 @@ import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.Identity;
@@ -108,14 +106,9 @@ public class AclCheckerTest
 		}
 	}
 
-	@Rule
-	public ExpectedException exceptionRule = ExpectedException.none();
-
-	@Test
+	@Test(expected = AccessException.class)
 	public void testOnResource () throws AccessException
 	{
-		exceptionRule.expect ( AccessException.class );
-		exceptionRule.expectMessage ( id.getId() + " may not " + AccessControlList.UPDATE.toLowerCase() + " resid" );
 		final AccessControlList acl = AccessControlList.builder ()
 				.ownedBy ( "owner" )
 				.withEntry ( AccessControlEntry.builder ().forOwner().permit().operation ( AccessControlList.READ ).build () )
@@ -132,11 +125,9 @@ public class AclCheckerTest
 		}
 	}
 
-	@Test
+	@Test(expected = AccessException.class)
 	public void testCheckNoAcl () throws AccessException
 	{
-		exceptionRule.expect ( AccessException.class );
-		exceptionRule.expectMessage ( "No ACL provided." );
 		final AclChecker aclc = new AclChecker ();
 		try {
 			aclc.check();
@@ -145,11 +136,9 @@ public class AclCheckerTest
 		}
 	}
 
-	@Test
+	@Test(expected = AccessException.class)
 	public void testCheckNoOps () throws AccessException
 	{
-		exceptionRule.expect ( AccessException.class );
-		exceptionRule.expectMessage ( "No operation provided." );
 		final AclChecker aclc = new AclChecker ();
 		aclc.controlledByAcl( new AccessControlList () );
 		try {

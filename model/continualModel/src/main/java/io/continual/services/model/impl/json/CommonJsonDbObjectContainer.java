@@ -1,54 +1,41 @@
 package io.continual.services.model.impl.json;
 
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
-import io.continual.services.model.impl.json.CommonJsonDbObject.Builder.Constructor;
+import io.continual.iam.access.AccessControlList;
+import io.continual.util.data.json.JsonVisitor;
+import io.continual.util.data.json.JsonVisitor.ItemRenderer;
 import io.continual.util.naming.Path;
 
-public class CommonJsonDbObjectContainer extends CommonJsonDbObject
+public class CommonJsonDbObjectContainer
 {
-	public static CommonJsonDbObjectContainer createObjectContainer ( String id, Path containedPath )
-	{
-		return createObjectContainer ( id, Collections.singletonList ( containedPath ) );
-	}
+	public static final String kContainerType = "objectContainer";
 
-	public static CommonJsonDbObjectContainer createObjectContainer ( String id, Path... containedPaths )
+	public static CommonDataTransfer createObjectContainer ( Path path, Collection<Path> containedPaths )
 	{
-		return createObjectContainer ( id, Arrays.asList ( containedPaths ) );
-	}
-
-	public static CommonJsonDbObjectContainer createObjectContainer ( String id, Collection<Path> containedPaths )
-	{
-		return new Builder<CommonJsonDbObjectContainer> ()
-			.withId ( id )
-//			.withData ( new JSONObject ()
-//				.put ( "objects", JsonVisitor.collectionToArray ( containedPaths, new ItemRenderer<Path,String> ()
-//				{
-//					@Override
-//					public String render ( Path containedPath )
-//					{
-//						return containedPath.toString ().substring ( 1 );
-//					}
-//				} ) ), true )
-			.withType ( CommonJsonDbObject.kStdType_ObjectContainer )
-			.constructUsing ( new Constructor<CommonJsonDbObjectContainer> ()
+		final JSONObject data = new JSONObject ();
+		data.put ( "objects", JsonVisitor.collectionToArray ( containedPaths, new ItemRenderer<Path,String> ()
+		{
+			@Override
+			public String render ( Path containedPath )
 			{
-				@Override
-				public CommonJsonDbObjectContainer construct ( String id, JSONObject rawData )
-				{
-					return new CommonJsonDbObjectContainer ( id, rawData );
-				}
-			} )
-			.build ()
-		;
-	}
+				return containedPath.toString ().substring ( 1 );
+			}
+		} ) );
 
-	private CommonJsonDbObjectContainer ( String id, JSONObject rawData )
-	{
-		super ( id, rawData );
+		final JSONObject meta = new JSONObject ()
+			.put ( CommonModelObjectMetadata.kMeta_AclTag, AccessControlList.createOpenAcl ().asJson () )
+			.put ( CommonModelObjectMetadata.kMeta_LockedTypes, new JSONArray ().put ( kContainerType ) )
+		;
+
+		final JSONObject topLevel = new JSONObject ()
+			.put ( CommonDataTransfer.kDataTag, data )
+			.put ( CommonDataTransfer.kMetaTag, meta )
+		;
+
+		return new CommonDataTransfer ( path, topLevel );
 	}
 }

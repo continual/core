@@ -59,9 +59,9 @@ public class EmailSink implements Sink
 		try
 		{
 			final Future<MailStatus> status = fMailer.mail (
-				context.getMessage ().getValueAsString ( "to" ),
-				context.getMessage ().getValueAsString ( "subject" ),
-				context.getMessage ().getValueAsString ( "body" )
+				context.getMessage ().getString ( "to" ),
+				context.getMessage ().getString ( "subject" ),
+				context.getMessage ().getString ( "body" )
 			);
 			final MailStatus ms = status.get ( 30, TimeUnit.SECONDS );
 			if ( ms.didFail () )

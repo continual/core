@@ -18,17 +18,16 @@ package io.continual.services.model.core;
 
 import java.io.Closeable;
 
-import org.json.JSONObject;
-
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.iam.access.AccessControlList;
 import io.continual.iam.identity.Identity;
 import io.continual.services.Service;
+import io.continual.services.model.core.data.BasicModelObject;
+import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelSchemaViolationException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
-import io.continual.util.data.json.JsonUtil;
 import io.continual.util.naming.Path;
 
 public interface Model extends ModelIdentification, ModelCapabilities, Closeable, Service
@@ -115,76 +114,89 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	 * @throws ModelServiceException
 	 * @throws ModelRequestException
 	 */
-	ModelObject load ( ModelRequestContext context, Path objectPath ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException;
-
-	/**
-	 * Store the given JSON as an object at the given path
-	 * @param context
-	 * @param objectPath
-	 * @param jsonData
-	 * @throws ModelRequestException
-	 * @throws ModelSchemaViolationException
-	 * @throws ModelServiceException
-	 */
-	@Deprecated
-	default Model store ( ModelRequestContext context, Path objectPath, String jsonData ) throws ModelRequestException, ModelSchemaViolationException, ModelServiceException
+	default BasicModelObject load ( ModelRequestContext context, Path objectPath ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
-		createUpdate ( context, objectPath )
-			.overwrite ( JsonUtil.readJsonObject ( jsonData ) )
-			.execute ()
-		;
-		return this;
+		return load ( context, objectPath, BasicModelObject.class );
 	}
 
 	/**
-	 * Store the given JSON as an object at the given path
+	 * Load an object into the given class
 	 * @param context
 	 * @param objectPath
-	 * @param jsonData
-	 * @throws ModelRequestException
-	 * @throws ModelSchemaViolationException
+	 * @param clazz
+	 * @return an object
+	 * @throws ModelItemDoesNotExistException
 	 * @throws ModelServiceException
+	 * @throws ModelRequestException
 	 */
-	@Deprecated
-	default Model store ( ModelRequestContext context, Path objectPath, JSONObject jsonData ) throws ModelRequestException, ModelSchemaViolationException, ModelServiceException
+	default <T> T load ( ModelRequestContext context, Path objectPath, Class<T> clazz ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
-		createUpdate ( context, objectPath )
-			.overwrite ( jsonData )
-			.execute ()
-		;
-		return this;
+		return load ( context, objectPath, new ModelObjectAutoFactory<T,Object> ( clazz ), null );
 	}
 
 	/**
-	 * Merge the given JSON into the object at the given path. If the object doesn't exist, it's created.
+	 * Load an object into the given class
 	 * @param context
 	 * @param objectPath
-	 * @param jsonData
-	 * @throws ModelRequestException
-	 * @throws ModelSchemaViolationException
+	 * @param clazz
+	 * @param userContext
+	 * @return an object
+	 * @throws ModelItemDoesNotExistException
 	 * @throws ModelServiceException
+	 * @throws ModelRequestException
 	 */
-	@Deprecated
-	default Model update ( ModelRequestContext context, Path objectPath, JSONObject jsonData ) throws ModelRequestException, ModelSchemaViolationException, ModelServiceException
+	default <T,K> T load ( ModelRequestContext context, Path objectPath, Class<T> clazz, K userContext ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
-		createUpdate ( context, objectPath )
-			.merge ( jsonData )
-			.execute ()
-		;
-		return this;
+		return load ( context, objectPath, new ModelObjectAutoFactory<T,K> ( clazz ), userContext );
 	}
+
+	/**
+	 * Load an object using the given factory
+	 * @param context
+	 * @param objectPath
+	 * @param factory
+	 * @param userContext
+	 * @return an object
+	 * @throws ModelItemDoesNotExistException
+	 * @throws ModelServiceException
+	 * @throws ModelRequestException
+	 */
+	<T,K> T load ( ModelRequestContext context, Path objectPath, ModelObjectFactory<T,K> factory, K userContext ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException;
 
 	/**
 	 * An object updater
 	 */
 	interface ObjectUpdater
 	{
-		ObjectUpdater overwrite ( JSONObject withData );
-
-		ObjectUpdater merge ( JSONObject withData );
-
+		/**
+		 * Replace the ACL on this object
+		 * @param acl
+		 * @return this updater
+		 */
 		ObjectUpdater replaceAcl ( AccessControlList acl );
 
+		/**
+		 * Overwrite an existing object with the given data, or write a new object if the
+		 * object doesn't exist
+		 * @param withData
+		 * @return this updater
+		 */
+		ObjectUpdater overwrite ( ModelObject withData );
+
+		/**
+		 * Merge the given data into an existing object, or write a new object if the
+		 * object doesn't exist
+		 * @param withData
+		 * @return this updater
+		 */
+		ObjectUpdater merge ( ModelObject withData );
+
+		/**
+		 * Execute the update
+		 * @throws ModelRequestException
+		 * @throws ModelSchemaViolationException
+		 * @throws ModelServiceException
+		 */
 		void execute () throws ModelRequestException, ModelSchemaViolationException, ModelServiceException;
 	};
 

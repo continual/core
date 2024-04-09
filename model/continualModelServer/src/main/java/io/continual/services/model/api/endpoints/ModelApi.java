@@ -27,12 +27,12 @@ import io.continual.builder.Builder.BuildFailure;
 import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.iam.exceptions.IamSvcException;
 import io.continual.services.ServiceContainer;
-import io.continual.services.model.core.Model;
-import io.continual.services.model.core.ModelObject;
+import io.continual.services.model.client.ModelConnection;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRelationList;
-import io.continual.services.model.core.ModelRequestContext;
+import io.continual.services.model.core.data.BasicModelObject;
+import io.continual.services.model.core.data.JsonModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
@@ -110,16 +110,6 @@ public class ModelApi extends ModelApiContextHelper
 		getObject ( context, "/" );
 	}
 
-	private ModelRequestContext makeMrc ( ModelApiContext modelApiContext, ModelSession ms ) throws BuildFailure
-	{
-		return ms.getModel().getRequestContextBuilder ()
-			.forUser ( modelApiContext.getUserContext ().getUser () )
-			.withSchemasFrom ( ms.getSchemaRegistry () )
-			.withNotificationsTo ( ms.getNotificationSvc () )
-			.build ()
-		;
-	}
-
 	public static final String kIncludeParam = "incl";
 
 	public static enum IncludeOptions
@@ -152,14 +142,14 @@ public class ModelApi extends ModelApiContextHelper
 			{
 				final ModelSession ms = modelApiContext.getModelSession ();
 				final Path requestedPath = fixupPath ( objectPath );
-				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
+//				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
 
 				final IncludeOptions io = userTextToOption ( 
 					context.request().getParameter ( kIncludeParam, kIncludeParam_Default )
 				);
 
-				final Model model = ms.getModel ();
-				if ( model.exists ( mrc, requestedPath ) )
+				final ModelConnection model = ms.getModel ();
+				if ( model.exists ( requestedPath ) )
 				{
 					final JSONObject response = new JSONObject ()
 						.put ( "status", HttpStatusCodes.k200_ok )
@@ -172,7 +162,7 @@ public class ModelApi extends ModelApiContextHelper
 
 					if ( io == IncludeOptions.DATA || io == IncludeOptions.BOTH )
 					{
-						final ModelObject mo = ms.getModel ().load ( mrc, requestedPath );
+						final BasicModelObject mo = ms.getModel ().load ( requestedPath );
 						or
 							.withData ( mo )
 						;
@@ -180,7 +170,7 @@ public class ModelApi extends ModelApiContextHelper
 
 					if ( io == IncludeOptions.RELS || io == IncludeOptions.BOTH )
 					{
-						or.withRelations ( ms.getModel ().selectRelations ( requestedPath ).getRelations ( mrc ) );
+						or.withRelations ( ms.getModel ().selectRelations ( requestedPath ).getRelations () );
 					}
 
 					response.put ( "object", or.render () );
@@ -232,10 +222,9 @@ public class ModelApi extends ModelApiContextHelper
 
 				final ModelSession ms = modelApiContext.getModelSession ();
 				final Path requestedPath = fixupPath ( objectPath );
-				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
 
-				ms.getModel ().createUpdate ( mrc, requestedPath )
-					.overwrite ( obj )
+				ms.getModel ().createUpdate ( requestedPath )
+					.overwrite ( new JsonModelObject ( obj ) )
 					.execute ()
 				;
 
@@ -255,10 +244,9 @@ public class ModelApi extends ModelApiContextHelper
 
 				final ModelSession ms = modelApiContext.getModelSession ();
 				final Path requestedPath = fixupPath ( objectPath );
-				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
 
-				ms.getModel ().createUpdate ( mrc, requestedPath )
-					.merge ( obj )
+				ms.getModel ().createUpdate ( requestedPath )
+					.merge ( new JsonModelObject ( obj ) )
 					.execute ()
 				;
 
@@ -276,9 +264,8 @@ public class ModelApi extends ModelApiContextHelper
 			{
 				final ModelSession ms = modelApiContext.getModelSession ();
 				final Path requestedPath = fixupPath ( objectPath );
-				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
 
-				final boolean removal = ms.getModel ().remove ( mrc, requestedPath );
+				final boolean removal = ms.getModel ().remove ( requestedPath );
 				modelApiContext.respondWithStatus ( HttpStatusCodes.k200_ok, new JSONObject ().put ( "removal", removal ));
 			}
 		} );
@@ -296,7 +283,6 @@ public class ModelApi extends ModelApiContextHelper
 				result.put ( "relations", resultRelns );
 
 				final ModelSession ms = modelApiContext.getModelSession ();
-				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
 
 				final JSONObject payload = readPayload ( context );
 				final JSONArray relns = payload.getJSONArray ( "relations" );
@@ -308,7 +294,7 @@ public class ModelApi extends ModelApiContextHelper
 					final Path toPath = Path.fromString ( reln.getString ( "to" ) );
 					final String name = reln.getString ( "name" );
 
-					final ModelRelationInstance mri = ms.getModel ().relate ( mrc, ModelRelation.from ( fromPath, name, toPath ) );
+					final ModelRelationInstance mri = ms.getModel ().relate ( ModelRelation.from ( fromPath, name, toPath ) );
 					resultRelns.put ( new JSONObject ()
 						.put ( "id", mri.getId () )
 						.put ( "from", mri.getFrom ().toString () )
@@ -330,9 +316,8 @@ public class ModelApi extends ModelApiContextHelper
 			public void handle ( ModelApiContext modelApiContext ) throws IOException, JSONException, ModelServiceException, IamSvcException, ModelItemDoesNotExistException, ModelRequestException, BuildFailure
 			{
 				final ModelSession ms = modelApiContext.getModelSession ();
-				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
 
-				final boolean removal = ms.getModel ().unrelate ( mrc, relnId );
+				final boolean removal = ms.getModel ().unrelate ( relnId );
 				modelApiContext.respondWithStatus ( HttpStatusCodes.k200_ok, new JSONObject ().put ( "removal", removal ));
 			}
 		} );
@@ -347,12 +332,11 @@ public class ModelApi extends ModelApiContextHelper
 			{
 				final ModelSession ms = modelApiContext.getModelSession ();
 				final Path requestedPath = fixupPath ( objectPath );
-				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
 
 				final ModelRelationList relns = ms.getModel ().selectRelations ( requestedPath )
 					.outboundOnly ()
 					.named ( context.request ().getParameter ( "rn", null ) )
-					.getRelations ( mrc )
+					.getRelations ( )
 				;
 
 				modelApiContext.respondOk ( new JSONObject ()
@@ -375,12 +359,11 @@ public class ModelApi extends ModelApiContextHelper
 			{
 				final ModelSession ms = modelApiContext.getModelSession ();
 				final Path requestedPath = fixupPath ( objectPath );
-				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
 
 				final ModelRelationList relns = ms.getModel ().selectRelations ( requestedPath )
 					.inboundOnly ()
 					.named ( context.request ().getParameter ( "rn", null ) )
-					.getRelations ( mrc )
+					.getRelations ( )
 				;
 
 				modelApiContext.respondOk ( new JSONObject ()
@@ -403,15 +386,14 @@ public class ModelApi extends ModelApiContextHelper
 			{
 				final ModelSession ms = modelApiContext.getModelSession ();
 				final Path requestedPath = fixupPath ( objectPath );
-				final ModelRequestContext mrc = makeMrc ( modelApiContext, ms );
 
 				final ModelRelationList inRelns = ms.getModel ().selectRelations ( requestedPath )
 					.inboundOnly ()
-					.getRelations ( mrc )
+					.getRelations ()
 				;
 				final ModelRelationList outRelns = ms.getModel ().selectRelations ( requestedPath )
 					.outboundOnly ()
-					.getRelations ( mrc )
+					.getRelations ()
 				;
 
 				modelApiContext.respondOk ( new JSONObject ()
@@ -459,6 +441,19 @@ public class ModelApi extends ModelApiContextHelper
 		return obj;
 	}
 
+	
+//	private ModelRequestContext makeMrc ( ModelApiContext modelApiContext, ModelSession ms ) throws BuildFailure
+//	{
+//		return ms.getModel().getRequestContextBuilder ()
+//			.forUser ( modelApiContext.getUserContext ().getUser () )
+//			.withSchemasFrom ( ms.getSchemaRegistry () )
+//			.withNotificationsTo ( ms.getNotificationSvc () )
+//			.build ()
+//		;
+//	}
+
+
+	
 //	public void getModel ( CHttpRequestContext context, final String acctId, final String modelName ) throws IOException, ModelServiceRequestException
 //	{
 //		handleModelRequest ( context, acctId, null, new ModelApiHandler ()

@@ -16,6 +16,9 @@
 
 package io.continual.util.data.exprEval;
 
+/**
+ * A source of data for the expression evaluator
+ */
 public interface ExprDataSource
 {
 	/**

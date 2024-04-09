@@ -16,8 +16,11 @@
 
 package io.continual.services.processor.engine.model;
 
+import java.util.List;
+
 import org.json.JSONObject;
 
+import io.continual.util.data.StringUtils;
 import io.continual.util.data.json.JsonEval;
 import io.continual.util.data.json.JsonSerialized;
 import io.continual.util.data.json.JsonUtil;
@@ -161,7 +164,14 @@ public class Message implements JsonSerialized
 	
 	public Message clearValue ( String key )
 	{
-		fData.remove ( key );
+		if ( StringUtils.isEmpty ( key ) ) return this;
+
+		final JSONObject data = JsonEval.getContainerOf ( fData, key );
+		final List<String> pathParts = JsonEval.splitPath ( key );
+		if ( data != null )
+		{
+			data.remove ( pathParts.get ( pathParts.size () - 1 ) );
+		}
 		return this;
 	}
 	

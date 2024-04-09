@@ -1,35 +1,18 @@
 package io.continual.services.model.impl.common;
 
-import java.util.Collections;
-import java.util.Iterator;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 
-import io.continual.services.model.core.ModelObject;
-import io.continual.services.model.core.ModelObjectAndPath;
-import io.continual.services.model.core.ModelObjectComparator;
-import io.continual.services.model.core.ModelObjectList;
+import io.continual.services.model.core.ModelItemFilter;
 import io.continual.services.model.core.ModelQuery;
-import io.continual.services.model.core.ModelRequestContext;
-import io.continual.services.model.core.exceptions.ModelRequestException;
-import io.continual.services.model.core.exceptions.ModelServiceException;
-import io.continual.util.data.json.JsonEval;
+import io.continual.services.model.core.data.JsonModelObject;
+import io.continual.services.model.core.data.ModelObject;
 import io.continual.util.data.json.JsonPathEval;
 import io.continual.util.naming.Path;
 
 public abstract class SimpleModelQuery implements ModelQuery
 {
-	protected static interface Filter
-	{
-		boolean matches ( ModelObject mo );
-	}
-
-	protected Path getPathPrefix () { return fPathPrefix; }
-	protected int getPageSize () { return fPageSize; }
-	protected int getPageNumber () { return fPageNumber; }
-	protected List<Filter> getFilters () { return fFilters; }
-	protected ModelObjectComparator getOrdering() { return fOrderBy; }
-
 	@Override
 	public ModelQuery withPathPrefix ( Path path )
 	{
@@ -38,7 +21,7 @@ public abstract class SimpleModelQuery implements ModelQuery
 	}
 
 	@Override
-	public ModelQuery orderBy ( ModelObjectComparator comparator )
+	public ModelQuery orderBy ( Comparator<ModelObject> comparator )
 	{
 		fOrderBy = comparator;
 		return this;
@@ -60,7 +43,7 @@ public abstract class SimpleModelQuery implements ModelQuery
 			@Override
 			public boolean matches ( ModelObject mo )
 			{
-				return JsonPathEval.evaluateJsonPath ( mo.getData (), jsonPath ).size() > 0;
+				return JsonPathEval.evaluateJsonPath ( JsonModelObject.modelObjectToJson ( mo ), jsonPath ).size() > 0;
 			}
 		} );
 		return this;
@@ -74,7 +57,7 @@ public abstract class SimpleModelQuery implements ModelQuery
 			@Override
 			public boolean matches ( ModelObject mo )
 			{
-				final String objVal = JsonEval.evalToString ( mo.getData (), key );
+				final String objVal = ModelObjectExprSource.evalToString ( mo, key );
 				return (
 					( val == null && objVal == null ) ||
 					( val != null && objVal != null && val.equals ( objVal ) )
@@ -92,7 +75,7 @@ public abstract class SimpleModelQuery implements ModelQuery
 			@Override
 			public boolean matches ( ModelObject mo )
 			{
-				return val == JsonEval.evalToLong ( mo.getData (), key, 0L );
+				return val == ModelObjectExprSource.evalToLong ( mo, key, 0L );
 			}
 		} );
 		return this;
@@ -106,7 +89,7 @@ public abstract class SimpleModelQuery implements ModelQuery
 			@Override
 			public boolean matches ( ModelObject mo )
 			{
-				return val == JsonEval.evalToBoolean ( mo.getData (), key );
+				return val == ModelObjectExprSource.evalToBoolean ( mo, key );
 			}
 		} );
 		return this;
@@ -120,7 +103,7 @@ public abstract class SimpleModelQuery implements ModelQuery
 			@Override
 			public boolean matches ( ModelObject mo )
 			{
-				return val == JsonEval.evalToDouble ( mo.getData (), key, 0.0 );
+				return val == ModelObjectExprSource.evalToDouble ( mo, key, 0.0 );
 			}
 		} );
 		return this;
@@ -137,64 +120,26 @@ public abstract class SimpleModelQuery implements ModelQuery
 				if ( val == null ) return false;
 				if ( val.length () == 0 ) return true;
 
-				final String objVal = JsonEval.evalToString ( mo.getData (), key );
+				final String objVal = ModelObjectExprSource.evalToString ( mo, key );
 				return objVal != null && objVal.length () > 0 && objVal.contains ( val );
 			}
 		} );
 		return this;
 	}
 
-	@Override
-	public abstract ModelObjectList execute ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException;
+	protected Path getPathPrefix () { return fPathPrefix; }
+	protected int getPageSize () { return fPageSize; }
+	protected int getPageNumber () { return fPageNumber; }
+	protected List<Filter> getFilters () { return fFilters; }
+	protected Comparator<ModelObject> getOrdering() { return fOrderBy; }
 
-	protected ModelObjectList refineSet ( List<ModelObjectAndPath> initialList )
-	{
-		final LinkedList<ModelObjectAndPath> result = new LinkedList<> ();
-
-		for ( ModelObjectAndPath obj : initialList )
-		{
-			boolean match = true;
-			for ( Filter f : getFilters() )
-			{
-				match = f.matches ( obj.getObject () );
-				if ( !match )
-				{
-					break;
-				}
-			}
-			if ( match )
-			{
-				result.add ( obj );
-			}
-		}
-
-		// now sort our list
-		ModelObjectComparator orderBy = getOrdering ();
-		if ( orderBy != null )
-		{
-			Collections.sort ( result, new java.util.Comparator<ModelObjectAndPath> ()
-			{
-				@Override
-				public int compare ( ModelObjectAndPath o1, ModelObjectAndPath o2 )
-				{
-					return orderBy.compare ( o1.getObject (), o2.getObject () );
-				}
-			} );
-		}
-
-		return new ModelObjectList ()
-		{
-			@Override
-			public Iterator<ModelObjectAndPath> iterator ()
-			{
-				return result.iterator ();
-			}
-		};
-	}
-	
 	Path fPathPrefix = Path.getRootPath ();
-	ModelObjectComparator fOrderBy = null;
+	Comparator<ModelObject> fOrderBy = null;
 	int fPageSize = Integer.MAX_VALUE;
 	int fPageNumber = 0;
 	final LinkedList<Filter> fFilters = new LinkedList<> ();
+
+	protected static interface Filter extends ModelItemFilter<ModelObject>
+	{
+	}
 }

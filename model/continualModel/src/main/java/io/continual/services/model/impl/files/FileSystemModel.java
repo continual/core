@@ -22,6 +22,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -36,21 +37,21 @@ import io.continual.iam.access.AccessControlEntry;
 import io.continual.iam.access.AccessControlList;
 import io.continual.services.ServiceContainer;
 import io.continual.services.model.core.Model;
-import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelObjectAndPath;
-import io.continual.services.model.core.ModelObjectComparator;
+import io.continual.services.model.core.ModelObjectFactory;
 import io.continual.services.model.core.ModelObjectList;
 import io.continual.services.model.core.ModelOperation;
 import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRequestContext;
+import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.model.impl.common.SimpleModelQuery;
+import io.continual.services.model.impl.json.CommonDataTransfer;
 import io.continual.services.model.impl.json.CommonJsonDbModel;
-import io.continual.services.model.impl.json.CommonJsonDbObject;
 import io.continual.services.model.impl.json.CommonJsonDbObjectContainer;
 import io.continual.util.data.json.CommentedJsonTokener;
 import io.continual.util.naming.Name;
@@ -180,9 +181,9 @@ public class FileSystemModel extends CommonJsonDbModel
 		}
 		
 		@Override
-		public ModelObjectList execute ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException
+		public <T,K> ModelObjectList<T> execute ( ModelRequestContext context, ModelObjectFactory<T,K> factory, DataAccessor<T> accessor, K userContext ) throws ModelRequestException, ModelServiceException
 		{
-			final LinkedList<ModelObjectAndPath> result = new LinkedList<> ();
+			final LinkedList<ModelObjectAndPath<T>> result = new LinkedList<> ();
 
 			final File objDir = getObjectDir ();
 			final File container = pathToDir ( objDir, getPathPrefix() );
@@ -190,13 +191,13 @@ public class FileSystemModel extends CommonJsonDbModel
 			{
 				for ( Path p : collectObjectsUnder ( container, getPathPrefix () ) )
 				{
-					final ModelObject mo = load ( context, p );
+					final T mo = load ( context, p, factory, userContext );
 					if ( mo != null )
 					{
 						boolean match = true;
 						for ( SimpleModelQuery.Filter filter : getFilters () )
 						{
-							if ( !filter.matches ( mo ) )
+							if ( !filter.matches ( accessor.getDataFrom ( mo ) ) )
 							{
 								match = false;
 								break;
@@ -212,15 +213,15 @@ public class FileSystemModel extends CommonJsonDbModel
 			}
 
 			// now sort our list
-			final ModelObjectComparator orderBy = getOrdering ();
+			final Comparator<ModelObject> orderBy = getOrdering ();
 			if ( orderBy != null )
 			{
-				Collections.sort ( result, new java.util.Comparator<ModelObjectAndPath> ()
+				Collections.sort ( result, new java.util.Comparator<ModelObjectAndPath<T>> ()
 				{
 					@Override
-					public int compare ( ModelObjectAndPath o1, ModelObjectAndPath o2 )
+					public int compare ( ModelObjectAndPath<T> o1, ModelObjectAndPath<T> o2 )
 					{
-						return orderBy.compare ( o1.getObject (), o2.getObject () );
+						return orderBy.compare ( accessor.getDataFrom ( o1.getObject () ), accessor.getDataFrom ( o2.getObject () ) );
 					}
 				} );
 			}
@@ -238,10 +239,10 @@ public class FileSystemModel extends CommonJsonDbModel
 			}
 			
 			// wrap our result
-			return new ModelObjectList ()
+			return new ModelObjectList<T> ()
 			{
 				@Override
-				public Iterator<ModelObjectAndPath> iterator ()
+				public Iterator<ModelObjectAndPath<T>> iterator ()
 				{
 					return result.iterator ();
 				}
@@ -307,7 +308,7 @@ public class FileSystemModel extends CommonJsonDbModel
 
 	private static final String kOldDataTag = "Ⓤ";
 	
-	protected ModelObject loadObject ( ModelRequestContext context, final Path objectPath ) throws ModelServiceException, ModelRequestException
+	protected CommonDataTransfer loadObject ( ModelRequestContext context, final Path objectPath ) throws ModelServiceException, ModelRequestException
 	{
 		final File obj = getFileFor ( objectPath );
 		if ( obj.isFile () )
@@ -332,13 +333,13 @@ public class FileSystemModel extends CommonJsonDbModel
 			if ( oldModel )
 			{
 				rawData.remove ( kOldDataTag );
-				rawData.put ( "data", inner );
+				rawData.put ( CommonDataTransfer.kDataTag, inner );
 			}
 
-			final CommonJsonDbObject loadedObj = new CommonJsonDbObject ( objectPath.toString (), rawData );
+			final CommonDataTransfer loadedObj = new CommonDataTransfer ( objectPath, rawData );
 			if ( oldModel )
 			{
-				final AccessControlList acl = loadedObj.getAccessControlList ();
+				final AccessControlList acl = loadedObj.getMetadata ().getAccessControlList ();
 				if ( acl.getEntries ().size () == 0 )
 				{
 					acl
@@ -356,12 +357,12 @@ public class FileSystemModel extends CommonJsonDbModel
 			{
 				result.add ( Path.getRootPath ().makeChildItem ( Name.fromString ( child ) ) );
 			}
-			return CommonJsonDbObjectContainer.createObjectContainer ( objectPath.toString (), result );
+			return CommonJsonDbObjectContainer.createObjectContainer ( objectPath, result );
 		}
 		else if ( objectPath.isRootPath () )
 		{
 			// this is a special case because the object dir may not be created in a new model
-			return CommonJsonDbObjectContainer.createObjectContainer ( objectPath.toString (), new LinkedList<Path> () );
+			return CommonJsonDbObjectContainer.createObjectContainer ( objectPath, new LinkedList<Path> () );
 		}
 		else if ( !obj.exists () )
 		{
@@ -374,7 +375,7 @@ public class FileSystemModel extends CommonJsonDbModel
 	}
 
 	@Override
-	protected void internalStore ( ModelRequestContext context, Path objectPath, ModelObject o ) throws ModelRequestException, ModelServiceException
+	protected void internalStore ( ModelRequestContext context, Path objectPath, ModelDataTransfer o ) throws ModelRequestException, ModelServiceException
 	{
 		final File obj = getFileFor ( objectPath );
 		if ( obj.exists () && !obj.isFile () )
@@ -395,7 +396,7 @@ public class FileSystemModel extends CommonJsonDbModel
 
 		try ( final FileOutputStream fos = new FileOutputStream ( obj ) )
 		{
-			fos.write ( o.toJson ().toString ().getBytes ( kUtf8 ) );
+			fos.write ( CommonDataTransfer.toDataObject ( o.getMetadata (), o.getObjectData () ).toString ().getBytes ( kUtf8 ) );
 		}
 		catch ( IOException x )
 		{

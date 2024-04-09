@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -19,20 +20,20 @@ import org.json.JSONObject;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.ServiceContainer;
 import io.continual.services.model.core.Model;
-import io.continual.services.model.core.ModelObject;
 import io.continual.services.model.core.ModelObjectAndPath;
-import io.continual.services.model.core.ModelObjectComparator;
+import io.continual.services.model.core.ModelObjectFactory;
 import io.continual.services.model.core.ModelObjectList;
 import io.continual.services.model.core.ModelPathList;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRequestContext;
+import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.services.model.impl.common.SimpleModelQuery;
+import io.continual.services.model.impl.json.CommonDataTransfer;
 import io.continual.services.model.impl.json.CommonJsonDbModel;
-import io.continual.services.model.impl.json.CommonJsonDbObject;
 import io.continual.util.collections.MultiMap;
 import io.continual.util.data.json.CommentedJsonTokener;
 import io.continual.util.data.json.JsonUtil;
@@ -261,7 +262,7 @@ public class SingleFileModel extends CommonJsonDbModel
 	}
 
 	@Override
-	protected ModelObject loadObject ( ModelRequestContext context, Path objectPath ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
+	protected ModelDataTransfer loadObject ( ModelRequestContext context, Path objectPath ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
 		JSONObject current = getDataRoot ();
 		for ( Name name : objectPath.getSegments () )
@@ -269,11 +270,11 @@ public class SingleFileModel extends CommonJsonDbModel
 			current = current.optJSONObject ( name.toString () );
 			if ( current == null ) throw new ModelItemDoesNotExistException ( objectPath );
 		}
-		return new CommonJsonDbObject ( objectPath.toString (), current );
+		return new CommonDataTransfer ( objectPath, current );
 	}
 
 	@Override
-	protected void internalStore ( ModelRequestContext context, Path objectPath, ModelObject o ) throws ModelRequestException, ModelServiceException
+	protected void internalStore ( ModelRequestContext context, Path objectPath, ModelDataTransfer o ) throws ModelRequestException, ModelServiceException
 	{
 		// make a backup...
 		final JSONObject rootCopy = JsonUtil.clone ( fRoot );
@@ -282,17 +283,19 @@ public class SingleFileModel extends CommonJsonDbModel
 			JSONObject current = getDataRoot ();
 			for ( Name name : objectPath.getParentPath ().getSegments () )
 			{
-				current = current.optJSONObject ( name.toString () );
-				if ( current == null )
+				JSONObject next = current.optJSONObject ( name.toString () );
+				if ( next == null )
 				{
-					throw new ModelRequestException ( objectPath.toString () + " parent path unavailable at " + name.toString () );
+					next = new JSONObject ();
+					current.put ( name.toString (), next );
 				}
+				current = next;
 			}
-			current.put ( objectPath.getItemName ().toString (), o.toJson () );
+			current.put ( objectPath.getItemName ().toString (), CommonDataTransfer.toDataObject ( o.getMetadata (), o.getObjectData () ) );
 
 			flush ( );
 		}
-		catch ( ModelRequestException | ModelServiceException x )
+		catch ( ModelServiceException x )
 		{
 			// restore...
 			fRoot = rootCopy;
@@ -534,19 +537,19 @@ public class SingleFileModel extends CommonJsonDbModel
 		}
 		
 		@Override
-		public ModelObjectList execute ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException
+		public <T,K> ModelObjectList<T> execute ( ModelRequestContext context, ModelObjectFactory<T,K> factory, DataAccessor<T> accessor, K userContext ) throws ModelRequestException, ModelServiceException
 		{
-			final LinkedList<ModelObjectAndPath> result = new LinkedList<> ();
+			final LinkedList<ModelObjectAndPath<T>> result = new LinkedList<> ();
 
 			for ( Path p : collectObjectsUnder ( getPathPrefix () ) )
 			{
-				final ModelObject mo = load ( context, p );
+				final T mo = load ( context, p, factory, userContext );
 				if ( mo != null )
 				{
 					boolean match = true;
 					for ( SimpleModelQuery.Filter filter : getFilters () )
 					{
-						if ( !filter.matches ( mo ) )
+						if ( !filter.matches ( accessor.getDataFrom ( mo ) ) )
 						{
 							match = false;
 							break;
@@ -561,15 +564,18 @@ public class SingleFileModel extends CommonJsonDbModel
 			}
 
 			// now sort our list
-			final ModelObjectComparator orderBy = getOrdering ();
+			final Comparator<ModelObject> orderBy = getOrdering ();
 			if ( orderBy != null )
 			{
-				Collections.sort ( result, new java.util.Comparator<ModelObjectAndPath> ()
+				Collections.sort ( result, new java.util.Comparator<ModelObjectAndPath<T>> ()
 				{
 					@Override
-					public int compare ( ModelObjectAndPath o1, ModelObjectAndPath o2 )
+					public int compare ( ModelObjectAndPath<T> o1, ModelObjectAndPath<T> o2 )
 					{
-						return orderBy.compare ( o1.getObject (), o2.getObject () );
+						return orderBy.compare (
+							accessor.getDataFrom ( o1.getObject () ),
+							accessor.getDataFrom ( o2.getObject () )
+						);
 					}
 				} );
 			}
@@ -587,10 +593,10 @@ public class SingleFileModel extends CommonJsonDbModel
 			}
 			
 			// wrap our result
-			return new ModelObjectList ()
+			return new ModelObjectList<T> ()
 			{
 				@Override
-				public Iterator<ModelObjectAndPath> iterator ()
+				public Iterator<ModelObjectAndPath<T>> iterator ()
 				{
 					return result.iterator ();
 				}
