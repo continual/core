@@ -88,6 +88,18 @@ public interface ModelQuery
 	ModelQuery pageLimit ( int pageSize, int pageNumber );
 
 	/**
+	 * Limit the result set to the given page size and start at page number. At most
+	 * page size objects are returned. 
+	 * 
+	 * @param pr a page request
+	 * @return this query
+	 */
+	default ModelQuery pageLimit ( PageRequest pr )
+	{
+		return pageLimit ( pr.getRequestedPage (), pr.getRequestedPageSize () );
+	}
+	
+	/**
 	 * Execute the query
 	 * @param context a model request context
 	 * @return a object list

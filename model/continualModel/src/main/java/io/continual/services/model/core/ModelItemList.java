@@ -22,7 +22,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * A list of model instances, presented as an iterator due to the possibility
+ * A list of items, presented as an iterator due to the possibility
  * of it being a substantially large collection.
  */
 public interface ModelItemList<T> extends Iterable<T>

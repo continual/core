@@ -251,6 +251,30 @@ public interface JsonOverHttpClient
 		HttpRequest addQueryParam ( String key, String val );
 
 		/**
+		 * Add a query key/value to the request, preserving any existing settings. If
+		 * withExplicitQueryString() has been called prior to this call, its setting is ignored.
+		 * @param key
+		 * @param val
+		 * @return this request
+		 */
+		default HttpRequest addQueryParam ( String key, int val )
+		{
+			return addQueryParam ( key, Integer.toString ( val ) );
+		}
+
+		/**
+		 * Add a query key/value to the request, preserving any existing settings. If
+		 * withExplicitQueryString() has been called prior to this call, its setting is ignored.
+		 * @param key
+		 * @param val
+		 * @return this request
+		 */
+		default HttpRequest addQueryParam ( String key, boolean val )
+		{
+			return addQueryParam ( key, val ? "1" : "0" );
+		}
+
+		/**
 		 * Add a map of query key/values to the request. This is equivalent to calling
 		 * addQueryParam for each entry.
 		 * @param qsMap

@@ -20,10 +20,11 @@ import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelObjectAndPath;
 import io.continual.services.model.core.ModelObjectFactory;
 import io.continual.services.model.core.ModelObjectList;
-import io.continual.services.model.core.ModelPathList;
+import io.continual.services.model.core.ModelPathListPage;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRequestContext;
+import io.continual.services.model.core.PageRequest;
 import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
@@ -66,13 +67,13 @@ public class InMemoryModel extends CommonJsonDbModel
 	}
 
 	@Override
-	public ModelPathList listChildrenOfPath ( ModelRequestContext context, Path parentPath ) throws ModelServiceException, ModelRequestException
+	public ModelPathListPage listChildrenOfPath ( ModelRequestContext context, Path parentPath, PageRequest pr ) throws ModelServiceException, ModelRequestException
 	{
 		JSONObject current = getDataRoot ();
 		for ( Name name : parentPath.getSegments () )
 		{
 			current = current.optJSONObject ( name.toString () );
-			if ( current == null ) return ModelPathList.emptyList ();
+			if ( current == null ) return ModelPathListPage.emptyList ( pr );
 		}
 
 		final LinkedList<Path> paths = new LinkedList<> ();
@@ -84,7 +85,7 @@ public class InMemoryModel extends CommonJsonDbModel
 			}
 		}
 
-		return ModelPathList.wrap ( paths );
+		return ModelPathListPage.wrap ( paths, pr );
 	}
 
 	@Override

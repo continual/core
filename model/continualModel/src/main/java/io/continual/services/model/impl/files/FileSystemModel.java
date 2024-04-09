@@ -41,10 +41,11 @@ import io.continual.services.model.core.ModelObjectAndPath;
 import io.continual.services.model.core.ModelObjectFactory;
 import io.continual.services.model.core.ModelObjectList;
 import io.continual.services.model.core.ModelOperation;
-import io.continual.services.model.core.ModelPathList;
+import io.continual.services.model.core.ModelPathListPage;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRequestContext;
+import io.continual.services.model.core.PageRequest;
 import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
@@ -116,7 +117,7 @@ public class FileSystemModel extends CommonJsonDbModel
 	}
 
 	@Override
-	public ModelPathList listChildrenOfPath ( ModelRequestContext context, Path prefix ) throws ModelServiceException, ModelRequestException
+	public ModelPathListPage listChildrenOfPath ( ModelRequestContext context, Path prefix, PageRequest pr ) throws ModelServiceException, ModelRequestException
 	{
 		final LinkedList<Path> result = new LinkedList<> ();
 
@@ -128,14 +129,14 @@ public class FileSystemModel extends CommonJsonDbModel
 		if ( container.isFile () )
 		{
 			// this is an object; it has no children
-			return ModelPathList.wrap ( new LinkedList<Path> () );
+			return ModelPathListPage.wrap ( new LinkedList<Path> (), pr );
 		}
 
 		// if the directory doesn't exist, 
 		if ( !container.isDirectory () )
 		{
 			// if the obj dir hasn't been created...
-			if ( container.equals ( objDir ) ) return ModelPathList.wrap ( new LinkedList<Path> () );
+			if ( container.equals ( objDir ) ) return ModelPathListPage.wrap ( new LinkedList<Path> (), pr );
 
 			// otherwise, this is a path into nowhere... 
 			throw new ModelItemDoesNotExistException ( prefix );
@@ -146,14 +147,7 @@ public class FileSystemModel extends CommonJsonDbModel
 			result.add ( prefix.makeChildItem ( Name.fromString ( obj.getName () ) ) );
 		}
 
-		return new ModelPathList ()
-		{
-			@Override
-			public Iterator<Path> iterator ()
-			{
-				return result.iterator ();
-			}
-		};
+		return ModelPathListPage.wrap ( result, pr );
 	}
 
 	private class FsModelQuery extends SimpleModelQuery

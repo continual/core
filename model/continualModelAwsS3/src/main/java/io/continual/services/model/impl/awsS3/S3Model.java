@@ -60,11 +60,12 @@ import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelObjectAndPath;
 import io.continual.services.model.core.ModelObjectFactory;
 import io.continual.services.model.core.ModelObjectList;
-import io.continual.services.model.core.ModelPathList;
+import io.continual.services.model.core.ModelPathListPage;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRelation;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRequestContext;
+import io.continual.services.model.core.PageRequest;
 import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
@@ -242,8 +243,40 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		return 1024L;
 	}
 
+	private List<Path> loadNextS3Set ( ListObjectsV2Request req, Path prefix, TreeSet<Path> seen, AtomicBoolean lastResultTruncated, PageRequest pr )
+	{
+		final LinkedList<Path> pending = new LinkedList<> ();
+
+		final ListObjectsV2Result result = fS3.listObjectsV2 ( req );
+		for ( S3ObjectSummary objectSummary : result.getObjectSummaries () )
+		{
+			final String key = objectSummary.getKey ();
+			final Path asPath = s3KeyToPath ( key );
+			if ( !asPath.equals ( prefix ) && !seen.contains ( asPath ) )
+			{
+				pending.add ( asPath );
+				seen.add ( asPath );
+			}
+		}
+		for ( String commonPrefix : result.getCommonPrefixes () )
+		{
+			final Path asPath = s3KeyToPath ( commonPrefix );
+			if ( !asPath.equals ( prefix ) && !seen.contains ( asPath ) )
+			{
+				pending.add ( asPath );
+				seen.add ( asPath );
+			}
+		}
+		final String token = result.getNextContinuationToken ();
+		req.setContinuationToken ( token );
+
+		lastResultTruncated.set ( result.isTruncated () );
+
+		return pending;
+	}
+	
 	@Override
-	public ModelPathList listChildrenOfPath ( ModelRequestContext context, Path prefix ) throws ModelServiceException, ModelRequestException
+	public ModelPathListPage listChildrenOfPath ( ModelRequestContext context, Path prefix, PageRequest pr ) throws ModelServiceException, ModelRequestException
 	{
 		final LinkedList<Path> pending = new LinkedList<> ();
 		final TreeSet<Path> seen = new TreeSet<> ();
@@ -256,55 +289,59 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 
 		final AtomicBoolean lastResultTruncated = new AtomicBoolean ( true );
 
-		final Iterator<Path> iter = new Iterator<Path> ()
+		return new ModelPathListPage ()
 		{
-			@Override
-			public boolean hasNext ()
+			final Iterator<Path> iter = new Iterator<Path> ()
 			{
-				if ( pending.size () > 0 ) return true;
-
-				// if we're out, maybe load the next set
-				if ( lastResultTruncated.get () )
+				@Override
+				public boolean hasNext ()
 				{
-					final ListObjectsV2Result result = fS3.listObjectsV2 ( req );
-					for ( S3ObjectSummary objectSummary : result.getObjectSummaries () )
+					if ( pending.size () > 0 ) return true;
+
+					// load data for this page
+					long skipsLeft = pr.getRequestedPage () * pr.getRequestedPageSize ();
+					long itemsLeft = pr.getRequestedPageSize ();
+
+					while ( lastResultTruncated.get () && itemsLeft > 0 )
 					{
-						final String key = objectSummary.getKey ();
-						final Path asPath = s3KeyToPath ( key );
-						if ( !asPath.equals ( prefix ) && !seen.contains ( asPath ) )
+						final List<Path> nextS3Set = loadNextS3Set ( req, prefix, seen, lastResultTruncated, pr );
+						for ( Path p : nextS3Set )
 						{
-							pending.add ( asPath );
-							seen.add ( asPath );
+							if ( skipsLeft-- > 0 ) continue;
+							if ( itemsLeft-- <= 0 ) break;
+
+							pending.add ( p );
 						}
 					}
-					for ( String commonPrefix : result.getCommonPrefixes () )
-					{
-						final Path asPath = s3KeyToPath ( commonPrefix );
-						if ( !asPath.equals ( prefix ) && !seen.contains ( asPath ) )
-						{
-							pending.add ( asPath );
-							seen.add ( asPath );
-						}
-					}
-					final String token = result.getNextContinuationToken ();
-					req.setContinuationToken ( token );
-	
-					lastResultTruncated.set ( result.isTruncated () );
+
+					return pending.size () > 0;
 				}
-				return pending.size () > 0;
-			}
 
-			@Override
-			public Path next ()
-			{
-				return pending.removeFirst ();
-			}
-		};
+				@Override
+				public Path next ()
+				{
+					return pending.removeFirst ();
+				}
+			};
 
-		return new ModelPathList ()
-		{
 			@Override
 			public Iterator<Path> iterator () { return iter; }
+
+			@Override
+			public PageRequest getPageRequest () { return pr; }
+
+			@Override
+			public long getTotalItemCount () { return ModelPathListPage.UNKNOWN; }
+
+			@Override
+			public long getTotalPageCount () { return ModelPathListPage.UNKNOWN; }
+
+			@Override
+			public long getItemCountOnPage ()
+			{
+				// trigger a fetch
+				return iter.hasNext () ? pending.size () : 0;
+			}
 		};
 	}
 
@@ -328,7 +365,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		{
 			final LinkedList<ModelObjectAndPath<T>> result = new LinkedList<> ();
 
-			final ModelPathList objectPaths = listChildrenOfPath ( context, getPathPrefix () );
+			final ModelPathListPage objectPaths = listChildrenOfPath ( context, getPathPrefix () );
 			for ( Path objectPath : objectPaths )
 			{
 				final T mo = load ( context, objectPath, factory, userContext );
@@ -376,7 +413,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 
 		private <T,K> ModelObjectList<T> streamLoad ( ModelRequestContext context, ModelObjectFactory<T,K> factory, DataAccessor<T> accessor, K userContext ) throws ModelRequestException, ModelServiceException
 		{
-			final ModelPathList objectPaths = listChildrenOfPath ( context, getPathPrefix () );
+			final ModelPathListPage objectPaths = listChildrenOfPath ( context, getPathPrefix () );
 			final Iterator<Path> paths = objectPaths.iterator ();
 
 			final LinkedList<ModelObjectAndPath<T>> pending = new LinkedList<> ();
@@ -668,9 +705,13 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		{
 			final boolean existed = exists ( context, objectPath );
 			final String s3Path = pathToS3Path ( objectPath );
+
 			fS3.deleteObject ( fBucketId, s3Path );
+			fRelnMgr.removeAllRelations ( objectPath );
+
 			fCache.remove ( s3Path );
 			fNotFoundCache.write ( s3Path, true );
+
 			return existed;
 		}
 	}

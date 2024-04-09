@@ -30,7 +30,7 @@ import io.continual.iam.impl.common.CommonJsonIdentity;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.services.model.core.Model;
-import io.continual.services.model.core.ModelPathList;
+import io.continual.services.model.core.ModelPathListPage;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.data.BasicModelObject;
 import io.continual.services.model.core.data.JsonModelObject;
@@ -73,7 +73,7 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 			final ModelRequestContext mrc = buildContext ();
 
 			final Path path = getBaseJobPath ();
-			final ModelPathList pathList = fModel.listChildrenOfPath ( mrc, path );	// FIXME: does this check READ rights already?
+			final ModelPathListPage pathList = fModel.listChildrenOfPath ( mrc, path );	// FIXME: does this check READ rights already?
 
 			final LinkedList<FlowControlJob> result = new LinkedList<> ();
 			if ( pathList != null )

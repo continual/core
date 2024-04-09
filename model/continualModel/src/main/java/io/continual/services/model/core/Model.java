@@ -81,7 +81,22 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 	 * @throws ModelItemDoesNotExistException
 	 * @throws ModelRequestException
 	 */
-	ModelPathList listChildrenOfPath ( ModelRequestContext context, Path parentPath ) throws ModelServiceException, ModelItemDoesNotExistException, ModelRequestException;
+	default ModelPathListPage listChildrenOfPath ( ModelRequestContext context, Path parentPath ) throws ModelServiceException, ModelItemDoesNotExistException, ModelRequestException
+	{
+		return listChildrenOfPath ( context, parentPath, new PageRequest () );
+	}
+
+	/**
+	 * List paths immediately below the given path.
+	 * @param context
+	 * @param parentPath
+	 * @param pr page information for the request
+	 * @return a list of 0 or more object paths
+	 * @throws ModelServiceException
+	 * @throws ModelItemDoesNotExistException
+	 * @throws ModelRequestException
+	 */
+	ModelPathListPage listChildrenOfPath ( ModelRequestContext context, Path parentPath, PageRequest pr ) throws ModelServiceException, ModelItemDoesNotExistException, ModelRequestException;
 
 	/**
 	 * Start a query on this model implementation.

@@ -1,6 +1,5 @@
 package io.continual.services.model.impl.ref.math;
 
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Set;
 import java.util.TreeSet;
@@ -12,12 +11,13 @@ import io.continual.iam.access.AccessControlList;
 import io.continual.services.model.core.ModelObjectFactory;
 import io.continual.services.model.core.ModelObjectFactory.ObjectCreateContext;
 import io.continual.services.model.core.ModelObjectMetadata;
-import io.continual.services.model.core.ModelPathList;
+import io.continual.services.model.core.ModelPathListPage;
 import io.continual.services.model.core.ModelQuery;
 import io.continual.services.model.core.ModelRelationInstance;
 import io.continual.services.model.core.ModelRelationList;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.ModelTraversal;
+import io.continual.services.model.core.PageRequest;
 import io.continual.services.model.core.data.JsonModelObject;
 import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
@@ -62,33 +62,9 @@ public class FibonacciSequence extends ReadOnlyModel
 	}
 
 	@Override
-	public ModelPathList listChildrenOfPath ( ModelRequestContext context, Path parentPath )
+	public ModelPathListPage listChildrenOfPath ( ModelRequestContext context, Path parentPath, PageRequest pr )
 	{
-		if ( !parentPath.isRootPath () )
-		{
-			return ModelPathList.wrap ( new LinkedList<Path> () );
-		}
-		return new ModelPathList ()
-		{
-			@Override
-			public Iterator<Path> iterator ()
-			{
-				return new Iterator<Path> ()
-				{
-					@Override
-					public boolean hasNext ()
-					{
-						return false;
-					}
-
-					@Override
-					public Path next ()
-					{
-						return null;
-					}
-				};
-			}
-		};
+		return ModelPathListPage.emptyList ( pr );
 	}
 
 	@Override
