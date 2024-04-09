@@ -91,8 +91,7 @@ public interface ModelQuery
 	 * Limit the result set to the given page size and start at page number. At most
 	 * page size objects are returned. 
 	 * 
-	 * @param pageSize the number of objects to return (at most)
-	 * @param pageNumber the 0-based page number 
+	 * @param pr a page request
 	 * @return this query
 	 */
 	default ModelQuery pageLimit ( PageRequest pr )
