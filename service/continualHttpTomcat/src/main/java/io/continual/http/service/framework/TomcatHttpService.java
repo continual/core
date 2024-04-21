@@ -55,6 +55,9 @@ public class TomcatHttpService extends CHttpService
 	private final String kSetting_ServletWorkDir = "workDir";
 	private final String kDefault_ServletWorkDir = new File ( System.getProperty ( "java.io.tmpdir" )).getAbsolutePath ();
 
+	private final String kSetting_TomcatBaseDir = "baseDir";
+	private final String kDefault_TomcatBaseDir = "${CONTINUAL_TOMCAT_BASEDIR}";
+	
 	private final String kSetting_Keystore = "keystore";
 	
 	private final String kSetting_KeystoreFile = "file";
@@ -102,7 +105,14 @@ public class TomcatHttpService extends CHttpService
 
 			System.setProperty ( "org.apache.tomcat.util.buf.UDecoder.ALLOW_ENCODED_SLASH", "true" );
 			fTomcat = new Tomcat ();
-	
+
+			final String tomcatBaseDir = sc.getExprEval ().evaluateText ( settings.optString ( kSetting_TomcatBaseDir, kDefault_TomcatBaseDir )  );
+			if ( tomcatBaseDir != null && tomcatBaseDir.length() > 0 )
+			{
+				fTomcat.setBaseDir ( tomcatBaseDir );
+			}
+
+			// FIXME: should default work dir be within base dir?
 			final String servletWorkDir = settings.optString ( kSetting_ServletWorkDir, kDefault_ServletWorkDir );
 			fWorkDir = new File ( servletWorkDir );
 			if ( !fWorkDir.exists () )
