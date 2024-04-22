@@ -44,10 +44,11 @@ import io.continual.http.service.framework.inspection.CHttpObserverMgr;
 import io.continual.http.service.framework.inspection.impl.ObserveNoneMgr;
 import io.continual.http.service.framework.routing.CHttpRequestRouter;
 import io.continual.http.service.framework.routing.CHttpRequestRouter.noMatchingRoute;
-import io.continual.http.service.framework.sessions.CHttpUserSession;
 import io.continual.http.service.framework.routing.CHttpRouteInvocation;
+import io.continual.http.service.framework.sessions.CHttpUserSession;
 import io.continual.iam.IamService;
 import io.continual.metrics.MetricsCatalog;
+import io.continual.metrics.impl.noop.NoopMetricsCatalog;
 import io.continual.metrics.metricTypes.Timer;
 import io.continual.util.data.HumanReadableHelper;
 import io.continual.util.legal.CopyrightGenerator;
@@ -121,7 +122,7 @@ public class CHttpServlet extends HttpServlet
 	{
 		fProvidedPrefs = settings;
 		fRouter = null;
-		fMetrics = metrics;
+		fMetrics = ( metrics == null ? new NoopMetricsCatalog () : metrics );
 		fInspector = inspector != null ? inspector : new ObserveNoneMgr();
 		fRouters = new LinkedList<> ();
 		fFilters = new LinkedList<> ();
@@ -339,14 +340,9 @@ public class CHttpServlet extends HttpServlet
 		try
 		{
 			final CHttpFilter.Disposition preRouteOk;
-			final Timer.Context prt = fMetrics == null ? null : fMetrics.timer ( pathAsMetricName.makeChildItem ( Name.fromString ( "executionTime" ) ) ).time ();
-			try
+			try ( final Timer.Context prt = fMetrics.timer ( pathAsMetricName.makeChildItem ( Name.fromString ( "preRouteExecutionTime" ) ) ).time () )
 			{
 				preRouteOk = preRouteHandling ( ctx );
-			}
-			finally
-			{
-				if ( prt != null ) prt.stop ();
 			}
 
 			if ( preRouteOk == Disposition.PASS )
@@ -354,14 +350,9 @@ public class CHttpServlet extends HttpServlet
 				final CHttpRouteInvocation handler = fRouter.route ( reqObj );
 				pathAsMetricName = handler.getRouteNameForMetrics ();
 	
-				final Timer.Context timer = fMetrics == null ? null : fMetrics.timer ( pathAsMetricName.makeChildItem ( Name.fromString ( "executionTime" ) ) ).time ();
-				try
+				try ( final Timer.Context timer = fMetrics.timer ( pathAsMetricName.makeChildItem ( Name.fromString ( "executionTime" ) ) ).time () )
 				{
 					handler.run ( ctx );
-				}
-				finally
-				{
-					if ( timer != null ) timer.stop ();
 				}
 			}
 		}
@@ -379,13 +370,10 @@ public class CHttpServlet extends HttpServlet
 			// record the mismatched route but not the actual route and status code so that we're not polluting
 			// the metrics catalog with garbage input paths
 			pathAsMetricName = null;
-			if ( fMetrics != null )
-			{
-				fMetrics
-					.meter ( Path.fromString ( "/noMatchForMethodAndPath" ) )
-					.mark ()
-				;
-			}
+			fMetrics
+				.meter ( Path.fromString ( "/noMatchForMethodAndPath" ) )
+				.mark ()
+			;
 		}
 		catch ( InvocationTargetException x )
 		{
@@ -411,7 +399,7 @@ public class CHttpServlet extends HttpServlet
 
 		ctx.close ();
 		
-		if ( fMetrics != null && pathAsMetricName != null )
+		if ( pathAsMetricName != null )
 		{
 			fMetrics
 				.meter ( pathAsMetricName
