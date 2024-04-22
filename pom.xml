@@ -8,7 +8,7 @@
 
 	<!-- When changing version, also change parent version number in sub-pom files -->
 	<!-- You can run versionUpdate.sh in this directory to do this. -->
-	<version>0.3.11</version>
+	<version>0.3.12</version>
 	<packaging>pom</packaging>
 
 	<name>ContinualIO</name>
