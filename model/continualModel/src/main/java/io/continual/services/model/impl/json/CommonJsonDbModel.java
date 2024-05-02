@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import io.continual.iam.access.AccessControlEntry;
 import io.continual.iam.access.AccessControlList;
 import io.continual.iam.exceptions.IamSvcException;
+import io.continual.iam.identity.Identity;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.services.model.core.Model;
@@ -204,10 +205,21 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 					if ( isCreate )
 					{
 						meta = new CommonModelObjectMetadata ();
-						meta.getAccessControlList ()
-							.setOwner ( context.getOperator ().getId () )
-							.permit ( AccessControlEntry.kOwner, ModelOperation.kAllOperationStrings )
-						;
+
+						final Identity id = context.getOperator ();
+						if ( id != null )
+						{
+							meta.getAccessControlList ()
+								.setOwner ( id.getId () )
+								.permit ( AccessControlEntry.kOwner, ModelOperation.kAllOperationStrings )
+							;
+						}
+						else
+						{
+							meta.getAccessControlList ()
+								.addAclEntry ( AccessControlEntry.builder ().permit ().forAllUsers ().forAnyOperation ().build () )
+							;
+						}
 						data = new CommonObjectData ();
 					}
 					else
@@ -223,9 +235,11 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 						final ModelOperation[] accessList = mu.getAccessRequired ();
 						for ( ModelOperation access : accessList )
 						{
-							if ( !acl.canUser ( context.getOperator (), access.toString () ) )
+							final Identity id = context.getOperator ();
+							if ( !acl.canUser ( id, access.toString () ) )
 							{
-								throw new ModelRequestException ( context.getOperator ().getId () + " may not " + access + " " + objectPath.toString () + "." );
+								final String userId = id == null ? "Anonymous" : id.getId ();
+								throw new ModelRequestException ( userId + " may not " + access + " " + objectPath.toString () + "." );
 							}
 						}
 						mu.update ( context, meta, data );

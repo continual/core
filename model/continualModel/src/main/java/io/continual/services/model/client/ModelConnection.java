@@ -32,26 +32,34 @@ import io.continual.util.naming.Path;
  */
 public class ModelConnection
 {
-	public ModelConnection ( Model model, Identity user ) throws BuildFailure
+	public static class Builder
 	{
-		this ( model, Path.getRootPath (), user );
+		public Builder withModel ( Model m ) { fModel = m; return this; }
+
+		public Builder operatedBy ( Identity i ) { fOperator = i; return this; }
+
+		public Builder atSubPath ( Path p ) { fSubPath = p; return this; }
+		
+		public ModelConnection build () throws BuildFailure
+		{
+			return new ModelConnection ( this );
+		}
+
+		private Model fModel = null;
+		private Identity fOperator = null;
+		private Path fSubPath = Path.getRootPath ();
 	}
 
-	public ModelConnection ( Model model, Path subPath, Identity user ) throws BuildFailure
+	private ModelConnection ( Builder b ) throws BuildFailure
 	{
-		fOperator = user;
-		fContext = null;
-
-		fModel = subPath.isRootPath () ? model : new SubpathWrapperModel ( model, subPath, model.getId () );
+		fOperator = b.fOperator;
+		fModel = b.fSubPath.isRootPath () ? b.fModel : new SubpathWrapperModel ( b.fModel, b.fSubPath, b.fModel.getId () );
+		fContext = fModel.getRequestContextBuilder ()
+			.forUser ( fOperator )
+			.build ()
+		;
 	}
 
-	public static ModelConnection subPathFrom ( ModelConnection mc, Path subPath ) throws BuildFailure
-	{
-		return new ModelConnection ( mc.fModel, subPath, mc.fOperator );
-	}
-
-	public Identity getOperator () { return fOperator; }
-	
 	public String getAcctId () { return fModel.getAcctId (); }
 
 	public String getId () { return fModel.getId (); }
@@ -66,17 +74,17 @@ public class ModelConnection
 
 	public boolean exists ( Path objectPath ) throws ModelServiceException, ModelRequestException
 	{
-		return fModel.exists ( getContext(), objectPath );
+		return fModel.exists ( fContext, objectPath );
 	}
 
 	public ModelPathListPage listChildrenOfPath ( Path parentPath ) throws ModelServiceException, ModelItemDoesNotExistException, ModelRequestException
 	{
-		return fModel.listChildrenOfPath ( getContext(), parentPath );
+		return fModel.listChildrenOfPath ( fContext, parentPath );
 	}
 
 	public ModelPathListPage listChildrenOfPath ( Path parentPath, PageRequest pr ) throws ModelServiceException, ModelItemDoesNotExistException, ModelRequestException
 	{
-		return fModel.listChildrenOfPath ( getContext(), parentPath, pr );
+		return fModel.listChildrenOfPath ( fContext, parentPath, pr );
 	}
 
 	public ModelQuery startQuery () throws ModelRequestException, ModelServiceException
@@ -97,22 +105,22 @@ public class ModelConnection
 
 	public BasicModelObject load ( Path objectPath ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
-		return fModel.load ( getContext(), objectPath );
+		return fModel.load ( fContext, objectPath );
 	}
 
 	public <T> T load ( Path objectPath, Class<T> clazz ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
-		return fModel.load ( getContext(), objectPath, clazz );
+		return fModel.load ( fContext, objectPath, clazz );
 	}
 
 	public <T,K> T load ( Path objectPath, Class<T> clazz, K userContext ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
-		return fModel.load ( getContext(), objectPath, clazz, userContext );
+		return fModel.load ( fContext, objectPath, clazz, userContext );
 	}
 
 	public <T,K> T load ( Path objectPath, ModelObjectFactory<T,K> factory, K userContext ) throws ModelItemDoesNotExistException, ModelServiceException, ModelRequestException
 	{
-		return fModel.load ( getContext(), objectPath, factory, userContext );
+		return fModel.load ( fContext, objectPath, factory, userContext );
 	}
 
 	/**
@@ -126,7 +134,7 @@ public class ModelConnection
 	{
 		final JsonModelObject data = new JsonModelObject ();
 		obj.serializeTo ( data );
-		
+
 		createUpdate ( objPath )
 			.overwrite ( data )
 			.execute ()
@@ -135,33 +143,33 @@ public class ModelConnection
 
 	public ObjectUpdater createUpdate ( Path objectPath ) throws ModelRequestException, ModelServiceException
 	{
-		return fModel.createUpdate ( getContext(), objectPath );
+		return fModel.createUpdate ( fContext, objectPath );
 	}
 
 	public boolean remove ( Path objectPath ) throws ModelServiceException, ModelRequestException
 	{
-		return fModel.remove ( getContext(),  objectPath );
+		return fModel.remove ( fContext,  objectPath );
 	}
 
 	public ModelConnection setRelationType ( String relnName, RelationType rt ) throws ModelServiceException, ModelRequestException
 	{
-		fModel.setRelationType ( getContext(), relnName, rt );
+		fModel.setRelationType ( fContext, relnName, rt );
 		return this;
 	}
 
 	public ModelRelationInstance relate ( ModelRelation reln ) throws ModelServiceException, ModelRequestException
 	{
-		return fModel.relate ( getContext(), reln );
+		return fModel.relate ( fContext, reln );
 	}
 
 	public boolean unrelate ( ModelRelation reln ) throws ModelServiceException, ModelRequestException
 	{
-		return fModel.unrelate ( getContext(), reln );
+		return fModel.unrelate ( fContext, reln );
 	}
 
 	public boolean unrelate ( String relnId ) throws ModelServiceException, ModelRequestException
 	{
-		return fModel.unrelate ( getContext(), relnId );
+		return fModel.unrelate ( fContext, relnId );
 	}
 
 	/**
@@ -265,7 +273,7 @@ public class ModelConnection
 			@Override
 			public ModelRelationList getRelations () throws ModelServiceException, ModelRequestException
 			{
-				return mrs.getRelations ( getContext() );
+				return mrs.getRelations ( fContext );
 			}
 
 			@Override
@@ -321,24 +329,5 @@ public class ModelConnection
 
 	private final Model fModel;
 	private final Identity fOperator;
-	private ModelRequestContext fContext;
-
-	private ModelRequestContext getContext () throws ModelServiceException
-	{
-		try
-		{
-			if ( fContext == null )
-			{
-				fContext = fModel.getRequestContextBuilder ()
-					.forUser ( fOperator )
-					.build ()
-				;
-			}
-			return fContext;
-		}
-		catch ( BuildFailure x )
-		{
-			throw new ModelServiceException ( x );
-		}
-	}
+	private final ModelRequestContext fContext;
 }

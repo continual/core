@@ -68,6 +68,20 @@ public interface ModelObject
 	}
 
 	/**
+	 * Get a value as a boolean or return the default value provided if it does not exist as a key.
+	 * @param key
+	 * @param defval
+	 * @return a boolean
+	 */
+	default boolean optBoolean ( String key, boolean defval )
+	{
+		// FIXME: these get/opt calls seem to need some review
+		
+		if ( !hasKey ( key ) ) return defval;
+		return getBoolean ( key );
+	}
+
+	/**
 	 * Get a value as a number
 	 * @param key
 	 * @return a number value
