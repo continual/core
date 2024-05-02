@@ -282,10 +282,14 @@ public class AccessControlList
 	 */
 	public AccessControlList addAclEntry ( AccessControlEntry acle )
 	{
-		fEntries.add ( acle );
-		if ( fListener != null )
+		// dedupe this entry
+		if ( !fEntries.contains ( acle ) )
 		{
-			fListener.onAclUpdate ( this );
+			fEntries.add ( acle );
+			if ( fListener != null )
+			{
+				fListener.onAclUpdate ( this );
+			}
 		}
 		return this;
 	}
@@ -307,10 +311,16 @@ public class AccessControlList
 		{
 			entries.put ( e.serialize () );
 		}
-		return new JSONObject ()
-			.put ( "owner", fOwner )
-			.put ( "entries", entries )
-		;
+		final JSONObject result = new JSONObject ();
+		if ( fOwner != null )
+		{
+			result.put ( "o", fOwner );
+		}
+		if ( entries.length () > 0 )
+		{
+			result.put ( "e", entries );
+		}
+		return result;
 	}
 
 	/**
@@ -353,8 +363,11 @@ public class AccessControlList
 		}
 
 		final AccessControlList acl = new AccessControlList ( listener );
-		acl.fOwner = o.optString ( "owner", null );
-		JsonVisitor.forEachElement ( o.optJSONArray ( "entries" ), new ArrayVisitor<JSONObject,JSONException>()
+		acl.fOwner = o.optString ( "o", o.optString ( "owner", null ));
+		
+		JSONArray entries = o.optJSONArray ( "e" );
+		if ( entries == null ) entries = o.optJSONArray ( "entries" );
+		JsonVisitor.forEachElement ( entries, new ArrayVisitor<JSONObject,JSONException>()
 		{
 			@Override
 			public boolean visit ( JSONObject t ) throws JSONException
