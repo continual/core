@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.3.12</version>
+		<version>0.3.13-SNAPSHOT</version>
 		<artifactId>continualCoreSystems</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -35,7 +35,7 @@
 		<dependency>
 			<groupId>jline</groupId>
 			<artifactId>jline</artifactId>
-			<version>2.11</version>
+			<version>2.14.6</version>
 		</dependency>
 
 		<dependency>
