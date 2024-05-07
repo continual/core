@@ -89,7 +89,7 @@ public class AccessControlEntry
 
 		public AccessControlEntry build () { return new AccessControlEntry ( this ); }
 
-		private String fUserOrGroupId;
+		private String fUserOrGroupId = null;
 		private Access fAccess = Access.PERMIT;
 		private LinkedList<String> fOps = new LinkedList<> ();
 	}

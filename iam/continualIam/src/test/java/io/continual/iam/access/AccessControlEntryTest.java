@@ -12,11 +12,15 @@ public class AccessControlEntryTest extends TestCase
 	@Test
 	public void testDefaultAceBuild ()
 	{
-		final AccessControlEntry ace = AccessControlEntry.builder ().build ();
-		assertNotNull ( ace );
-		assertNull ( ace.getSubject() );
-		assertEquals ( 0, ace.getOperations ().length );
-		assertEquals ( Access.PERMIT , ace.getPermission () );
+		try
+		{
+			AccessControlEntry.builder ().build ();
+			fail ();
+		}
+		catch ( IllegalArgumentException x )
+		{
+			// default ACL is not enough info
+		}
 	}
 
 	@Test
@@ -46,17 +50,25 @@ public class AccessControlEntryTest extends TestCase
 	public void testBuilderOperationsCol ()
 	{
 		final TreeSet<String> ops = new TreeSet<> ();
-		ops.add( "ops1" );		ops.add( "ops2" );
+		ops.add( "ops1" );
+		ops.add( "ops2" );
+
 		final AccessControlEntry ace = AccessControlEntry.builder ()
-				.operations( ops ).build ();
-		assertEquals ( ops.size() , ace.getOperationCount() );
+			.forAllUsers ()
+			.operations( ops )
+			.build ()
+		;
+		assertEquals ( ops.size(), ace.getOperationCount() );
 	}
 
 	@Test
 	public void testBuilderOperationsArr ()
 	{
 		final AccessControlEntry ace = AccessControlEntry.builder ()
-				.operations( new String[] { "ops1" , "ops2" } ).build ();
+			.forAllUsers ()
+			.operations( new String[] { "ops1" , "ops2" } )
+			.build ()
+		;
 		assertEquals ( 2 , ace.getOperationCount() );
 	}
 
@@ -64,9 +76,11 @@ public class AccessControlEntryTest extends TestCase
 	public void testConstructAce ()
 	{
 		final AccessControlEntry ace = AccessControlEntry.builder ()
-				.operations( new String[] { "ops1" , "ops2" } )
-				.forSubject("u1").permit().forAnyOperation()
-				.forSubject("u2").permit().operation ( "ops2" ).build ();
+			.operations( new String[] { "ops1" , "ops2" } )
+			.forSubject("u1").permit().forAnyOperation()
+			.forSubject("u2").permit().operation ( "ops2" )
+			.build ()
+		;
 		final AccessControlEntry result = new AccessControlEntry ( ace );
 		assertEquals ( Access.PERMIT , result.check ( "u2" , null , false , "ops2" ) );
 	}
