@@ -54,15 +54,14 @@ public class SingleFileModel extends CommonJsonDbModel
 	public SingleFileModel ( ServiceContainer sc, JSONObject config ) throws BuildFailure
 	{
 		this (
-			sc.getExprEval ( config ).evaluateText ( config.getString ( "acctId" ) ),
 			sc.getExprEval ( config ).evaluateText ( config.getString ( "modelId" ) ),
 			new File ( sc.getExprEval ( config ).evaluateText ( config.getString ( "file" ) ) )
 		);
 	}
 
-	public SingleFileModel ( String acctId, String modelId, File f ) throws BuildFailure
+	public SingleFileModel ( String modelId, File f ) throws BuildFailure
 	{
-		super ( acctId, modelId );
+		super ( modelId );
 
 		fFile = f;
 		if ( !fFile.exists () || fFile.length () == 0L )

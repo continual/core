@@ -30,8 +30,13 @@ import io.continual.services.model.core.exceptions.ModelSchemaViolationException
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.util.naming.Path;
 
-public interface Model extends ModelIdentification, ModelCapabilities, Closeable, Service
+public interface Model extends ModelCapabilities, Closeable, Service
 {
+	/**
+	 * Get this model's name in the context of the containing account.
+	 */
+	String getId ();
+
 	/**
 	 * A builder for request contexts.
 	 */

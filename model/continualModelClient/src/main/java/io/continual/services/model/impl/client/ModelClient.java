@@ -73,9 +73,8 @@ import io.continual.util.naming.Path;
 
 public class ModelClient extends SimpleService implements Model
 {
-	public ModelClient ( String acctId, String modelId, String baseUrl, Path pathPrefix, String username, String password )
+	public ModelClient ( String modelId, String baseUrl, Path pathPrefix, String username, String password )
 	{
-		fAcctId = acctId;
 		fModelId = modelId;
 
 		fClient = new OkHttp ();
@@ -90,7 +89,6 @@ public class ModelClient extends SimpleService implements Model
 		{
 			final ExpressionEvaluator ee = sc.getExprEval ();
 
-			fAcctId = config.getString ( "acctId" );
 			fModelId = config.getString ( "modelId" );
 
 			fClient = new OkHttp ();
@@ -105,12 +103,6 @@ public class ModelClient extends SimpleService implements Model
 		{
 			throw new BuildFailure ( e );
 		}
-	}
-
-	@Override
-	public String getAcctId ()
-	{
-		return fAcctId;
 	}
 
 	@Override
@@ -584,7 +576,6 @@ public class ModelClient extends SimpleService implements Model
 		return new LocalRelationSelector ( this, objectPath );
 	}
 
-	private final String fAcctId;
 	private final String fModelId;
 	private final JsonOverHttpClient fClient;
 	private final HttpUsernamePasswordCredentials fCreds;

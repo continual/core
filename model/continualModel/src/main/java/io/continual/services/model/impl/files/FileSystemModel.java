@@ -60,9 +60,9 @@ import io.continual.util.naming.Path;
 
 public class FileSystemModel extends CommonJsonDbModel
 {
-	public FileSystemModel ( String acctId, String modelId, String baseDir ) throws BuildFailure
+	public FileSystemModel ( String modelId, String baseDir ) throws BuildFailure
 	{
-		super ( acctId, modelId );
+		super ( modelId );
 
 		fBaseDir = new File ( baseDir );
 		if ( !fBaseDir.exists () && !fBaseDir.mkdir () )
@@ -75,7 +75,7 @@ public class FileSystemModel extends CommonJsonDbModel
 
 	public FileSystemModel ( String acctId, String modelId, File baseDir ) throws BuildFailure
 	{
-		this ( acctId, modelId, baseDir.getAbsolutePath () );
+		this ( modelId, baseDir.getAbsolutePath () );
 	}
 
 	public FileSystemModel ( String acctId, String modelId, java.nio.file.Path path ) throws BuildFailure
@@ -86,7 +86,6 @@ public class FileSystemModel extends CommonJsonDbModel
 	public FileSystemModel ( ServiceContainer sc, JSONObject config ) throws BuildFailure
 	{
 		this (
-			sc.getExprEval ( config ).evaluateText ( config.getString ( "acctId" ) ),
 			sc.getExprEval ( config ).evaluateText ( config.getString ( "modelId" ) ),
 			sc.getExprEval ( config ).evaluateText ( config.getString ( "baseDir" ) )
 		);

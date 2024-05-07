@@ -36,9 +36,9 @@ public class DelegatingModelTest extends TestCase
 		final TestIdentity user = new TestIdentity ();
 
 		// the models
-		final Model backingModel = new InMemoryModel ( "test", "backingmodel" );
-		final Model model1 = new InMemoryModel ( "test", "mount1" );
-		final Model model2 = new InMemoryModel ( "test", "mount2" );
+		final Model backingModel = new InMemoryModel ( "backingmodel" );
+		final Model model1 = new InMemoryModel ( "mount1" );
+		final Model model2 = new InMemoryModel ( "mount2" );
 
 		// place a few objects...
 		final ModelRequestContext mrc1 = model1.getRequestContextBuilder ().forUser ( user ).build ();
@@ -65,7 +65,7 @@ public class DelegatingModelTest extends TestCase
 		model1.relate ( mrc1, ModelRelation.from ( Path.fromString("/bar"), "barToFoo", Path.fromString ( "/foo" ) )); 
 		
 		// setup the delegating model
-		try ( final DelegatingModel delegatingModel = new DelegatingModel ( "test", "test", backingModel ) )
+		try ( final DelegatingModel delegatingModel = new DelegatingModel ( "test", backingModel ) )
 		{
 			// mount the component models
 			delegatingModel.mount ( new StdMountTableEntry ( kMountPoint1, model1 ) );

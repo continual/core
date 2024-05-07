@@ -56,17 +56,16 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 {
 	public CommonJsonDbModel ( ServiceContainer sc, JSONObject config )
 	{
-		this ( config.getString ( "acctId" ), config.getString ( "modelId" ), config.optBoolean ( "readOnly", false ) );
+		this ( config.getString ( "modelId" ), config.optBoolean ( "readOnly", false ) );
 	}
 
-	public CommonJsonDbModel ( String acctId, String modelId )
+	public CommonJsonDbModel ( String modelId )
 	{
-		this ( acctId, modelId, false );
+		this ( modelId, false );
 	}
 
-	public CommonJsonDbModel ( String acctId, String modelId, boolean readOnly )
+	public CommonJsonDbModel ( String modelId, boolean readOnly )
 	{
-		fAcctId = acctId;
 		fModelId = modelId;
 		fReadOnly = readOnly;
 	}
@@ -80,12 +79,6 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 	public ModelRequestContextBuilder getRequestContextBuilder ()
 	{
 		return new BasicModelRequestContextBuilder ();
-	}
-
-	@Override
-	public String getAcctId ()
-	{
-		return fAcctId;
 	}
 
 	@Override
@@ -393,7 +386,6 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 		return new CommonRelationSelector ( this, objectPath );
 	}
 
-	private final String fAcctId;
 	private final String fModelId;
 	private final boolean fReadOnly;
 

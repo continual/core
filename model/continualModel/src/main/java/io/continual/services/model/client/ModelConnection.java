@@ -60,8 +60,6 @@ public class ModelConnection
 		;
 	}
 
-	public String getAcctId () { return fModel.getAcctId (); }
-
 	public String getId () { return fModel.getId (); }
 
 	public long getMaxPathLength () { return fModel.getMaxPathLength (); }

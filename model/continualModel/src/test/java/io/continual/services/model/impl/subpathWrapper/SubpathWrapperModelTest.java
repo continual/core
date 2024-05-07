@@ -23,7 +23,7 @@ public class SubpathWrapperModelTest extends TestCase
 	@Test
 	public void testSimpleWrapper () throws BuildFailure, ModelSchemaViolationException, JSONException, ModelRequestException, ModelServiceException, IOException
 	{
-		final InMemoryModel mem = new InMemoryModel ( "acct", "name" );
+		final InMemoryModel mem = new InMemoryModel ( "name" );
 
 		final ModelRequestContext context = mem.getRequestContextBuilder ()
 			.forUser ( new TestIdentity ( "tester" ) )
