@@ -60,7 +60,6 @@ public class DelegatingModel extends SimpleService implements Model
 
 	/**
 	 * Construct a delegating model from basic information
-	 * @param acctId
 	 * @param modelId
 	 * @throws BuildFailure 
 	 */
