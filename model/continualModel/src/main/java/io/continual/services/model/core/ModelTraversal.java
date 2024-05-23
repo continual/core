@@ -1,5 +1,7 @@
 package io.continual.services.model.core;
 
+import java.util.Set;
+
 import io.continual.services.model.core.data.ModelObject;
 import io.continual.services.model.core.exceptions.ModelRequestException;
 import io.continual.services.model.core.exceptions.ModelServiceException;
@@ -16,6 +18,13 @@ public interface ModelTraversal
 	 * @return this traversal
 	 */
 	ModelTraversal startAt ( Path p );
+
+	/**
+	 * Start at a given model node.
+	 * @param paths 
+	 * @return this traversal
+	 */
+	ModelTraversal startWith ( Set<Path> paths );
 
 	/**
 	 * Traverse the given outbound relationship

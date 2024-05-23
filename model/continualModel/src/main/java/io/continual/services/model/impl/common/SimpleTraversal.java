@@ -1,7 +1,9 @@
 package io.continual.services.model.impl.common;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Set;
 import java.util.TreeSet;
 
 import io.continual.services.model.core.Model;
@@ -31,6 +33,13 @@ public class SimpleTraversal implements ModelTraversal
 	@Override
 	public ModelTraversal startAt ( Path p )
 	{
+		fStart = Collections.singleton ( p );
+		return this;
+	}
+
+	@Override
+	public ModelTraversal startWith ( Set<Path> p )
+	{
 		fStart = p;
 		return this;
 	}
@@ -43,13 +52,16 @@ public class SimpleTraversal implements ModelTraversal
 			public void execute ( StepContext sc ) throws ModelRequestException, ModelServiceException
 			{
 				final TreeSet<Path> result = new TreeSet<> ();
-				for ( ModelRelation mr : fModel.selectRelations ( fStart )
-						.named ( relation )
-						.outboundOnly ()
-						.getRelations ( sc.fMrc )
-					)
+				for ( Path p : sc.fCurrentSet )
 				{
-					result.add ( mr.getTo () );
+					for ( ModelRelation mr : fModel.selectRelations ( p )
+							.named ( relation )
+							.outboundOnly ()
+							.getRelations ( sc.fMrc )
+						)
+					{
+						result.add ( mr.getTo () );
+					}
 				}
 				sc.replaceSet ( result );
 			}
@@ -65,13 +77,16 @@ public class SimpleTraversal implements ModelTraversal
 			public void execute ( StepContext sc ) throws ModelRequestException, ModelServiceException
 			{
 				final TreeSet<Path> result = new TreeSet<> ();
-				for ( ModelRelation mr : fModel.selectRelations ( fStart )
-					.named ( relation )
-					.inboundOnly ()
-					.getRelations ( sc.fMrc )
-				)
+				for ( Path p : sc.fCurrentSet )
 				{
-					result.add ( mr.getFrom () );
+					for ( ModelRelation mr : fModel.selectRelations ( p )
+						.named ( relation )
+						.inboundOnly ()
+						.getRelations ( sc.fMrc )
+					)
+					{
+						result.add ( mr.getFrom () );
+					}
 				}
 				sc.replaceSet ( result );
 			}
@@ -145,10 +160,10 @@ public class SimpleTraversal implements ModelTraversal
 	@Override
 	public ModelPathList execute ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException
 	{
-		if ( fStart == null ) throw new ModelRequestException ( "Traversal has no start node." );
+		if ( fStart.isEmpty () ) throw new ModelRequestException ( "Traversal has no start node." );
 
 		final StepContext sc = new StepContext ( context );
-		sc.fCurrentSet.add ( fStart );
+		sc.fCurrentSet.addAll ( fStart );
 
 		for ( Step s : fSteps )
 		{
@@ -163,10 +178,9 @@ public class SimpleTraversal implements ModelTraversal
 		return ModelPathList.wrap ( sc.fCurrentSet );
 	}
 
-
 	private final Model fModel;
-	private Path fStart;
-	private LinkedList<Step> fSteps;
+	private final LinkedList<Step> fSteps;
+	private Set<Path> fStart;
 
 	private class StepContext
 	{
