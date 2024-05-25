@@ -50,18 +50,20 @@ public class ModelConnection
 		private Path fSubPath = Path.getRootPath ();
 	}
 
-	private ModelConnection ( Builder b ) throws BuildFailure
+	public ModelConnection atSubpath ( Path subpath ) throws BuildFailure
 	{
-		fOperator = b.fOperator;
-		fModel = b.fSubPath.isRootPath () ? b.fModel : new SubpathWrapperModel ( b.fModel, b.fSubPath, b.fModel.getId () );
-		fContext = fModel.getRequestContextBuilder ()
-			.forUser ( fOperator )
+		return new ModelConnection.Builder ()
+			.withModel ( fModel )
+			.operatedBy ( fOperator )
+			.atSubPath ( subpath )
 			.build ()
 		;
 	}
 
 	public String getId () { return fModel.getId (); }
 
+	public Identity getOperator () { return fOperator; }
+	
 	public long getMaxPathLength () { return fModel.getMaxPathLength (); }
 
 	public long getMaxRelnNameLength () { return fModel.getMaxRelnNameLength (); }
@@ -323,6 +325,16 @@ public class ModelConnection
 				};
 			}
 		};
+	}
+
+	private ModelConnection ( Builder b ) throws BuildFailure
+	{
+		fOperator = b.fOperator;
+		fModel = b.fSubPath.isRootPath () ? b.fModel : new SubpathWrapperModel ( b.fModel, b.fSubPath, b.fModel.getId () );
+		fContext = fModel.getRequestContextBuilder ()
+			.forUser ( fOperator )
+			.build ()
+		;
 	}
 
 	private final Model fModel;
