@@ -1,0 +1,11 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://continual.io/model/types/basic/Type",
+	"$version": "1-0-0",
+
+	"type": "object",
+	"properties":
+	{
+	},
+	"required": [ ]
+}
