@@ -43,21 +43,21 @@ public class DelegatingModelTest extends TestCase
 		// place a few objects...
 		final ModelRequestContext mrc1 = model1.getRequestContextBuilder ().forUser ( user ).build ();
 		model1.createUpdate ( mrc1, Path.fromString ( "/foo" ) )
-			.overwrite ( new JsonModelObject ( new JSONObject ().put ( "helloMyNameIs", "foo" ) ) )
+			.overwriteData ( new JsonModelObject ( new JSONObject ().put ( "helloMyNameIs", "foo" ) ) )
 			.execute ()
 		;
 		model1.createUpdate ( mrc1, Path.fromString ( "/bar" ) )
-			.overwrite ( new JsonModelObject ( new JSONObject ().put ( "helloMyNameIs", "bar" ) ) )
+			.overwriteData ( new JsonModelObject ( new JSONObject ().put ( "helloMyNameIs", "bar" ) ) )
 			.execute ()
 		;
 
 		final ModelRequestContext mrc2 = model2.getRequestContextBuilder ().forUser ( user ).build ();
 		model2.createUpdate ( mrc2, Path.fromString ( "/baz" ) )
-			.overwrite ( new JsonModelObject ( new JSONObject ().put ( "helloMyNameIs", "baz" ) ) )
+			.overwriteData ( new JsonModelObject ( new JSONObject ().put ( "helloMyNameIs", "baz" ) ) )
 			.execute ()
 		;
 		model2.createUpdate ( mrc2, Path.fromString ( "/bee" ) )
-			.overwrite ( new JsonModelObject ( new JSONObject ().put ( "helloMyNameIs", "bee" ) ) )
+			.overwriteData ( new JsonModelObject ( new JSONObject ().put ( "helloMyNameIs", "bee" ) ) )
 			.execute ()
 		;
 

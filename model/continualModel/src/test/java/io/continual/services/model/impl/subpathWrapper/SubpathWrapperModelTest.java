@@ -30,15 +30,15 @@ public class SubpathWrapperModelTest extends TestCase
 			.build ()
 		;
 		mem.createUpdate ( context, Path.fromString ( "/foo" ) )
-			.overwrite ( new JsonModelObject ( new JSONObject () ) )
+			.overwriteData ( new JsonModelObject ( new JSONObject () ) )
 			.execute ()
 		;
 		mem.createUpdate ( context, Path.fromString ( "/foo/bar" ) )
-			.overwrite ( new JsonModelObject ( new JSONObject () ) )
+			.overwriteData ( new JsonModelObject ( new JSONObject () ) )
 			.execute ()
 		;
 		mem.createUpdate ( context, Path.fromString ( "/foo/bar/baz" ) )
-			.overwrite ( new JsonModelObject ( new JSONObject ()
+			.overwriteData ( new JsonModelObject ( new JSONObject ()
 				.put ( "status", "expired" )
 			) )
 			.execute ()

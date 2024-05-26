@@ -371,7 +371,7 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 
 		private Update ( UpdateType ut, ModelObject data )
 		{
-			fType = UpdateType.ACL;
+			fType = ut;
 			fData = data;
 			fTypeId = null;
 			fAcl = null;
