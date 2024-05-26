@@ -136,7 +136,7 @@ public class ModelConnection
 		obj.serializeTo ( data );
 
 		createUpdate ( objPath )
-			.overwrite ( data )
+			.overwriteData ( data )
 			.execute ()
 		;
 	}
