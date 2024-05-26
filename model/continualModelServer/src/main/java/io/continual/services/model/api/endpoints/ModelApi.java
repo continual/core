@@ -319,7 +319,7 @@ public class ModelApi extends ModelApiContextHelper
 				final Path requestedPath = fixupPath ( objectPath );
 
 				ms.getModel ().createUpdate ( requestedPath )
-					.overwrite ( new JsonModelObject ( obj ) )
+					.overwriteData ( new JsonModelObject ( obj ) )
 					.execute ()
 				;
 
@@ -341,7 +341,7 @@ public class ModelApi extends ModelApiContextHelper
 				final Path requestedPath = fixupPath ( objectPath );
 
 				ms.getModel ().createUpdate ( requestedPath )
-					.merge ( new JsonModelObject ( obj ) )
+					.mergeData ( new JsonModelObject ( obj ) )
 					.execute ()
 				;
 
