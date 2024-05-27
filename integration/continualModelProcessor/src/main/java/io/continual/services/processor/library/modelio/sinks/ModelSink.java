@@ -94,7 +94,7 @@ public class ModelSink implements Sink
 			log.info ( "Writing to {}", modelPathText );
 
 			model.createUpdate ( mrc, modelPath )
-				.merge ( new JsonModelObject ( msg.toJson () ) )
+				.mergeData ( new JsonModelObject ( msg.toJson () ) )
 				.execute ()
 			;
 		}

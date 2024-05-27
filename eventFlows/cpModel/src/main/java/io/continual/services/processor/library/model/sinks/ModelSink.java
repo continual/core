@@ -77,7 +77,7 @@ public class ModelSink extends ModelConnector implements Sink
 				ou = ou.replaceAcl ( newAcl );
 			}
 			ou
-				.overwrite ( new JsonModelObject ( msg.accessRawJson ().getJSONObject ( "data" ) ) )
+				.overwriteData ( new JsonModelObject ( msg.accessRawJson ().getJSONObject ( "data" ) ) )
 				.execute ()
 			;
 		}
