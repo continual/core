@@ -22,6 +22,7 @@
 		<module>continualIamZk</module>
 		<module>continualIamAuth0</module>
 		<module>continualIamApiService</module>
+		<module>continualIamExamples</module>
 	</modules>
 
 </project>
