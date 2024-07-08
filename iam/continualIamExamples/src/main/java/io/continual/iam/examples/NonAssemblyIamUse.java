@@ -1,15 +1,15 @@
 
 package io.continual.iam.examples;
 
-import org.json.JSONObject;
+//import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.iam.IamDb;
 import io.continual.iam.credentials.UsernamePasswordCredential;
 import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.Identity;
-import io.continual.iam.impl.MultiSourceDb;
-import io.continual.iam.impl.auth0.Auth0IamDb;
+//import io.continual.iam.impl.MultiSourceDb;
+//import io.continual.iam.impl.auth0.Auth0IamDb;
 import io.continual.iam.impl.s3.S3IamDb;
 
 /**
@@ -74,7 +74,7 @@ public class NonAssemblyIamUse
 			.build ()
 		;
 	}
-
+/*
 	//
 	//	connect to an Auth0 IAM DB implementation
 	//
@@ -86,7 +86,8 @@ public class NonAssemblyIamUse
 			.put ( "clientSecret", System.getenv ( "AUTH0_CLIENTSECRET" ) )
 		);
 	}
-
+*/
+/*
 	//
 	//	Connect to a "multisrc-db" implementation. Here we're suppressing the raw type
 	//	related warnings because the two databases use different internal identity classes.
@@ -100,5 +101,5 @@ public class NonAssemblyIamUse
 		db.addDatabase ( useS3Db () );
 		return db;
 	}
+*/
 }
-
