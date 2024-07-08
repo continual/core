@@ -76,6 +76,7 @@ public class Auth0IamDb implements IamDb<Auth0Identity,Auth0Group>
 		{
 			fDomain = config.getString ( "domain" );
 			fClientId = config.getString ( "clientId" );
+			//fEmailClaim = config.getString ( "emailClaim" );
 
 			fAuthApi = new AuthAPI (
 				fDomain,
@@ -391,6 +392,7 @@ public class Auth0IamDb implements IamDb<Auth0Identity,Auth0Group>
 	@Override
 	public Auth0Identity authenticate ( JwtCredential jwt ) throws IamSvcException
 	{
+		// FIXME: wire in auth0 jwt validator
 		return null;
 	}
 

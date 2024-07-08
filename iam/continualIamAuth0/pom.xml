@@ -33,13 +33,18 @@
 		<!-- auth0 -->
 		<dependency>
 			<groupId>com.auth0</groupId>
-			<artifactId>auth0</artifactId>
-			<version>1.44.1</version>
+			<artifactId>jwks-rsa</artifactId>
+			<version>0.21.2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.auth0</groupId>
-			<artifactId>jwks-rsa</artifactId>
-			<version>0.21.2</version>
+			<artifactId>java-jwt</artifactId>
+			<version>4.2.1</version>
+		</dependency>
+		<dependency>
+			<groupId>com.auth0</groupId>
+			<artifactId>auth0</artifactId>
+			<version>1.44.1</version>
 		</dependency>
 
 	</dependencies>
