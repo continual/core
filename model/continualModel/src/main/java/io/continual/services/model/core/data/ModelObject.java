@@ -120,6 +120,33 @@ public interface ModelObject
 	}
 
 	/**
+	 * Get a value as an integer
+	 * @param key
+	 * @return an integer value
+	 * @throws ClassCastException
+	 */
+	default Integer getInt ( String key )
+	{
+		return optInt ( key, null );
+	}
+
+	/**
+	 * Get a value as an integer or return the default value provided if it does not exist as a key.
+	 * @param key
+	 * @param defval
+	 * @return an integer
+	 */
+	default Integer optInt ( String key, Integer defval )
+	{
+		final Number n = getNumber ( key );
+		if ( n == null )
+		{
+			return defval;
+		}
+		return n.intValue ();
+	}
+
+	/**
 	 * Get a value as a map
 	 * @param key
 	 * @return a map value
