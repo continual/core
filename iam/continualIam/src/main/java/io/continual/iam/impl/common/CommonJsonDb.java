@@ -263,7 +263,7 @@ public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends Common
 		// check if this token has been marked invalid (e.g. user explicitly logged out)
 //		if ( isInvalidJwtToken ( jwt.toBearerString () ) ) return null;
 // FIXME: we need to hash the string or something -- it's too long for AWS as an s3 key
-		
+
 		for ( JwtValidator v : fJwtValidators )
 		{
 			if ( v.validate ( jwt ) )
