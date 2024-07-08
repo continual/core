@@ -98,7 +98,8 @@ public class CHttpSessionManager extends ManagerBase
 
     // --------------------------------------------------------- Public Methods
 
-    @Override
+    @SuppressWarnings("deprecation")
+	@Override
     public void load() throws ClassNotFoundException, IOException {
         if (log.isDebugEnabled()) {
             log.debug("Start: Loading persisted sessions");
