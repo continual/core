@@ -42,7 +42,7 @@ public class Auth0JwtValidator implements JwtValidator
 			throw new BuildFailure ( x );
 		}
 	}
-	
+
 	@Override
 	public boolean validate ( JwtCredential jwt ) throws IamSvcException
 	{
@@ -113,10 +113,12 @@ public class Auth0JwtValidator implements JwtValidator
 		}
 		catch ( JWTVerificationException e ) 
 		{
+			log.info ( "token [{}...] JWTVerificationException failure: {}", token.substring ( 0, 10 ), e.getMessage () );
 			return null;
 		}
 		catch ( JwkException e )
 		{
+			log.info ( "token [{}...] JwkException failure: {}", token.substring ( 0, 10 ), e.getMessage () );
 			throw new IamSvcException ( e );
 		}
     }

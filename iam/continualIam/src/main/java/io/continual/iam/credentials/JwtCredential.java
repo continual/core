@@ -75,9 +75,9 @@ public class JwtCredential
 		if ( parts.length != 3 ) throw new InvalidJwtToken ();
 
 		fSignedContent = parts[0] + "." + parts[1];
-		
+
 		log.info ( "signed data: {}", fSignedContent );
-		
+
 		fSignature = parts[2];
 
 		try
