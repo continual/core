@@ -268,7 +268,7 @@ public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends Common
 		{
 			if ( v.validate ( jwt ) )
 			{
-				return loadUser ( jwt.getSubject () );
+				return loadUser ( v.getSubject ( jwt ) );
 			}
 		}
 
