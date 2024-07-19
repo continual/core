@@ -268,10 +268,13 @@ public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends Common
 		{
 			if ( v.validate ( jwt ) )
 			{
+				// Here we ask the validator to retrieve the subject from the validated JWT.
+				// This is because some JWTs have supplemental information in their claims. The 
+				// basic JWT class we have doesn't know this -- the validator, which is 
+				// associated with JWT's source, does.
 				return loadUser ( v.getSubject ( jwt ) );
 			}
 		}
-
 		return null;
 	}
 
