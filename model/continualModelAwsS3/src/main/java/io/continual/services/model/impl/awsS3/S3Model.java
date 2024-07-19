@@ -130,7 +130,9 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 
 	public S3Model ( String acctId, String modelId, String accessKey, String secretKey, String bucketId, String prefix ) throws BuildFailure
 	{
-		super ( acctId, modelId );
+		super ( modelId );
+
+		fAcctId = acctId;
 
 		fS3 = AmazonS3ClientBuilder
 			.standard ()
@@ -187,10 +189,12 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 				.build ()
 			;
 
+			fAcctId = evaledConfig.getString ( "acctId" );
+
 			Version vv = determineVersion ();
 			if ( config.optBoolean ( "initOk", false ) && vv == Version.V1_IMPLIED )
 			{
-				initModel ( super.getAcctId (), super.getId (), accessKey, secretKey, region, fBucketId, fPrefix );
+				initModel ( fAcctId, super.getId (), accessKey, secretKey, region, fBucketId, fPrefix );
 				vv = Version.V2;
 			}
 			fVersion = vv;
@@ -503,7 +507,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		
 		Path asPath = Path.fromString ( cleanedUp );
 
-		asPath = asPath.makePathWithinParent ( Path.fromString ( "/" + getAcctId() ) );
+		asPath = asPath.makePathWithinParent ( Path.fromString ( "/" + fAcctId ) );
 		asPath = asPath.makePathWithinParent ( Path.fromString ( "/" + getId() ) );
 
 		if ( Version.isV2OrLater ( fVersion ) )
@@ -523,7 +527,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		}
 
 		p = p
-			.makeChildItem ( Name.fromString ( getAcctId () ) )
+			.makeChildItem ( Name.fromString ( fAcctId ) )
 			.makeChildItem ( Name.fromString ( getId () ) )
 		;
 
@@ -546,7 +550,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		}
 
 		return p
-			.makeChildItem ( Name.fromString ( getAcctId () ) )
+			.makeChildItem ( Name.fromString ( fAcctId ) )
 			.makeChildItem ( Name.fromString ( getId () ) )
 			.makeChildItem ( Name.fromString ( kRelationships ) )
 		;
@@ -561,7 +565,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		}
 
 		p = p
-			.makeChildItem ( Name.fromString ( getAcctId () ) )
+			.makeChildItem ( Name.fromString ( fAcctId ) )
 			.makeChildItem ( Name.fromString ( getId () ) )
 		;
 
@@ -716,6 +720,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		}
 	}
 
+	private final String fAcctId;	// because we've been using this for awhile...
 	private final AmazonS3 fS3;
 	private final String fBucketId;
 	private final String fPrefix;

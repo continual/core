@@ -45,19 +45,18 @@ public class InMemoryModel extends CommonJsonDbModel
 	public InMemoryModel ( ServiceContainer sc, JSONObject config ) throws BuildFailure
 	{
 		this (
-			sc.getExprEval ( config ).evaluateText ( config.getString ( "acctId" ) ),
 			sc.getExprEval ( config ).evaluateText ( config.getString ( "modelId" ) )
 		);
 	}
 
-	public InMemoryModel ( String acctId, String modelId ) throws BuildFailure
+	public InMemoryModel ( String modelId ) throws BuildFailure
 	{
-		this ( acctId, modelId, new JSONObject () );
+		this ( modelId, new JSONObject () );
 	}
 
-	public InMemoryModel ( String acctId, String modelId, JSONObject data ) throws BuildFailure
+	public InMemoryModel ( String modelId, JSONObject data ) throws BuildFailure
 	{
-		super ( acctId, modelId );
+		super ( modelId );
 
 		fRoot = new JSONObject ();
 		fRoot.put ( kObjectsNode, data );

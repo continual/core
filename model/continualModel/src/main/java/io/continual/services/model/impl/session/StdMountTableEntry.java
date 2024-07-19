@@ -52,7 +52,6 @@ public class StdMountTableEntry implements ModelMount
 		return new JSONObject ()
 			.put ( "path", fMountPoint.toString () )
 			.put ( "model", new JSONObject ()
-				.put ( "acctId", fModel.getAcctId () )
 				.put ( "id", fModel.getId () )
 			)
 		;

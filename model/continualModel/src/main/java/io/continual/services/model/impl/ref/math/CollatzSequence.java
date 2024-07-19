@@ -35,9 +35,6 @@ public class CollatzSequence extends ReadOnlyModel
 	public void close () {}
 
 	@Override
-	public String getAcctId () { return "built-in"; }
-
-	@Override
 	public String getId () { return "CollatzSequence"; }
 
 	@Override

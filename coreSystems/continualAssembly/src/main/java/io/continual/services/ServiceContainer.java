@@ -187,6 +187,42 @@ public class ServiceContainer
 	}
 
 	/**
+	 * Get a service by class. 
+	 * @param <T>
+	 * @param asClass
+	 * @return an instance of the target class or null
+	 */
+	@SuppressWarnings("unchecked")
+	public synchronized <T> T get ( Class<T> asClass )
+	{
+		for ( Service svc : fServices )
+		{
+			if ( asClass.isInstance ( svc ) )
+			{
+				return (T) svc;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Get a required service by class. 
+	 * @param <T>
+	 * @param asClass
+	 * @return an instance of the target class or null
+	 * @throws BuildFailure 
+	 */
+	public synchronized <T> T getReqd ( Class<T> asClass ) throws BuildFailure
+	{
+		T result = get ( asClass );
+		if ( result == null )
+		{
+			throw new BuildFailure ( "Couldn't locate a " + asClass.getName () );
+		}
+		return result;
+	}
+
+	/**
 	 * Get a named service, throwing BuildFailure if it's not found.
 	 * @param <T> the target class
 	 * @param name the service name

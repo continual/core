@@ -23,22 +23,22 @@ public class SubpathWrapperModelTest extends TestCase
 	@Test
 	public void testSimpleWrapper () throws BuildFailure, ModelSchemaViolationException, JSONException, ModelRequestException, ModelServiceException, IOException
 	{
-		final InMemoryModel mem = new InMemoryModel ( "acct", "name" );
+		final InMemoryModel mem = new InMemoryModel ( "name" );
 
 		final ModelRequestContext context = mem.getRequestContextBuilder ()
 			.forUser ( new TestIdentity ( "tester" ) )
 			.build ()
 		;
 		mem.createUpdate ( context, Path.fromString ( "/foo" ) )
-			.overwrite ( new JsonModelObject ( new JSONObject () ) )
+			.overwriteData ( new JsonModelObject ( new JSONObject () ) )
 			.execute ()
 		;
 		mem.createUpdate ( context, Path.fromString ( "/foo/bar" ) )
-			.overwrite ( new JsonModelObject ( new JSONObject () ) )
+			.overwriteData ( new JsonModelObject ( new JSONObject () ) )
 			.execute ()
 		;
 		mem.createUpdate ( context, Path.fromString ( "/foo/bar/baz" ) )
-			.overwrite ( new JsonModelObject ( new JSONObject ()
+			.overwriteData ( new JsonModelObject ( new JSONObject ()
 				.put ( "status", "expired" )
 			) )
 			.execute ()

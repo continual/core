@@ -68,6 +68,20 @@ public interface ModelObject
 	}
 
 	/**
+	 * Get a value as a boolean or return the default value provided if it does not exist as a key.
+	 * @param key
+	 * @param defval
+	 * @return a boolean
+	 */
+	default boolean optBoolean ( String key, boolean defval )
+	{
+		// FIXME: these get/opt calls seem to need some review
+		
+		if ( !hasKey ( key ) ) return defval;
+		return getBoolean ( key );
+	}
+
+	/**
 	 * Get a value as a number
 	 * @param key
 	 * @return a number value
@@ -103,6 +117,33 @@ public interface ModelObject
 			return defval;
 		}
 		return n.longValue ();
+	}
+
+	/**
+	 * Get a value as an integer
+	 * @param key
+	 * @return an integer value
+	 * @throws ClassCastException
+	 */
+	default Integer getInt ( String key )
+	{
+		return optInt ( key, null );
+	}
+
+	/**
+	 * Get a value as an integer or return the default value provided if it does not exist as a key.
+	 * @param key
+	 * @param defval
+	 * @return an integer
+	 */
+	default Integer optInt ( String key, Integer defval )
+	{
+		final Number n = getNumber ( key );
+		if ( n == null )
+		{
+			return defval;
+		}
+		return n.intValue ();
 	}
 
 	/**

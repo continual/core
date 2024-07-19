@@ -222,8 +222,8 @@ public class AccessControlListTest extends TestCase
 		assertNotNull ( acl );
 		acl.setOwner ( "owner1" );
 		final JSONObject result = acl.asJson();
-		assertEquals ( "owner1" , result.getString("owner") );
-		assertEquals ( 2 , result.getJSONArray( "entries" ).length() );
+		assertEquals ( "owner1", result.getString("o") );
+		assertEquals ( 2 , result.getJSONArray( "e" ).length() );
 	}
 
 	@Test

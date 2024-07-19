@@ -22,6 +22,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.TreeSet;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -73,9 +74,8 @@ import io.continual.util.naming.Path;
 
 public class ModelClient extends SimpleService implements Model
 {
-	public ModelClient ( String acctId, String modelId, String baseUrl, Path pathPrefix, String username, String password )
+	public ModelClient ( String modelId, String baseUrl, Path pathPrefix, String username, String password )
 	{
-		fAcctId = acctId;
 		fModelId = modelId;
 
 		fClient = new OkHttp ();
@@ -90,7 +90,6 @@ public class ModelClient extends SimpleService implements Model
 		{
 			final ExpressionEvaluator ee = sc.getExprEval ();
 
-			fAcctId = config.getString ( "acctId" );
 			fModelId = config.getString ( "modelId" );
 
 			fClient = new OkHttp ();
@@ -105,12 +104,6 @@ public class ModelClient extends SimpleService implements Model
 		{
 			throw new BuildFailure ( e );
 		}
-	}
-
-	@Override
-	public String getAcctId ()
-	{
-		return fAcctId;
 	}
 
 	@Override
@@ -427,108 +420,100 @@ public class ModelClient extends SimpleService implements Model
 	{
 		return new ObjectUpdater ()
 		{
+			private boolean fOverwrite = false;
+			private JSONObject fData = null;
+			private AccessControlList fAcl = null;
+			private TreeSet<String> fAddTypes = new TreeSet<> ();
+			private TreeSet<String> fRemTypes = new TreeSet<> ();
+
 			@Override
-			public ObjectUpdater overwrite ( ModelObject withData )
+			public ObjectUpdater overwriteData ( ModelObject withData )
 			{
-				fUpdates.add ( new Update ( objectPath, UpdateType.OVERWRITE, withData ) );
+				fData = JsonModelObject.modelObjectToJson ( withData );
+				fOverwrite = true;
 				return this;
 			}
 
 			@Override
-			public ObjectUpdater merge ( ModelObject withData )
+			public ObjectUpdater mergeData ( ModelObject withData )
 			{
-				fUpdates.add ( new Update ( objectPath, UpdateType.MERGE, withData ) );
+				fData = JsonModelObject.modelObjectToJson ( withData );
+				fOverwrite = false;
 				return this;
 			}
 
 			@Override
 			public ObjectUpdater replaceAcl ( AccessControlList acl )
 			{
-				fUpdates.add ( new Update ( objectPath, acl ) );
+				fAcl = acl;
+				return this;
+			}
+
+			@Override
+			public ObjectUpdater addTypeLock ( String typeId )
+			{
+				fAddTypes.add ( typeId );
+				return this;
+			}
+
+			@Override
+			public ObjectUpdater removeTypeLock ( String typeId )
+			{
+				fRemTypes.add ( typeId );
 				return this;
 			}
 
 			@Override
 			public void execute () throws ModelRequestException, ModelSchemaViolationException, ModelServiceException
 			{
-				for ( Update mu : fUpdates )
+				// build a payload and send it
+				HttpRequest req = fClient.newRequest ()
+					.asUser ( fCreds )
+					.onPath ( pathToUrl ( objectPath ) )
+				;
+
+				// make typing updates
+				for ( String typeId : fAddTypes )
 				{
-					mu.update ( context );
+					req.withHeader ( "X-ContinualModel-LockType", typeId );
+				}
+				for ( String typeId : fRemTypes )
+				{
+					req.withHeader ( "X-ContinualModel-UnlockType", typeId );
+				}
+				if ( fAcl != null )
+				{
+					req.withHeader ( "X-ContinualModel-AccessControlList", fAcl.serialize () );
+				}
+
+				// send the request
+				try ( 
+					final HttpResponse resp = fOverwrite ?
+						req.put ( fData ) :
+						req.patch ( fData )
+				)
+				{
+					if ( resp.isClientError () )
+					{
+						throw new ModelRequestException ( "server replied " + resp.getCode () + " " + resp.getMessage () );
+					}
+					else if ( resp.isServerError () )
+					{
+						throw new ModelServiceException ( "server replied " + resp.getCode () + " " + resp.getMessage () );
+					}
+				}
+				catch ( HttpServiceException e )
+				{
+					throw new ModelServiceException ( e );
+				}
+				finally
+				{
+					context.remove ( objectPath );
 				}
 
 				log.info ( "wrote {}", objectPath );
-				
-				// we no longer have an accurate view of the remote object
-				context.remove ( objectPath );
 			}
-
-			private final LinkedList<Update> fUpdates = new LinkedList<> ();
 		};
-	}
-
-	private enum UpdateType
-	{
-		OVERWRITE,
-		MERGE,
-		ACL
-	}
-	private class Update
-	{
-		public Update ( Path path, UpdateType ut, ModelObject data )
-		{
-			fPath = path;
-			fType = ut;
-			fData = data;
-//			fAcl = null;
-		}
-
-		public void update ( ModelRequestContext context ) throws ModelRequestException, ModelServiceException
-		{
-			if ( fType == UpdateType.ACL )
-			{
-				throw new ModelRequestException ( "This model does not currently support ACL updates." );
-			}
-
-			HttpRequest req = fClient.newRequest ()
-				.asUser ( fCreds )
-				.onPath ( pathToUrl ( fPath ) )
-			;
-
-			try ( 
-				final HttpResponse resp = fType == UpdateType.OVERWRITE ?
-					req.put ( JsonModelObject.modelObjectToJson ( fData ) ) :
-					req.patch ( JsonModelObject.modelObjectToJson ( fData ) )
-			)
-			{
-				if ( resp.isClientError () )
-				{
-					throw new ModelRequestException ( "server replied " + resp.getCode () + " " + resp.getMessage () );
-				}
-				else if ( resp.isServerError () )
-				{
-					throw new ModelServiceException ( "server replied " + resp.getCode () + " " + resp.getMessage () );
-				}
-			}
-			catch ( HttpServiceException e )
-			{
-				throw new ModelServiceException ( e );
-			}
-		}
-
-		public Update ( Path path, AccessControlList acl )
-		{
-			// FIXME: at some point we'll support an ACL update.
-
-			fPath = path;
-			fType = UpdateType.ACL;
-			fData = null;
-//			fAcl = acl;
-		}
-
-		private final Path fPath;
-		private final UpdateType fType;
-		private final ModelObject fData;
-//		private final AccessControlList fAcl;
 	}
 
 	@Override
@@ -584,7 +569,6 @@ public class ModelClient extends SimpleService implements Model
 		return new LocalRelationSelector ( this, objectPath );
 	}
 
-	private final String fAcctId;
 	private final String fModelId;
 	private final JsonOverHttpClient fClient;
 	private final HttpUsernamePasswordCredentials fCreds;

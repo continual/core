@@ -55,21 +55,19 @@ public class DelegatingModel extends SimpleService implements Model
 	 */
 	public DelegatingModel ( ServiceContainer sc, JSONObject config ) throws JSONException, BuildFailure
 	{
-		this ( config.getString ( "acctId" ), config.getString ( "modelId" ), sc.get ( "backingModel", Model.class ) );
+		this ( config.getString ( "modelId" ), sc.get ( "backingModel", Model.class ) );
 	}
 
 	/**
 	 * Construct a delegating model from basic information
-	 * @param acctId
 	 * @param modelId
 	 * @throws BuildFailure 
 	 */
-	public DelegatingModel ( String acctId, String modelId, Model backingModel ) throws BuildFailure
+	public DelegatingModel ( String modelId, Model backingModel ) throws BuildFailure
 	{
-		fAcctId = acctId;
 		fModelId = modelId;
 		fUserMountTable = new LinkedList<>();
-		fBackingModel = backingModel == null ? new InMemoryModel ( acctId, modelId ) : backingModel;
+		fBackingModel = backingModel == null ? new InMemoryModel ( modelId ) : backingModel;
 	}
 
 	/**
@@ -82,12 +80,6 @@ public class DelegatingModel extends SimpleService implements Model
 	{
 		fUserMountTable.add ( mm );
 		return this;
-	}
-
-	@Override
-	public String getAcctId ()
-	{
-		return fAcctId;
 	}
 
 	@Override
@@ -123,7 +115,7 @@ public class DelegatingModel extends SimpleService implements Model
 		for ( ModelMount mm : fUserMountTable )
 		{
 			final Model m = mm.getModel ();
-			log.info ( "Closing " + m.getAcctId () + "/" + m.getId () );
+			log.info ( "Closing " + m.getId () );
 			m.close ();
 		}
 		fBackingModel.close ();
@@ -527,7 +519,6 @@ public class DelegatingModel extends SimpleService implements Model
 		};
 	}
 
-	private final String fAcctId;
 	private final String fModelId;
 	private final LinkedList<ModelMount> fUserMountTable;
 	private final Model fBackingModel;

@@ -38,11 +38,11 @@ public class FileSystemModelTest extends TestCase
 				;
 
 				model.createUpdate ( mrc, Path.fromString ( "/foo/bar" ) )
-					.overwrite ( new JsonModelObject ( new JSONObject () ) )
+					.overwriteData ( new JsonModelObject ( new JSONObject () ) )
 					.execute ()
 				;
 				model.createUpdate ( mrc, Path.fromString ( "/foo/baz" ) )
-					.overwrite ( new JsonModelObject ( new JSONObject () ) )
+					.overwriteData ( new JsonModelObject ( new JSONObject () ) )
 					.execute ()
 				;
 

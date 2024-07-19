@@ -62,9 +62,6 @@ public class SubpathWrapperModel extends SimpleService implements Model
 	}
 
 	@Override
-	public String getAcctId () { return fBackingModel.getAcctId (); }
-
-	@Override
 	public String getId () { return fModelId; }
 
 	@Override

@@ -55,6 +55,7 @@ import io.continual.iam.exceptions.IamBadRequestException;
 import io.continual.iam.exceptions.IamIdentityDoesNotExist;
 import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.ApiKey;
+import io.continual.iam.identity.JwtValidator;
 import io.continual.iam.impl.common.CommonJsonApiKey;
 import io.continual.iam.impl.common.CommonJsonDb;
 import io.continual.iam.impl.common.CommonJsonGroup;
@@ -62,6 +63,9 @@ import io.continual.iam.impl.common.CommonJsonIdentity;
 import io.continual.iam.impl.common.jwt.JwtProducer;
 import io.continual.util.collections.LruCache;
 import io.continual.util.data.StreamTools;
+import io.continual.util.data.exprEval.EnvDataSource;
+import io.continual.util.data.exprEval.ExpressionEvaluator;
+import io.continual.util.data.exprEval.SpecialFnsDataSource;
 import io.continual.util.data.json.CommentedJsonTokener;
 import io.continual.util.data.json.JsonUtil;
 import io.continual.util.data.json.JsonVisitor;
@@ -71,13 +75,16 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 {
 	public static S3IamDb fromJson ( JSONObject config ) throws IamSvcException, BuildFailure
 	{
-		final String sysAdminGroup = config.optString ( "sysAdminGroup", "sysadmin" );
+		final ExpressionEvaluator ee = new ExpressionEvaluator ( new EnvDataSource (), new SpecialFnsDataSource () );
+		final JSONObject evaledConfig = ee.evaluateJsonObject ( config );
+
+		final String sysAdminGroup = evaledConfig.optString ( "sysAdminGroup", "sysadmin" );
 
 		Builder b = new Builder ()
-			.withAccessKey ( config.getString ( "accessKey" ) )
-			.withSecretKey ( config.getString ( "secretKey" ) )
-			.withBucket ( config.getString ( "bucketId" ) )
-			.withPathPrefix ( config.optString ( "pathPrefix", "" ) )
+			.withAccessKey ( evaledConfig.getString ( "accessKey" ) )
+			.withSecretKey ( evaledConfig.getString ( "secretKey" ) )
+			.withBucket ( evaledConfig.getString ( "bucketId" ) )
+			.withPathPrefix ( evaledConfig.optString ( "pathPrefix", "" ) )
 			.usingAclFactory ( new AclFactory ()
 			{
 				@Override
@@ -94,7 +101,7 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 				}
 			} )
 		;
-		final JSONObject jwt = config.optJSONObject ( "jwt" );
+		final JSONObject jwt = evaledConfig.optJSONObject ( "jwt" );
 		if ( jwt != null )
 		{
 			final String jwtIssuer = jwt.optString ( "issuer", null );
@@ -104,12 +111,24 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 				b = b.withJwtProducer ( new JwtProducer.Builder ()
 					.withIssuerName ( jwtIssuer )
 					.usingSigningKey ( jwtSecret )
-					.build () );
+					.build ()
+				);
 			}
 		}
+
+		// additional JWT validators
+		final JSONArray jwtv = evaledConfig.optJSONArray ( "jwtvalidators" );
+		if ( jwtv != null )
+		{
+			for ( int i=0; i<jwtv.length (); i++ )
+			{
+				b = b.withJwtValidator ( io.continual.builder.Builder.fromJson ( JwtValidator.class, jwtv.getJSONObject ( i ) ) );
+			}
+		}
+		
 		return b.build ();
 	}
-	
+
 	public static class Builder
 	{
 		public Builder withAccessKey ( String key )
@@ -154,12 +173,22 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 			return this;
 		}
 
+		public Builder withJwtValidator ( JwtValidator v )
+		{
+			this.jwtValidators.add ( v );
+			return this;
+		}
+
 		public S3IamDb build () throws IamSvcException, BuildFailure
 		{
 			final S3IamDb db = new S3IamDb ( apiKey, privateKey, bucket, prefix, aclFactory, jwtProducer );
 			if ( create )
 			{
 				db.findOrCreateBucket ();
+			}
+			for ( JwtValidator v : jwtValidators )
+			{
+				db.addJwtValidator ( v );
 			}
 			return db;
 		}
@@ -171,6 +200,7 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 		private AclFactory aclFactory;
 		private boolean create = false;
 		private JwtProducer jwtProducer = null;
+		private LinkedList<JwtValidator> jwtValidators = new LinkedList<> ();
 	}
 
 	@SuppressWarnings("deprecation")

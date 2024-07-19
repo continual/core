@@ -30,8 +30,13 @@ import io.continual.services.model.core.exceptions.ModelSchemaViolationException
 import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.util.naming.Path;
 
-public interface Model extends ModelIdentification, ModelCapabilities, Closeable, Service
+public interface Model extends ModelCapabilities, Closeable, Service
 {
+	/**
+	 * Get this model's name in the context of the containing account.
+	 */
+	String getId ();
+
 	/**
 	 * A builder for request contexts.
 	 */
@@ -196,7 +201,16 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 		 * @param withData
 		 * @return this updater
 		 */
-		ObjectUpdater overwrite ( ModelObject withData );
+		@Deprecated
+		default ObjectUpdater overwrite ( ModelObject withData ) { return overwriteData ( withData ); }
+
+		/**
+		 * Overwrite an existing object with the given data, or write a new object if the
+		 * object doesn't exist
+		 * @param withData
+		 * @return this updater
+		 */
+		ObjectUpdater overwriteData ( ModelObject withData );
 
 		/**
 		 * Merge the given data into an existing object, or write a new object if the
@@ -204,7 +218,30 @@ public interface Model extends ModelIdentification, ModelCapabilities, Closeable
 		 * @param withData
 		 * @return this updater
 		 */
-		ObjectUpdater merge ( ModelObject withData );
+		@Deprecated
+		default ObjectUpdater merge ( ModelObject withData ) { return mergeData ( withData ); }
+
+		/**
+		 * Merge the given data into an existing object, or write a new object if the
+		 * object doesn't exist
+		 * @param withData
+		 * @return this updater
+		 */
+		ObjectUpdater mergeData ( ModelObject withData );
+
+		/**
+		 * Add a type lock to an object
+		 * @param typeId
+		 * @return this updater
+		 */
+		ObjectUpdater addTypeLock ( String typeId );
+
+		/**
+		 * Remove a type lock from an object
+		 * @param typeId
+		 * @return this updater
+		 */
+		ObjectUpdater removeTypeLock ( String typeId );
 
 		/**
 		 * Execute the update

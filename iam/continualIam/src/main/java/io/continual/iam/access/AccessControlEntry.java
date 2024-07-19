@@ -17,6 +17,7 @@ package io.continual.iam.access;
 
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -53,7 +54,15 @@ public class AccessControlEntry
 	public enum Access
 	{
 		PERMIT,
-		DENY
+		DENY;
+
+		public static Access deserialize ( String val )
+		{
+			val = val.trim ().toUpperCase ();
+			if ( val.equals ( "P" ) ) val = Access.PERMIT.toString ();
+			if ( val.equals ( "D" ) ) val = Access.DENY.toString ();
+			return Access.valueOf ( val );
+		}
 	}
 
 	public static class Builder
@@ -80,7 +89,7 @@ public class AccessControlEntry
 
 		public AccessControlEntry build () { return new AccessControlEntry ( this ); }
 
-		private String fUserOrGroupId;
+		private String fUserOrGroupId = null;
 		private Access fAccess = Access.PERMIT;
 		private LinkedList<String> fOps = new LinkedList<> ();
 	}
@@ -125,6 +134,10 @@ public class AccessControlEntry
 		fWho = userOrGroupId;
 		fPermission = p;
 		fOperations = new TreeSet<String> ( a );
+
+		if ( fWho == null ) throw new IllegalArgumentException ( "ACL entry requires a subject." );
+		if ( fPermission == null ) throw new IllegalArgumentException ( "ACL entry requires a permission." );
+		if ( fOperations.size () == 0 ) throw new IllegalArgumentException ( "ACL entry requires at least one operation." );
 	}
 
 	@Override
@@ -235,9 +248,9 @@ public class AccessControlEntry
 		}
 		
 		return new JSONObject ()
-			.put ( "who", fWho )
-			.put ( "access", fPermission.toString () )
-			.put ( "operations", ops )
+			.put ( "w", fWho )
+			.put ( "a", fPermission == Access.PERMIT ? "p" : "d" )
+			.put ( "o", ops )
 		;
 	}
 
@@ -249,11 +262,32 @@ public class AccessControlEntry
 	public static AccessControlEntry deserialize ( JSONObject o )
 	{
 		return builder()
-			.forSubject ( o.getString ( "who" ) )
-			.withAccess ( Access.valueOf ( o.getString ( "access" ) ) )
-			.operations ( JsonVisitor.arrayToList ( o.getJSONArray ( "operations" ) ) )
+			.forSubject ( readString ( o, "w", "who" ) )
+			.withAccess ( Access.deserialize ( readString ( o, "a", "access" ) ) )
+			.operations ( JsonVisitor.arrayToList ( readArray ( o, "o", "operations" ) ) )
 			.build ()
 		;
+	}
+
+	@Override
+	public int hashCode ()
+	{
+		return Objects.hash ( fOperations, fPermission, fWho );
+	}
+
+	@Override
+	public boolean equals ( Object obj )
+	{
+		if ( this == obj )
+			return true;
+		if ( obj == null )
+			return false;
+		if ( getClass () != obj.getClass () )
+			return false;
+		AccessControlEntry other = (AccessControlEntry) obj;
+		return Objects.equals ( fOperations, other.fOperations )
+			&& fPermission == other.fPermission
+			&& Objects.equals ( fWho, other.fWho );
 	}
 
 	private final String fWho;
@@ -263,5 +297,25 @@ public class AccessControlEntry
 	private AccessControlEntry ( Builder b )
 	{
 		this ( b.fUserOrGroupId, b.fAccess, b.fOps );
+	}
+
+	private static String readString ( JSONObject o, String... keys )
+	{
+		for ( String key : keys )
+		{
+			final String v = o.optString ( key, null );
+			if ( v != null ) return v;
+		}
+		return null;
+	}
+	
+	private static JSONArray readArray ( JSONObject o, String... keys )
+	{
+		for ( String key : keys )
+		{
+			final JSONArray v = o.optJSONArray ( key );
+			if ( v != null ) return v;
+		}
+		return null;
 	}
 }

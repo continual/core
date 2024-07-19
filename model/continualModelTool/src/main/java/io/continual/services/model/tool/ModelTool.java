@@ -154,7 +154,7 @@ public class ModelTool extends ConfiguredConsole
 				{
 					tgt.fModel
 						.createUpdate ( tgtMrc, tgtChild )
-						.overwrite ( mo.getData () )
+						.overwriteData ( mo.getData () )
 						.execute ()
 					;
 

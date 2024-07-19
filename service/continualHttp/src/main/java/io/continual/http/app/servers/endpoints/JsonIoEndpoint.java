@@ -26,6 +26,11 @@ public class JsonIoEndpoint
 		return new JSONObject ( new CommentedJsonTokener ( context.request().getBodyStream () ) );
 	}
 
+	protected static JSONObject readJsonBody ( CHttpRequestContext context ) throws JSONException, IOException
+	{
+		return readBody ( context );
+	}
+
 	/**
 	 * A checked exception for reading JSON data
 	 */
@@ -54,7 +59,7 @@ public class JsonIoEndpoint
 			throw new MissingInputException ( "Missing required field '" + label + "' in input." );
 		}
 	}
-	
+
 	/**
 	 * Read a required object value from the given JSON object. This is just "getJSONObject" but with a checked
 	 * exception.

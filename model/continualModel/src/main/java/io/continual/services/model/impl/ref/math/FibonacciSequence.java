@@ -34,9 +34,6 @@ public class FibonacciSequence extends ReadOnlyModel
 	public void close () {}
 
 	@Override
-	public String getAcctId () { return "built-in"; }
-
-	@Override
 	public String getId () { return "FibonacciSequence"; }
 
 	@Override

@@ -263,15 +263,18 @@ public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends Common
 		// check if this token has been marked invalid (e.g. user explicitly logged out)
 //		if ( isInvalidJwtToken ( jwt.toBearerString () ) ) return null;
 // FIXME: we need to hash the string or something -- it's too long for AWS as an s3 key
-		
+
 		for ( JwtValidator v : fJwtValidators )
 		{
 			if ( v.validate ( jwt ) )
 			{
-				return loadUser ( jwt.getSubject () );
+				// Here we ask the validator to retrieve the subject from the validated JWT.
+				// This is because some JWTs have supplemental information in their claims. The 
+				// basic JWT class we have doesn't know this -- the validator, which is 
+				// associated with JWT's source, does.
+				return loadUser ( v.getSubject ( jwt ) );
 			}
 		}
-
 		return null;
 	}
 

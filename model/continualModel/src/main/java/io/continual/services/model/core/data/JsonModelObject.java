@@ -140,7 +140,8 @@ public class JsonModelObject implements ModelObject
 	}
 
 	/**
-	 * Utility method to translate from a model object to the equivalent JSON structure
+	 * Utility method to translate from a model object to the equivalent JSON structure. The result
+	 * is a new JSON object, not a reference to existing data.
 	 * @param mo
 	 * @return a JSON object
 	 */

@@ -49,8 +49,8 @@ public class ModelTest
 			log.info ( "/foo: " + data );
 
 			mc.createUpdate ( mrc, foo )
-				.merge ( new JsonModelObject ( new JSONObject ().put ( "ModelTestClient", Clock.now () ) ) )
-				.merge ( new JsonModelObject ( new JSONObject ().put ( "MTC_artist",
+				.mergeData ( new JsonModelObject ( new JSONObject ().put ( "ModelTestClient", Clock.now () ) ) )
+				.mergeData ( new JsonModelObject ( new JSONObject ().put ( "MTC_artist",
 					new JSONObject ()
 						.put ( "playback", true )
 						.put ( "composer", "Jóhann Jóhannsson" )
@@ -60,7 +60,7 @@ public class ModelTest
 			;
 
 			mc.createUpdate ( mrc, bar )
-				.overwrite ( new JsonModelObject ( new JSONObject ()
+				.overwriteData ( new JsonModelObject ( new JSONObject ()
 					.put ( "details", "this is a target for relation testing" )
 					.put ( "writetime", Clock.now () )
 				) )

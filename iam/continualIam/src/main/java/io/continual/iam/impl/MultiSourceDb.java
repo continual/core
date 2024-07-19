@@ -42,13 +42,18 @@ import io.continual.util.data.json.JsonVisitor.ArrayVisitor;
 
 public class MultiSourceDb<I extends Identity,G extends Group> implements IamDb<I,G>
 {
+	public MultiSourceDb () 
+	{
+		fDbs = new ArrayList<> ();
+	}
+
 	public MultiSourceDb ( ServiceContainer sc, JSONObject rawConfig ) throws BuildFailure
 	{
+		this ();
+
 		final ExpressionEvaluator evaluator = sc.getExprEval (  );
 		final JSONObject config = evaluator.evaluateJsonObject ( rawConfig );
 
-		fDbs = new ArrayList<> ();
-		
 		try
 		{
 			final JSONArray dbStack = config.getJSONArray ( "dbs" );
@@ -59,7 +64,7 @@ public class MultiSourceDb<I extends Identity,G extends Group> implements IamDb<
 				public boolean visit ( JSONObject dbConfig ) throws JSONException, BuildFailure
 				{
 					final IamDb<?,?> db = Builder.fromJson ( IamDb.class, dbConfig, sc );
-					fDbs.add ( (IamDb<I,G>) db );
+					addDatabase ( (IamDb<I,G>) db );
 
 					return true;
 				}
@@ -71,6 +76,17 @@ public class MultiSourceDb<I extends Identity,G extends Group> implements IamDb<
 		}
 	}
 
+	/**
+	 * Add a database to this multi source db
+	 * @param db
+	 * @return this database
+	 */
+	public MultiSourceDb<I,G> addDatabase ( IamDb<I,G> db )
+	{
+		fDbs.add ( db );
+		return this;
+	}
+	
 	@Override
 	public boolean userExists ( String userId ) throws IamSvcException
 	{

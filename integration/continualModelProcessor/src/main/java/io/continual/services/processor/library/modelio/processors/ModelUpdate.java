@@ -72,7 +72,7 @@ public class ModelUpdate implements Processor
 					}
 
 					model.createUpdate ( mrc, path )
-						.overwrite ( new JsonModelObject ( modelData ) )
+						.overwriteData ( new JsonModelObject ( modelData ) )
 						.execute ()
 					;
 				}
@@ -81,7 +81,7 @@ public class ModelUpdate implements Processor
 					final JSONObject data = updateBlock.getJSONObject ( "patch" );
 					final JSONObject evaled = Setter.evaluate ( context, data, context.getMessage () );
 					model.createUpdate ( mrc, path )
-						.merge ( new JsonModelObject ( evaled ) )
+						.mergeData ( new JsonModelObject ( evaled ) )
 						.execute ()
 					;
 				}
@@ -90,7 +90,7 @@ public class ModelUpdate implements Processor
 					final JSONObject data = updateBlock.getJSONObject ( "put" );
 					final JSONObject evaled = Setter.evaluate ( context, data, context.getMessage () );
 					model.createUpdate ( mrc, path )
-						.overwrite ( new JsonModelObject ( evaled ) )
+						.overwriteData ( new JsonModelObject ( evaled ) )
 						.execute ()
 					;
 				}

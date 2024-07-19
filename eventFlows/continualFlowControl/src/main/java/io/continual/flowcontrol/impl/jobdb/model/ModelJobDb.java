@@ -195,7 +195,7 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 			final Path path = jobNameToPath ( name );
 
 			fModel.createUpdate ( mrc, path )
-				.overwrite ( new JsonModelObject ( ((ModelFcJob)job).toJson() ) )
+				.overwriteData ( new JsonModelObject ( ((ModelFcJob)job).toJson() ) )
 				.execute ()
 			;
 

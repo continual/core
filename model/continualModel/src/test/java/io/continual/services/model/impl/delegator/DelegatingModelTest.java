@@ -36,28 +36,28 @@ public class DelegatingModelTest extends TestCase
 		final TestIdentity user = new TestIdentity ();
 
 		// the models
-		final Model backingModel = new InMemoryModel ( "test", "backingmodel" );
-		final Model model1 = new InMemoryModel ( "test", "mount1" );
-		final Model model2 = new InMemoryModel ( "test", "mount2" );
+		final Model backingModel = new InMemoryModel ( "backingmodel" );
+		final Model model1 = new InMemoryModel ( "mount1" );
+		final Model model2 = new InMemoryModel ( "mount2" );
 
 		// place a few objects...
 		final ModelRequestContext mrc1 = model1.getRequestContextBuilder ().forUser ( user ).build ();
 		model1.createUpdate ( mrc1, Path.fromString ( "/foo" ) )
-			.overwrite ( new JsonModelObject ( new JSONObject ().put ( "helloMyNameIs", "foo" ) ) )
+			.overwriteData ( new JsonModelObject ( new JSONObject ().put ( "helloMyNameIs", "foo" ) ) )
 			.execute ()
 		;
 		model1.createUpdate ( mrc1, Path.fromString ( "/bar" ) )
-			.overwrite ( new JsonModelObject ( new JSONObject ().put ( "helloMyNameIs", "bar" ) ) )
+			.overwriteData ( new JsonModelObject ( new JSONObject ().put ( "helloMyNameIs", "bar" ) ) )
 			.execute ()
 		;
 
 		final ModelRequestContext mrc2 = model2.getRequestContextBuilder ().forUser ( user ).build ();
 		model2.createUpdate ( mrc2, Path.fromString ( "/baz" ) )
-			.overwrite ( new JsonModelObject ( new JSONObject ().put ( "helloMyNameIs", "baz" ) ) )
+			.overwriteData ( new JsonModelObject ( new JSONObject ().put ( "helloMyNameIs", "baz" ) ) )
 			.execute ()
 		;
 		model2.createUpdate ( mrc2, Path.fromString ( "/bee" ) )
-			.overwrite ( new JsonModelObject ( new JSONObject ().put ( "helloMyNameIs", "bee" ) ) )
+			.overwriteData ( new JsonModelObject ( new JSONObject ().put ( "helloMyNameIs", "bee" ) ) )
 			.execute ()
 		;
 
@@ -65,7 +65,7 @@ public class DelegatingModelTest extends TestCase
 		model1.relate ( mrc1, ModelRelation.from ( Path.fromString("/bar"), "barToFoo", Path.fromString ( "/foo" ) )); 
 		
 		// setup the delegating model
-		try ( final DelegatingModel delegatingModel = new DelegatingModel ( "test", "test", backingModel ) )
+		try ( final DelegatingModel delegatingModel = new DelegatingModel ( "test", backingModel ) )
 		{
 			// mount the component models
 			delegatingModel.mount ( new StdMountTableEntry ( kMountPoint1, model1 ) );

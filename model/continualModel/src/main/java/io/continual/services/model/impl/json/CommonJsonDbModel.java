@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import io.continual.iam.access.AccessControlEntry;
 import io.continual.iam.access.AccessControlList;
 import io.continual.iam.exceptions.IamSvcException;
+import io.continual.iam.identity.Identity;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.services.model.core.Model;
@@ -55,17 +56,16 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 {
 	public CommonJsonDbModel ( ServiceContainer sc, JSONObject config )
 	{
-		this ( config.getString ( "acctId" ), config.getString ( "modelId" ), config.optBoolean ( "readOnly", false ) );
+		this ( config.getString ( "modelId" ), config.optBoolean ( "readOnly", false ) );
 	}
 
-	public CommonJsonDbModel ( String acctId, String modelId )
+	public CommonJsonDbModel ( String modelId )
 	{
-		this ( acctId, modelId, false );
+		this ( modelId, false );
 	}
 
-	public CommonJsonDbModel ( String acctId, String modelId, boolean readOnly )
+	public CommonJsonDbModel ( String modelId, boolean readOnly )
 	{
-		fAcctId = acctId;
 		fModelId = modelId;
 		fReadOnly = readOnly;
 	}
@@ -79,12 +79,6 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 	public ModelRequestContextBuilder getRequestContextBuilder ()
 	{
 		return new BasicModelRequestContextBuilder ();
-	}
-
-	@Override
-	public String getAcctId ()
-	{
-		return fAcctId;
 	}
 
 	@Override
@@ -171,16 +165,16 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 		return new ObjectUpdater ()
 		{
 			@Override
-			public ObjectUpdater overwrite ( ModelObject withData )
+			public ObjectUpdater overwriteData ( ModelObject withData )
 			{
-				fUpdates.add ( new Update ( UpdateType.OVERWRITE, withData ) );
+				fUpdates.add ( new Update ( UpdateType.OVERWRITE_DATA, withData ) );
 				return this;
 			}
 
 			@Override
-			public ObjectUpdater merge ( ModelObject withData )
+			public ObjectUpdater mergeData ( ModelObject withData )
 			{
-				fUpdates.add ( new Update ( UpdateType.MERGE, withData ) );
+				fUpdates.add ( new Update ( UpdateType.MERGE_DATA, withData ) );
 				return this;
 			}
 
@@ -188,6 +182,20 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 			public ObjectUpdater replaceAcl ( AccessControlList acl )
 			{
 				fUpdates.add ( new Update ( acl ) );
+				return this;
+			}
+
+			@Override
+			public ObjectUpdater addTypeLock ( String typeId )
+			{
+				fUpdates.add ( new Update ( UpdateType.ADD_TYPE_LOCK, typeId ) );
+				return this;
+			}
+
+			@Override
+			public ObjectUpdater removeTypeLock ( String typeId )
+			{
+				fUpdates.add ( new Update ( UpdateType.REMOVE_TYPE_LOCK, typeId ) );
 				return this;
 			}
 
@@ -204,10 +212,21 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 					if ( isCreate )
 					{
 						meta = new CommonModelObjectMetadata ();
-						meta.getAccessControlList ()
-							.setOwner ( context.getOperator ().getId () )
-							.permit ( AccessControlEntry.kOwner, ModelOperation.kAllOperationStrings )
-						;
+
+						final Identity id = context.getOperator ();
+						if ( id != null )
+						{
+							meta.getAccessControlList ()
+								.setOwner ( id.getId () )
+								.permit ( AccessControlEntry.kOwner, ModelOperation.kAllOperationStrings )
+							;
+						}
+						else
+						{
+							meta.getAccessControlList ()
+								.addAclEntry ( AccessControlEntry.builder ().permit ().forAllUsers ().forAnyOperation ().build () )
+							;
+						}
 						data = new CommonObjectData ();
 					}
 					else
@@ -223,9 +242,11 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 						final ModelOperation[] accessList = mu.getAccessRequired ();
 						for ( ModelOperation access : accessList )
 						{
-							if ( !acl.canUser ( context.getOperator (), access.toString () ) )
+							final Identity id = context.getOperator ();
+							if ( !acl.canUser ( id, access.toString () ) )
 							{
-								throw new ModelRequestException ( context.getOperator ().getId () + " may not " + access + " " + objectPath.toString () + "." );
+								final String userId = id == null ? "Anonymous" : id.getId ();
+								throw new ModelRequestException ( userId + " may not " + access + " " + objectPath.toString () + "." );
 							}
 						}
 						mu.update ( context, meta, data );
@@ -284,19 +305,15 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 
 	private enum UpdateType
 	{
-		OVERWRITE,
-		MERGE,
-		ACL
+		OVERWRITE_DATA,
+		MERGE_DATA,
+		ACL,
+		ADD_TYPE_LOCK,
+		REMOVE_TYPE_LOCK
 	}
+
 	private class Update
 	{
-		public Update ( UpdateType ut, ModelObject data )
-		{
-			fType = ut;
-			fData = data;
-			fAcl = null;
-		}
-
 		public void update ( ModelRequestContext context, ModelObjectMetadata meta, CommonObjectData workingData )
 		{
 			switch ( fType )
@@ -311,12 +328,20 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 					}					
 					break;
 
-				case OVERWRITE:
+				case OVERWRITE_DATA:
 					workingData.clear ();
 					// no break...
 
-				case MERGE:
+				case MERGE_DATA:
 					workingData.merge ( fData );
+					break;
+
+				case ADD_TYPE_LOCK:
+					meta.getLockedTypes ().add ( fTypeId );
+					break;
+
+				case REMOVE_TYPE_LOCK:
+					meta.getLockedTypes ().remove ( fTypeId );
 					break;
 
 				default:
@@ -336,16 +361,34 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 			}
 		}
 
-		public Update ( AccessControlList acl )
+		private Update ( AccessControlList acl )
 		{
 			fType = UpdateType.ACL;
 			fData = null;
+			fTypeId = null;
 			fAcl = acl;
+		}
+
+		private Update ( UpdateType ut, ModelObject data )
+		{
+			fType = ut;
+			fData = data;
+			fTypeId = null;
+			fAcl = null;
+		}
+
+		private Update ( UpdateType ut, String typeId )
+		{
+			fType = ut;
+			fData = null;
+			fTypeId = typeId;
+			fAcl = null;
 		}
 
 		public final UpdateType fType;
 		public final ModelObject fData;
 		public final AccessControlList fAcl;
+		public final String fTypeId;
 	}
 
 	@Override
@@ -379,7 +422,6 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 		return new CommonRelationSelector ( this, objectPath );
 	}
 
-	private final String fAcctId;
 	private final String fModelId;
 	private final boolean fReadOnly;
 
