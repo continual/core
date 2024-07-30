@@ -279,15 +279,17 @@ public class StringUtilsTest {
     }
 
 	@Test
-	public void isEmptyTest(){
+    public void isEmptyTest(){
 		Assert.assertEquals(true, StringUtils.isEmpty(null));
 		Assert.assertEquals(true, StringUtils.isEmpty(""));
 	}
 
 	@Test
+
 	public void isNotEmptyTest(){
 		Assert.assertEquals(true, StringUtils.isNotEmpty("fun"));
 		Assert.assertEquals(false, StringUtils.isNotEmpty(null));
 	}
 	
+
 }
