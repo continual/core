@@ -62,13 +62,13 @@ public class SimpleJwtValidator implements JwtValidator
 		final String iss = jwt.getIssuer ();
 		if ( !fIssuers.contains ( iss ) )
 		{
-			log.info ( "The JWT is not from an issuer the {} validator recognizes.", fName );
+			log.info ( "{} is not from an issuer the {} validator recognizes.", jwt, fName );
 			return false;
 		}
 
 		if ( !jwt.isForAudience ( fAudience ) )
 		{
-			log.info ( "The JWT is not for the {} validator's audience.", fName );
+			log.info ( "{} is not for the {} validator's audience.", jwt, fName );
 			return false;
 		}
 
