@@ -6,6 +6,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.continual.util.time.Clock.TestClock;
 import junit.framework.TestCase;
 
 public class ClockTest extends TestCase 
@@ -20,8 +21,24 @@ public class ClockTest extends TestCase
 	@Before
 	protected void setUp () throws Exception
 	{
-		oldValueTimeStart = System.getProperty( "timeStart" );
-		oldValueTimeScale = System.getProperty( "timeScale" );
+		oldValueTimeStart = System.getProperty ( Clock.skTimeStartMs );
+		oldValueTimeScale = System.getProperty ( Clock.skTimeScaleArg );
+	}
+
+	@After
+	protected void tearDown () throws Exception
+	{
+		// setup a normal clock
+		Clock.replaceClock ( new Clock () );
+
+		if ( oldValueTimeStart != null )
+		{
+			System.setProperty ( Clock.skTimeStartMs, oldValueTimeStart );
+		}
+		if ( oldValueTimeScale != null )
+		{
+			System.setProperty ( Clock.skTimeScaleArg, oldValueTimeScale );
+		}
 	}
 
 	@Test
@@ -44,14 +61,14 @@ public class ClockTest extends TestCase
 	@Test
 	public void testHolder ()
 	{
-		System.clearProperty( "timeStart" );
-		System.clearProperty( "timeScale" );
+		System.clearProperty( Clock.skTimeStartMs );
+		System.clearProperty( Clock.skTimeScaleArg );
 		assertNotNull( Clock.now() );
 
-		System.setProperty( "timeStart" , ""+timeStart );
+		System.setProperty( Clock.skTimeStartMs , ""+timeStart );
 		assertNotNull( Clock.now() );
 
-		System.setProperty( "timeScale" , ""+timeScale );
+		System.setProperty( Clock.skTimeScaleArg , ""+timeScale );
 		assertNotNull( Clock.now() );
 	}
 
@@ -84,26 +101,41 @@ public class ClockTest extends TestCase
 	@Test
 	public void testScaledClockWithNoProps ()
 	{
-		System.clearProperty( "timeStart" );
-		System.clearProperty( "timeScale" );
-		final Clock.ScaledClock sc = new Clock.ScaledClock();
-		assertTrue( System.currentTimeMillis() <= sc.nowMs() );
+		System.clearProperty ( Clock.skTimeStartMs );
+		System.clearProperty ( Clock.skTimeScaleArg );
+
+		final TestClock baseClock = Clock.useNewTestClock ();
+		baseClock.set ( System.currentTimeMillis () );
+
+		final Clock.ScaledClock sc = new Clock.ScaledClock ();
+		assertEquals ( Clock.now (), sc.nowMs () );
+
+		// move test clock time forward...
+		baseClock.add ( 60 * 1000 );
+		assertEquals ( Clock.now (), sc.nowMs () );
 	}
 
 	@Test
 	public void testScaledClockWithProps ()
 	{
-		System.setProperty( "timeStart" , ""+timeStart );
-		System.setProperty( "timeScale" , ""+timeScale );
-		final Clock.ScaledClock sc = new Clock.ScaledClock();
-		assertTrue( System.currentTimeMillis() <= sc.nowMs() );
+		final TestClock baseClock = Clock.useNewTestClock ();
+
+		System.setProperty ( Clock.skTimeStartMs, "" + timeStart );
+		System.setProperty ( Clock.skTimeScaleArg, "" + timeScale );
+		final Clock.ScaledClock sc = new Clock.ScaledClock ();
+
+		assertEquals ( 900.0, sc.getScale () );
+		assertEquals ( 1, sc.nowMs () );
+
+		baseClock.add ( 1000 );
+		assertEquals ( 900001, sc.nowMs () );
 	}
 
 	@Test
 	public void testScaledClockExceptionProps ()
 	{
-		System.setProperty( "timeStart" , "" );
-		System.setProperty( "timeScale" , "" );
+		System.setProperty( Clock.skTimeStartMs , "" );
+		System.setProperty( Clock.skTimeScaleArg , "" );
 		final Clock.ScaledClock sc = new Clock.ScaledClock();
 		assertTrue( System.currentTimeMillis() <= sc.nowMs() );		
 	}
@@ -111,22 +143,9 @@ public class ClockTest extends TestCase
 	@Test
 	public void testScaledClockInvalidPosStartNegScale ()
 	{
-		System.setProperty( "timeStart" , ""+(-timeStart) );
-		System.setProperty( "timeScale" , ""+(-timeScale) );
-		final Clock.ScaledClock sc = new Clock.ScaledClock();
-		assertTrue( System.currentTimeMillis() <= sc.nowMs() );		
-	}
-
-	@After
-	protected void tearDown () throws Exception
-	{
-		if( oldValueTimeStart != null )
-		{
-			System.setProperty( "timeStart" , oldValueTimeStart );
-		}
-		if( oldValueTimeScale != null )
-		{
-			System.setProperty( "timeScale" , oldValueTimeScale );
-		}
+		System.setProperty ( Clock.skTimeStartMs, "" + ( -timeStart ) );
+		System.setProperty ( Clock.skTimeScaleArg, "" + ( -timeScale ) );
+		final Clock.ScaledClock sc = new Clock.ScaledClock ();
+		assertEquals ( 1.0, sc.getScale () );
 	}
 }
