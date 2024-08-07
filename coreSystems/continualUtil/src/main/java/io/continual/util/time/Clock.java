@@ -21,6 +21,8 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.continual.util.data.StringUtils;
+
 /**
  * Basic clock service, replaces System.currentTimeMillis(), but with test access.
  */
@@ -65,14 +67,15 @@ public class Clock
 
 	private static class holder
 	{
-		// volatile: harmless in normal runs, as this is a singleton constructed
-		// once and shared among threads (all cache the same reference). For test
-		// runs (e.g. from JUnit), it ensures that replaceClock() takes effect in
-		// all threads immediately.
+		// volatile: harmless in normal runs, as this is a singleton constructed once and shared among threads (all
+		// cache the same reference). For test runs (e.g. from JUnit), it ensures that replaceClock() takes effect
+		// in all threads immediately.
+
 		static volatile Clock instance =
-			( null == System.getProperty ( "timeStart" ) && null == System.getProperty ( "timeScale" ) ) ?
-			new Clock () :
-			new ScaledClock ();
+			( StringUtils.isNotEmpty ( System.getProperty ( skTimeStartMs ) ) || StringUtils.isNotEmpty ( System.getProperty ( skTimeScaleArg ) ) ) ?
+			new ScaledClock () :
+			new Clock ()
+		;
 	}
 
 	/**
@@ -98,65 +101,105 @@ public class Clock
 	 */
 	public static class ScaledClock extends Clock
 	{
+		/**
+		 * Create a scaled clock based on JVM parameters, default to now() as start time
+		 * and 1.0 as the scale factor, like a normal clock.
+		 */
 		public ScaledClock ()
 		{
-			// for example, use -DtimeStart=-604800000 -DtimeScale=900 to setup the clock
+			// for example, use -DcontinualClockStartMs=-604800000 -DcontinualClockScale=900 to setup the clock
 			// to begin one week ago and have every second count as 15 minutes.
+			this ( getConfiguredStartTimeMs(), getConfiguredTimeScale() );
+		}
 
-			final String timeStart = System.getProperty ( "timeStart" );
-			final String timeScale = System.getProperty ( "timeScale" );
-
-			long startMs = System.currentTimeMillis ();
-			if ( timeStart != null )
-			{
-				try
-				{
-					startMs = Long.parseLong ( timeStart );
-					if ( startMs < 0 )
-					{
-						// offset from now
-						startMs = System.currentTimeMillis () + startMs;
-					}
-				}
-				catch ( NumberFormatException x )
-				{
-					log.warn ( "Couldn't parse timeStart: " + x.getMessage () );
-					startMs = System.currentTimeMillis ();
-				}
-			}
-
-			double scale = 1.0;
-			if ( timeScale != null )
-			{
-				try
-				{
-					scale = Double.parseDouble ( timeScale );
-					if ( scale <= 0 )
-					{
-						log.warn ( "Time scale must be a positive number." );
-						scale = 1.0;
-					}
-				}
-				catch ( NumberFormatException x )
-				{
-					log.warn ( "Couldn't parse timeScale: " + x.getMessage () );
-					scale = 1.0;
-				}
-			}
-
-			fStartMs = startMs;
+		/**
+		 * Created a scaled clock starting at the given time with the given scale. If the start
+		 * time value is less than 0, the value is subtracted from "now" to start the clock.
+		 * 
+		 * @param startMs the clock's start time, or number of milliseconds before now()
+		 * @param scale a scale factor 
+		 */
+		public ScaledClock ( long startMs, double scale )
+		{
+			fStartMs = makeStartTimeFrom ( startMs );
 			fScale = scale;
+			fActualStartMs = Clock.now ();
+
+			if ( fScale <= 0 )
+			{
+				throw new IllegalArgumentException ( "Time scale must be positive." );
+			}
 		}
 
 		@Override
 		public long nowMs ()
 		{
-			return fStartMs + Math.round ( ( super.nowMs () - fStartMs ) * fScale );
+			final long realNowMs = Clock.now ();
+			final long actualDiffMs = realNowMs - fActualStartMs;
+			final long scaledDiffMs = Math.round ( actualDiffMs * fScale );
+			return fStartMs + scaledDiffMs;
+		}
+
+		public double getScale ()
+		{
+			return fScale;
 		}
 
 		private final long fStartMs;
 		private final double fScale;
+		private final long fActualStartMs;
+
+		private static long makeStartTimeFrom ( long timeMs )
+		{
+			if ( timeMs < 0 )
+			{
+				// if negative, offset from now - e.g. use "-300000" for 5 minutes ago
+				// note that we always start at at least time 1
+				return Math.max ( 1, Clock.now () + timeMs );
+			}
+			return timeMs;
+		}
+
+		private static long getConfiguredStartTimeMs ( )
+		{
+			final String timeStart = System.getProperty ( skTimeStartMs );
+			if ( StringUtils.isEmpty ( timeStart ) ) return System.currentTimeMillis ();
+
+			try
+			{
+				return makeStartTimeFrom ( Long.parseLong ( timeStart ) );
+			}
+			catch ( NumberFormatException x )
+			{
+				log.warn ( "Couldn't parse timeStart: " + x.getMessage () );
+			}
+			return System.currentTimeMillis ();
+		}
+
+		private static double getConfiguredTimeScale ( )
+		{
+			final String timeScale = System.getProperty ( skTimeScaleArg );
+			if ( StringUtils.isEmpty ( timeScale ) ) return 1L;
+
+			try
+			{
+				final double scale = Double.parseDouble ( timeScale );
+				if ( scale > 0 )
+				{
+					return scale;
+				}
+
+				log.warn ( "Time scale must be a positive number." );
+			}
+			catch ( NumberFormatException x )
+			{
+				log.warn ( "Couldn't parse {} {}, using 1.0", skTimeScaleArg, timeScale );
+			}
+			return 1.0;
+		}
 	}
 
+	static final String skTimeStartMs = "continualClockStartMs";
+	static final String skTimeScaleArg = "continualClockScale";
 	private static final Logger log = LoggerFactory.getLogger ( Clock.class );
 }

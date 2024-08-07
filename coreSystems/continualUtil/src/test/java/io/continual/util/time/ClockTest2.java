@@ -2,6 +2,7 @@ package io.continual.util.time;
 
 import java.util.concurrent.TimeUnit;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
@@ -14,11 +15,19 @@ import io.continual.util.time.Clock.TestClock;
 public class ClockTest2 {
 	
 	@Before
-    public void setTheClock(){
-		TestClock clock = Clock.useNewTestClock();
-		clock.set(123l);
-    }
-	
+	public void setTheClock ()
+	{
+		final TestClock clock = Clock.useNewTestClock ();
+		clock.set ( 123l );
+	}
+
+	@After
+	public void tearDown () throws Exception
+	{
+		// setup a normal clock
+		Clock.replaceClock ( new Clock () );
+	}
+
 	@Test
     public void now(){
 		Assert.assertEquals(123l, Clock.now());
@@ -61,41 +70,44 @@ public class ClockTest2 {
     }
 	
 	@Test
-    public void sealedClockWrong(){
+    public void scaledClockWrong(){
 
-		Clock sealed = new Clock.ScaledClock();
-		Assert.assertTrue(sealed.nowMs() > 1669751377425l);
+		Clock scaled = new Clock.ScaledClock();
+		Assert.assertTrue(scaled.nowMs() > 1669751377425l);
+    }
+
+	@Test
+	public void scaledClockWrong2 ()
+	{
+		System.setProperty ( Clock.skTimeStartMs, "-1" );	// meaning start 1 ms before current time
+		System.setProperty ( Clock.skTimeScaleArg, "-1" );	// resulting in a warning and use of 1.0
+
+		final Clock.ScaledClock scaled = new Clock.ScaledClock ();
+		Assert.assertEquals ( 122, scaled.nowMs () );
+	}
+	
+	@Test
+    public void scaledClockWrong3(){
+		System.setProperty(Clock.skTimeStartMs, "d");
+		System.setProperty(Clock.skTimeScaleArg, "e");
+		Clock scaled = new Clock.ScaledClock();
+		Assert.assertTrue(scaled.nowMs() > 1669751377425l);
     }
 	
 	@Test
-    public void sealedClockWrong2(){
-		System.setProperty("timeStart", "-1");
-		System.setProperty("timeScale", "-1");
-		Clock sealed = new Clock.ScaledClock();
-		Assert.assertTrue(sealed.nowMs() > 1669751377425l);
+    public void scaledClockWrong4(){
+		System.setProperty(Clock.skTimeScaleArg, "-1");
+		Clock scaled = new Clock.ScaledClock();
+		Assert.assertTrue(scaled.nowMs() > 1669751377425l);
     }
 	
 	@Test
-    public void sealedClockWrong3(){
-		System.setProperty("timeStart", "d");
-		System.setProperty("timeScale", "e");
-		Clock sealed = new Clock.ScaledClock();
-		Assert.assertTrue(sealed.nowMs() > 1669751377425l);
+    public void scaledClockZTrue()
+	{
+		System.setProperty ( Clock.skTimeStartMs, "1" );
+		System.setProperty ( Clock.skTimeScaleArg, "1" );
+
+		final Clock scaled = new Clock.ScaledClock ();
+		Assert.assertEquals ( 1, scaled.nowMs () );
     }
-	
-	@Test
-    public void sealedClockWrong4(){
-		System.setProperty("timeScale", "-1");
-		Clock sealed = new Clock.ScaledClock();
-		Assert.assertTrue(sealed.nowMs() > 1669751377425l);
-    }
-	
-	@Test
-    public void sealedClockZTrue(){
-		System.setProperty("timeStart", "1");
-		System.setProperty("timeScale", "1");
-		Clock sealed = new Clock.ScaledClock();
-		Assert.assertTrue(sealed.nowMs() > 1669751377425l);
-    }
-	
 }

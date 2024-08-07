@@ -39,6 +39,7 @@ public class OkHttp implements JsonOverHttpClient
 		fDestroyed = false;
 	}
 
+	@Override
 	public synchronized void close ()
 	{
 		if ( fHttpClient != null )
@@ -47,7 +48,7 @@ public class OkHttp implements JsonOverHttpClient
 		}
 		fDestroyed = true;
 	}
-	
+
 	@Override
 	public HttpRequest newRequest ()
 	{
@@ -55,7 +56,7 @@ public class OkHttp implements JsonOverHttpClient
 	}
 
 	// FIXME: set timeout values
-	
+
 	private final Proxy fProxy;
 	private OkHttpClient fHttpClient;
 	private boolean fDestroyed;

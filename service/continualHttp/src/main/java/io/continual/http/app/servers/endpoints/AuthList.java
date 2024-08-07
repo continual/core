@@ -3,6 +3,8 @@ package io.continual.http.app.servers.endpoints;
 import java.util.LinkedList;
 
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.continual.http.app.servers.endpoints.TypicalRestApiEndpoint.Authenticator;
 import io.continual.http.service.framework.context.CHttpRequestContext;
@@ -104,6 +106,7 @@ class AuthList<I extends Identity> implements Authenticator<I>
 				catch ( InvalidJwtToken e )
 				{
 					// ignore, can't authenticate this way
+					log.info ( "Invalid token: " + e.getMessage () );
 				}
 				return authUser;
 			}
@@ -173,4 +176,6 @@ class AuthList<I extends Identity> implements Authenticator<I>
 		private final CHttpRequestContext fContext;
 	}
 
+
+	private static final Logger log = LoggerFactory.getLogger ( AuthList.class );
 }
