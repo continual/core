@@ -2,6 +2,7 @@ package io.continual.services.model.impl.common;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.iam.identity.Identity;
+import io.continual.iam.impl.common.SimpleIdentityReference;
 import io.continual.services.model.core.Model.ModelRequestContextBuilder;
 import io.continual.services.model.core.ModelNotificationService;
 import io.continual.services.model.core.ModelRequestContext;
@@ -13,7 +14,13 @@ public class BasicModelRequestContextBuilder implements ModelRequestContextBuild
 	public BasicModelRequestContextBuilder ()
 	{
 	}
-	
+
+	@Override
+	public ModelRequestContextBuilder forSimpleIdentity ( String username )
+	{
+		return forUser ( new SimpleIdentityReference ( username ) );
+	}
+
 	@Override
 	public ModelRequestContextBuilder forUser ( Identity user )
 	{

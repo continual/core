@@ -1,0 +1,65 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>io.continual</groupId>
+		<version>0.3.15-SNAPSHOT</version>
+		<artifactId>continualFlowControlGroup</artifactId>
+		<relativePath>..</relativePath>
+	</parent>
+
+	<artifactId>continualFlowControlK8s</artifactId>
+	<packaging>jar</packaging>
+
+	<name>continual.io Flow Control for Kubernetes</name>
+	<description>Continual's flow control k8s controller.</description>
+	<url>https://continual.io</url>
+
+	<dependencies>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualFlowControlApis</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<!-- k8s client -->
+		<dependency>
+			<groupId>io.fabric8</groupId>
+			<artifactId>kubernetes-client</artifactId>
+			<version>6.13.3</version>
+		</dependency>
+
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<descriptors>
+						<descriptor>src/assembly/dep.xml</descriptor>
+					</descriptors>
+				</configuration>
+				<executions>
+					<execution>
+						<id>make-assembly</id> <!-- this is used for inheritance merges -->
+						<phase>package</phase> <!-- bind to the packaging phase -->
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+		</plugins>
+
+		<pluginManagement>
+			<plugins>
+			</plugins>
+		</pluginManagement>
+	</build>
+
+</project>

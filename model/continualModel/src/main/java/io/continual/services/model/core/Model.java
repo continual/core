@@ -43,7 +43,14 @@ public interface Model extends ModelCapabilities, Closeable, Service
 	interface ModelRequestContextBuilder
 	{
 		/**
-		 * Associated an identity in this model request context
+		 * Associate a named user in this model request context
+		 * @param username
+		 * @return this context
+		 */
+		ModelRequestContextBuilder forSimpleIdentity ( String username );
+		
+		/**
+		 * Associate an identity in this model request context
 		 * @param user
 		 * @return this context
 		 */
