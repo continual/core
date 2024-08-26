@@ -1,7 +1,13 @@
 package io.continual.util.data.json;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.json.JSONObject;
 import org.junit.Assert;
@@ -78,6 +84,29 @@ public class JsonObjectMapTest {
 		jsonObjectMap.clear();
 		Assert.assertEquals(0, jsonObjectMap.size());
     }
+
+	//New stuff
+	@Test
+    public void containsValueTest(){
+		JsonObjectMap jsonObjectMap = generate();
+		Assert.assertEquals(true, jsonObjectMap.containsKey("name"));
+    }
 	
+//	@Test
+//	public void valuesTest() {
+//
+//		JsonObjectMap jsonObjectMap = generate();
+//		
+//        Collection<String> values = jsonObjectMap.values();
+//
+//        Collection<String> expectedValues = new TreeSet<>();
+//        expectedValues.add("value1");
+//        expectedValues.add("value2");
+//        expectedValues.add("value3");
+//
+//        assertEquals(expectedValues, values);
+//	}
+	
+
 	
 }

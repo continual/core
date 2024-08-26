@@ -6,6 +6,7 @@ import java.util.Map;
 import org.junit.Assert;
 import org.junit.Test;
 
+import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.Service.FailedToStart;
 import io.continual.util.console.ConsoleProgram.StartupFailureException;
 import io.continual.util.nv.impl.nvReadableTable;
@@ -62,6 +63,7 @@ public class ServiceContainerTest
 		Assert.assertEquals ( 1 , sc.getServiceNames ().size () );
 	}
 
+	//look at this code as a basis
 	@Test
 	public void testGet ()
 	{
@@ -108,5 +110,30 @@ public class ServiceContainerTest
 		{
 			throw new FailedToStart ( new Throwable ( "FailedToStart" ) );
 		}
+		
+	@Test
+	public void getReqdTest1() {
+		Class<String> asClass = null;
+		final ServiceContainer sc = new ServiceContainer ();
+		try {
+			Assert.assertNull(sc.getReqd(asClass));
+		} catch (BuildFailure e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	@Test
+	public void getReqdTest2() {
+		Class<String> asClass = null;
+		final ServiceContainer sc = new ServiceContainer ();
+		try {
+			Assert.assertNotNull(sc.getReqd(asClass));
+		} catch (BuildFailure e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
 	}
 }
