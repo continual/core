@@ -15,6 +15,8 @@ public interface FlowControlDeployedProcess
 	 */
 	String getProcessId ();
 
+	// TBD: process status? mapping from things like k8s PodStatus
+	
 	/**
 	 * Get a log listing for this instance
 	 * @param sinceRfc3339Time a time to use as "since", can be null

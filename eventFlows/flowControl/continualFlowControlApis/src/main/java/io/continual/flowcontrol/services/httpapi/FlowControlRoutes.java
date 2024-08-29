@@ -3,25 +3,22 @@ package io.continual.flowcontrol.services.httpapi;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.flowcontrol.FlowControlCallContext;
-import io.continual.flowcontrol.FlowControlJob;
-import io.continual.flowcontrol.FlowControlJob.FlowControlJobConfig;
-import io.continual.flowcontrol.FlowControlJob.FlowControlRuntimeSpec;
 import io.continual.flowcontrol.FlowControlService;
 import io.continual.flowcontrol.services.deployer.FlowControlDeployment;
 import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService;
+import io.continual.flowcontrol.services.jobdb.FlowControlJob;
+import io.continual.flowcontrol.services.jobdb.FlowControlJob.FlowControlJobConfig;
+import io.continual.flowcontrol.services.jobdb.FlowControlJob.FlowControlRuntimeSpec;
 import io.continual.flowcontrol.services.jobdb.FlowControlJobDb;
 import io.continual.flowcontrol.services.jobdb.FlowControlJobDb.RequestException;
 import io.continual.flowcontrol.services.jobdb.FlowControlJobDb.ServiceException;
@@ -547,39 +544,41 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 			@Override
 			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
 			{
+				sendStatusCodeAndMessage ( context, HttpStatusCodes.k200_ok, "fixme" );
+
 				try
 				{
-					final FlowControlCallContext fccc = fFlowControl.createtContextBuilder ().asUser ( uc.getUser () ).build ();
-					final FlowControlDeploymentService deployApi = fFlowControl.getDeployer ( fccc );
+//					final FlowControlCallContext fccc = fFlowControl.createtContextBuilder ().asUser ( uc.getUser () ).build ();
+//					final FlowControlDeploymentService deployApi = fFlowControl.getDeployer ( fccc );
 
-					final FlowControlDeployment deployment = deployApi.getDeployment ( fccc, deployId );
+//					final FlowControlDeployment deployment = deployApi.getDeployment ( fccc, deployId );
 
-					if ( deployment != null )
-					{
-						final String since = context.request ().getParameter ( "since", null );
-						final List<String> lines = deployment.getProcessById ( instanceId ).getLog ( since );
-
-						try ( final PrintWriter pw = context.response ().getStreamForTextResponse ( MimeTypes.kPlainText ) )
-						{
-							for ( String line : lines )
-							{
-								pw.println ( line );
-							}
-						}
-					}
-					else
-					{
-						sendStatusCodeAndMessage ( context, HttpStatusCodes.k404_notFound, "Deployment not found." );
-					}
+//					if ( deployment != null )
+//					{
+//						final String since = context.request ().getParameter ( "since", null );
+//						final List<String> lines = deployment.getProcessById ( instanceId ).getLog ( since );
+//
+//						try ( final PrintWriter pw = context.response ().getStreamForTextResponse ( MimeTypes.kPlainText ) )
+//						{
+//							for ( String line : lines )
+//							{
+//								pw.println ( line );
+//							}
+//						}
+//					}
+//					else
+//					{
+//						sendStatusCodeAndMessage ( context, HttpStatusCodes.k404_notFound, "Deployment not found." );
+//					}
 				}
-				catch ( FlowControlDeploymentService.RequestException e )
-				{
-					sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, "There was a problem with your request: " + e.getMessage () );
-				}
-				catch ( FlowControlDeploymentService.ServiceException e )
-				{
-					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't complete your request." );
-				}
+//				catch ( FlowControlDeploymentService.RequestException e )
+//				{
+//					sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, "There was a problem with your request: " + e.getMessage () );
+//				}
+//				catch ( FlowControlDeploymentService.ServiceException e )
+//				{
+//					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't complete your request." );
+//				}
 				finally
 				{
 				}
@@ -651,27 +650,13 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 
 	private static JSONObject render ( FlowControlDeployment deploy, boolean withId ) throws JSONException, IOException
 	{
-		final Set<String> instances = deploy.instances ();
-		
 		final JSONObject result = new JSONObject ()
-			.put ( "job", deploy.getJobId () )
-			.put ( "instanceCount", instances.size () )
-			.put ( "instances", JsonVisitor.listToArray ( instances ) )
+			.put ( "jobId", deploy.getDeploymentSpec ().getJob ().getId () )
 		;
 		if ( withId )
 		{
 			result.put ( "id", deploy.getId () );
 		}
-
-		try
-		{
-			result.put ( "status", deploy.getStatus ().toString () );
-		}
-		catch ( io.continual.flowcontrol.services.deployer.FlowControlDeploymentService.ServiceException e )
-		{
-			result.put ( "status", FlowControlDeployment.Status.UNKNOWN.toString () );
-		}
-		
 		return result;
 	}
 

@@ -18,12 +18,18 @@ public interface DeploymentDb extends Service
 		public DeployDbException ( String msg, Throwable t ) { super(msg,t); };
 		private static final long serialVersionUID = 1L;
 	}
-	
+
 	/**
 	 * Store the given deployment
 	 * @param deployment
 	 */
 	void storeDeployment ( FlowControlDeployment deployment ) throws DeployDbException;
+
+	/**
+	 * Remove the given deployment
+	 * @param deployId
+	 */
+	void removeDeployment ( String deployId ) throws DeployDbException;
 
 	/**
 	 * Load a deployment based on its ID

@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.ApiKey;
@@ -57,13 +58,13 @@ public class SimpleIdentityReference implements Identity
 	public void deleteApiKey ( ApiKey key ) throws IamSvcException { throw new IamSvcException ( "not implemented" ); }
 
 	@Override
-	public Set<String> getGroupIds () throws IamSvcException { throw new IamSvcException ( "not implemented" ); }
+	public Set<String> getGroupIds () throws IamSvcException { return new TreeSet<> (); }
 
 	@Override
-	public Collection<Group> getGroups () throws IamSvcException { throw new IamSvcException ( "not implemented" ); }
+	public Collection<Group> getGroups () throws IamSvcException { return new TreeSet<> (); }
 
 	@Override
-	public Group getGroup ( String groupId ) throws IamSvcException { throw new IamSvcException ( "not implemented" ); }
+	public Group getGroup ( String groupId ) throws IamSvcException { return null; }
 
 	private final String fId;
 }

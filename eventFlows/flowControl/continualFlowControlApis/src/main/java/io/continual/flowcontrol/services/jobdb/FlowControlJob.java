@@ -1,4 +1,4 @@
-package io.continual.flowcontrol;
+package io.continual.flowcontrol.services.jobdb;
 
 import java.io.IOException;
 import java.io.InputStream;

@@ -458,7 +458,7 @@ public class InMemoryModel extends CommonJsonDbModel
 
 			for ( String key : current.keySet () )
 			{
-				if ( null != current.optJSONObject ( key ) )
+				if ( !(key.equals(kLocalDataNode)) && null != current.optJSONObject ( key ) )
 				{
 					final Path pathHere = pathPrefix.makeChildItem ( Name.fromString ( key ) );
 					result.add ( pathHere );

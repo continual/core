@@ -5,7 +5,7 @@ import java.util.Map;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.flowcontrol.FlowControlCallContext;
-import io.continual.flowcontrol.FlowControlJob;
+import io.continual.flowcontrol.services.jobdb.FlowControlJob;
 import io.continual.services.Service;
 
 /**
@@ -161,7 +161,7 @@ public interface FlowControlDeploymentService extends Service
 	}
 
 	/**
-	 * A builder for deployment specs
+	 * A builder for deployment specs. 
 	 */
 	interface DeploymentSpecBuilder
 	{
@@ -256,7 +256,7 @@ public interface FlowControlDeploymentService extends Service
 	 * Get a deployment by its deployment ID
 	 * @param ctx
 	 * @param deploymentId
-	 * @return a deployment, or null if no such deployment 
+	 * @return a deployment, or null if no such deployment (or the user cannot read the deployment)
 	 * @throws ServiceException
 	 */
 	FlowControlDeployment getDeployment ( FlowControlCallContext ctx, String deploymentId ) throws ServiceException;
@@ -283,6 +283,7 @@ public interface FlowControlDeploymentService extends Service
 	 * @param configKey
 	 * @return a deployment or null
 	 * @throws ServiceException
+	 * @throws RequestException 
 	 */
-	FlowControlDeployment getDeploymentByConfigKey ( String configKey ) throws ServiceException;
+	FlowControlDeployment getDeploymentByConfigKey ( String configKey ) throws ServiceException, RequestException;
 }

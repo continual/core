@@ -79,34 +79,13 @@
 			<artifactId>slf4j-api</artifactId>
 		</dependency>
 
+		<!-- logging for test -->
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+		    <artifactId>logback-classic</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 	</dependencies>
-
-	<build>
-		<plugins>
-			<plugin>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<configuration>
-					<descriptors>
-						<descriptor>src/assembly/dep.xml</descriptor>
-					</descriptors>
-				</configuration>
-				<executions>
-					<execution>
-						<id>make-assembly</id> <!-- this is used for inheritance merges -->
-						<phase>package</phase> <!-- bind to the packaging phase -->
-						<goals>
-							<goal>single</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-
-		</plugins>
-
-		<pluginManagement>
-			<plugins>
-			</plugins>
-		</pluginManagement>
-	</build>
 
 </project>

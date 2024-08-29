@@ -1,6 +1,5 @@
 package io.continual.flowcontrol.impl.jobdb.model;
 
-import java.security.GeneralSecurityException;
 import java.util.Collection;
 import java.util.LinkedList;
 
@@ -8,9 +7,9 @@ import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.flowcontrol.FlowControlCallContext;
-import io.continual.flowcontrol.FlowControlJob;
-import io.continual.flowcontrol.impl.enc.Enc;
 import io.continual.flowcontrol.impl.jobdb.common.JsonJob;
+import io.continual.flowcontrol.services.encryption.Encryptor;
+import io.continual.flowcontrol.services.jobdb.FlowControlJob;
 import io.continual.flowcontrol.services.jobdb.FlowControlJobDb;
 import io.continual.iam.access.AccessControlEntry;
 import io.continual.iam.access.AccessControlList;
@@ -39,14 +38,7 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 		fModel = io.continual.builder.Builder.fromJson ( Model.class, modelData, sc );
 		fModelUser = new CommonJsonIdentity ( "flowControlUser", CommonJsonIdentity.initializeIdentity (), null );
 
-		try
-		{
-			fEnc = new Enc ( config.getString ( "secretEncryptKey" ) );
-		}
-		catch ( GeneralSecurityException e )
-		{
-			throw new BuildFailure ( e );
-		}
+		fEnc = sc.getReqd ( sc.getExprEval ().evaluateText ( config.optString ( "encryptor", "encryptor" ) ), Encryptor.class );
 	}
 
 	@Override
@@ -157,7 +149,7 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 
 	private final Model fModel;
 	private final Identity fModelUser;
-	private final Enc fEnc;
+	private final Encryptor fEnc;
 
 	private FlowControlJob internalLoadJob ( ModelRequestContext mrc, String name ) throws ServiceException
 	{

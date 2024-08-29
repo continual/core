@@ -11,8 +11,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -21,18 +19,14 @@ import org.slf4j.LoggerFactory;
 import io.continual.builder.Builder;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.flowcontrol.FlowControlCallContext;
-import io.continual.flowcontrol.FlowControlJob;
-import io.continual.flowcontrol.FlowControlJob.FlowControlRuntimeSpec;
+import io.continual.flowcontrol.impl.deployer.BaseDeployer;
 import io.continual.flowcontrol.services.deployer.FlowControlDeployment;
-import io.continual.flowcontrol.services.deployer.FlowControlDeployment.Status;
-import io.continual.flowcontrol.services.deployer.ConfigTransferService;
-import io.continual.flowcontrol.services.deployer.FlowControlDeployedProcess;
 import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService;
-import io.continual.metrics.MetricsCatalog;
-import io.continual.metrics.impl.noop.NoopMetricsCatalog;
+import io.continual.flowcontrol.services.deployer.FlowControlRuntimeState;
+import io.continual.flowcontrol.services.jobdb.FlowControlJob.FlowControlRuntimeSpec;
+import io.continual.iam.identity.Identity;
 import io.continual.resources.ResourceLoader;
 import io.continual.services.ServiceContainer;
-import io.continual.services.SimpleService;
 import io.continual.templating.ContinualTemplateContext;
 import io.continual.templating.ContinualTemplateEngine;
 import io.continual.templating.ContinualTemplateEngine.TemplateParseException;
@@ -71,7 +65,7 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.dsl.PodResource;
 
-public class K8sController extends SimpleService implements FlowControlDeploymentService
+public class K8sController extends BaseDeployer
 {
 	static final String kSetting_k8sContext = "context";
 	static final String kSetting_Namespace = "namespace";
@@ -101,20 +95,14 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 
 	static final String kSetting_DumpInitYaml = "dumpInitYaml";
 
-	static final String kSetting_DefaultCpuRequest = "defaultCpuRequest";
-	static final String kSetting_DefaultCpuLimit = "defaultCpuLimit";
-	static final String kSetting_DefaultMemLimit = "defaultMemLimit";
-	static final String kSetting_DefaultPersistDiskSize = "defaultPersistDiskSize";
-	static final String kSetting_DefaultLogDiskSize = "defaultLogDiskSize";
-
 	static final String kSetting_DeploySpecCtxPop = "deploymentSpecToContext";
 	static final String kSetting_TemplateEngine = "templateEngine";
 
 	public K8sController ( ServiceContainer sc, JSONObject rawConfig ) throws BuildFailure
 	{
-		final JSONObject config = sc.getExprEval ().evaluateJsonObject ( rawConfig );
+		super ( sc, rawConfig );
 
-		fConfigTransfer = sc.getReqd ( config.optString ( kSetting_ConfigTransfer, "configTransfer" ), ConfigTransferService.class );
+		final JSONObject config = sc.getExprEval ().evaluateJsonObject ( rawConfig );
 
 		final String contextName = config.optString ( kSetting_k8sContext, null );
 		if ( contextName != null && contextName.length () > 0 )
@@ -150,12 +138,6 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		fImgPullSecrets = JsonVisitor.arrayToList ( config.optJSONArray ( kSetting_InitYamlImagePullSecrets ) );
 		fDumpInitYaml = config.optBoolean ( kSetting_DumpInitYaml, false );
 
-		fDefCpuRequest = config.optString ( kSetting_DefaultCpuRequest, null );
-		fDefCpuLimit = config.optString ( kSetting_DefaultCpuLimit, null );
-		fDefMemLimit = config.optString ( kSetting_DefaultMemLimit, null );
-		fDefPersistDiskSize = config.optString ( kSetting_DefaultPersistDiskSize, null );
-		fDefLogDiskSize = config.optString ( kSetting_DefaultLogDiskSize, null );
-
 		final String deploySpecCtxPopSpec = config.optString ( kSetting_DeploySpecCtxPop, null );
 		if ( deploySpecCtxPopSpec != null )
 		{
@@ -188,13 +170,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	}
 
 	@Override
-	public DeploymentSpecBuilder deploymentBuilder ()
-	{
-		return new LocalDeploymentSpecBuilder ();
-	}
-
-	@Override
-	public FlowControlDeployment deploy ( FlowControlCallContext ctx, DeploymentSpec ds ) throws ServiceException, RequestException
+	protected FlowControlDeployment internalDeploy ( FlowControlCallContext ctx, DeploymentSpec ds, String configKey ) throws ServiceException, RequestException
 	{
 		try
 		{
@@ -202,7 +178,6 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 			final String jobId = ds.getJob ().getId ();
 			final String k8sJobId = makeK8sName ( jobId );
 			final String tag = k8sJobId;
-			final Map<String,String> configFetchEnv = fConfigTransfer.deployConfiguration ( ds.getJob () );
 
 			final String targetConfigFile = fConfigMountLoc + "/jobConfig.json";
 
@@ -259,7 +234,6 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 					.put ( "FC_CONFIG_FILE", targetConfigFile )
 					.put ( "FC_RUNTIME_IMAGE", fImageMapper.getImageName ( ds.getJob ().getRuntimeSpec () ) )
 					.put ( "FC_STORAGE_CLASS", fInitYamlStorageClass )
-//					.put ( "FC_IMAGE_PULL_SECRET", "regcred" )
 				;
 
 				// allow our deployment spec populator to add to the context
@@ -282,7 +256,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 				// push environment
 				final HashMap<String,String> env = new HashMap<String,String> ();
 				env.putAll ( ds.getEnv () );
-				env.putAll ( configFetchEnv );
+				env.put ( "CONFIG_URL", configKeyToUrl ( configKey ) );
 				env.put ( "FC_INSTALLATION_NAME", fInstallationName );
 				env.put ( "FC_CONFIG_DIR", fConfigMountLoc );
 				env.put ( "FC_PERSISTENCE_DIR", fPersistMountLoc );
@@ -331,11 +305,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 				mapException ( x );
 			}
 	
-			return new IntDeployment ( tag, jobId );
-		}
-		catch ( ConfigTransferService.ServiceException x )
-		{
-			throw new ServiceException ( x );
+			return new IntDeployment ( tag, jobId, ds, ctx.getUser (), configKey );
 		}
 		catch ( io.continual.flowcontrol.services.jobdb.FlowControlJobDb.ServiceException x )
 		{
@@ -343,11 +313,14 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		}
 	}
 
-	@Override
-	public void undeploy ( FlowControlCallContext ctx, String deploymentId ) throws ServiceException
+	private String configKeyToUrl ( String configKey )
 	{
-		// FIXME: does user own deployment?
-
+		return "http://foo.bar/"  + configKey;
+	}
+	
+	@Override
+	protected void internalUndeploy ( FlowControlCallContext ctx, String deploymentId ) throws ServiceException
+	{
 		final K8sDeployWrapper dw = getDeployment ( deploymentId );
 		if ( dw != null )
 		{
@@ -355,7 +328,12 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		
 			try
 			{
-				final Secret secret = fApiClient.secrets ().inNamespace ( fNamespace ).withName ( tagToSecret ( deploymentId ) ).get ();
+				final Secret secret = fApiClient
+					.secrets ()
+					.inNamespace ( fNamespace )
+					.withName ( tagToSecret ( deploymentId ) )
+					.get ()
+				;
 				if ( secret != null )
 				{
 					fApiClient.resource ( secret ).delete ();
@@ -367,7 +345,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 			}
 		}
 	}
-
+/*
 	@Override
 	public FlowControlDeployment getDeployment ( FlowControlCallContext ctx, String deploymentId ) throws ServiceException
 	{
@@ -435,8 +413,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		}
 		return result;
 	}
-
-	private final ConfigTransferService fConfigTransfer;
+*/
 	private final ContinualTemplateEngine fTemplateEngine;
 
 	private final KubernetesClient fApiClient;
@@ -452,11 +429,6 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	private final String fInstallationName;
 	private final List<String> fImgPullSecrets;
 	private final boolean fDumpInitYaml;
-	private final String fDefCpuLimit;
-	private final String fDefCpuRequest;
-	private final String fDefMemLimit;
-	private final String fDefPersistDiskSize;
-	private final String fDefLogDiskSize;
 
 	protected void updateEnv ( HashMap<String,String> env )
 	{
@@ -654,7 +626,7 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 			if ( fStatefulSet != null ) fApiClient.resource ( fStatefulSet ).delete ();
 		}
 
-		public Status getStatus ()
+		public FlowControlRuntimeState.DeploymentStatus getStatus ()
 		{
 			if ( fDeployment != null )
 			{
@@ -679,11 +651,11 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 
 				if ( progressing && available )
 				{
-					return Status.RUNNING;
+					return FlowControlRuntimeState.DeploymentStatus.RUNNING;
 				}
 				else if ( progressing && !available )
 				{
-					return Status.PENDING;
+					return FlowControlRuntimeState.DeploymentStatus.PENDING;
 				}
 			}
 			else if ( fStatefulSet != null )
@@ -697,14 +669,14 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 
 				if ( ready < replReqd )
 				{
-					return Status.PENDING;
+					return FlowControlRuntimeState.DeploymentStatus.PENDING;
 				}
 				else if ( ready == replReqd )
 				{
-					return Status.RUNNING;
+					return FlowControlRuntimeState.DeploymentStatus.RUNNING;
 				}
 			}
-			return Status.UNKNOWN;
+			return FlowControlRuntimeState.DeploymentStatus.UNKNOWN;
 		}
 
 		public int getReplicaCount ()
@@ -723,92 +695,32 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 	
 	private class IntDeployment implements FlowControlDeployment
 	{
-		public IntDeployment ( String tag, String jobId )
+		public IntDeployment ( String tag, String jobId, DeploymentSpec ds, Identity deployer, String configKey )
 		{
 			fTag = tag;
+			fDeployer = deployer;
 			fJobId = jobId;
+			fDeploymentSpec = ds;
+			fConfigKey = configKey;
 		}
 
 		@Override
-		public String getId ()
-		{
-			return fTag;
-		}
+		public String getId () { return fTag; }
 
 		@Override
-		public String getJobId ()
-		{
-			return fJobId;
-		}
+		public DeploymentSpec getDeploymentSpec () { return fDeploymentSpec; }
 
 		@Override
-		public DeploymentSpec getDeploymentSpec ()
-		{
-			return fJob;
-		}
+		public Identity getDeployer () { return fDeployer; }
 
 		@Override
-		public Status getStatus ()
-		{
-			final K8sDeployWrapper d = getDeployment ( fTag );
-			return d == null ? Status.UNKNOWN : d.getStatus ();
-		}
-
-		@Override
-		public int instanceCount ()
-		{
-			final K8sDeployWrapper d = getDeployment ( fTag );
-			return d == null ? -1 : d.getReplicaCount ();
-		}
-
-		@Override
-		public Set<String> instances ()
-		{
-			final TreeSet<String> result = new TreeSet<> ();
-			final List<Pod> pods = getPodsFor ( fTag );
-			for ( Pod p : pods )
-			{
-				result.add ( p.getMetadata ().getName () );
-			}
-			return result;
-		}
-
-		@Override
-		public FlowControlDeployedProcess getProcessById ( String instanceId ) throws RequestException, ServiceException
-		{
-			try
-			{
-				final PodResource pod = fApiClient.pods ()
-					.inNamespace ( fNamespace )
-					.withName ( instanceId )
-				;
-				return new FlowControlDeployedProcess ()
-				{
-					@Override
-					public String getProcessId () { return instanceId; }
-
-					@Override
-					public List<String> getLog ( String sinceRfc3339Time ) throws ServiceException, RequestException
-					{
-						return getLogFor ( pod, sinceRfc3339Time );
-					}
-
-					@Override
-					public MetricsCatalog getMetrics ()
-					{
-						return new NoopMetricsCatalog ();
-					}
-				};
-			}
-			catch ( KubernetesClientException x )
-			{
-				mapException ( x );
-			}
-			return null;
-		}
+		public String getConfigKey () { return fConfigKey; }
 
 		private final String fTag;
 		private final String fJobId;
+		private final Identity fDeployer;
+		private final DeploymentSpec fDeploymentSpec;
+		private final String fConfigKey;
 	}
 
 	private List<String> getLogFor ( PodResource pod, String sinceRfc3339Time )
@@ -907,162 +819,11 @@ public class K8sController extends SimpleService implements FlowControlDeploymen
 		return pl.getItems ();
 	}
 
-	protected class LocalDeploymentSpecBuilder implements DeploymentSpecBuilder
-	{
-		@Override
-		public DeploymentSpecBuilder forJob ( FlowControlJob job )
-		{
-			fJob = job;
-			return this;
-		}
-
-		@Override
-		public DeploymentSpecBuilder withInstances ( int count )
-		{
-			fInstances = count;
-			return this;
-		}
-
-		@Override
-		public DeploymentSpecBuilder withEnv ( String key, String val )
-		{
-			fEnv.put ( key, val );
-			return this;
-		}
-
-		@Override
-		public DeploymentSpecBuilder withEnv ( Map<String, String> keyValMap )
-		{
-			fEnv.putAll ( keyValMap );
-			return this;
-		}
-
-		@Override
-		public ResourceSpecBuilder withResourceSpecs ()
-		{
-			return new ResourceSpecBuilder ()
-			{
-				@Override
-				public ResourceSpecBuilder withCpuRequest ( String cpuReq )
-				{
-					fCpuRequest = selectValue ( cpuReq, fCpuRequest, fCpuLimit );
-					return this;
-				}
-
-				@Override
-				public ResourceSpecBuilder withCpuLimit ( String cpuLimit )
-				{
-					fCpuLimit = selectValue ( cpuLimit, fCpuLimit );
-					return this;
-				}
-
-				@Override
-				public ResourceSpecBuilder withMemLimit ( String memLimit )
-				{
-					fMemLimit = selectValue ( memLimit, fMemLimit );
-					return this;
-				}
-
-				@Override
-				public ResourceSpecBuilder withPersistDiskSize ( String diskSize )
-				{
-					fPersistDiskSize = selectValue ( diskSize, fPersistDiskSize );
-					return this;
-				}
-
-				@Override
-				public ResourceSpecBuilder withLogDiskSize ( String diskSize )
-				{
-					fLogDiskSize = selectValue ( diskSize, fLogDiskSize );
-					return this;
-				}
-
-				@Override
-				public ResourceSpecBuilder withToleration ( Toleration tol )
-				{
-					fTolerations.add ( tol );
-					return this;
-				}
-
-				@Override
-				public DeploymentSpecBuilder build ()
-				{
-					return LocalDeploymentSpecBuilder.this;
-				}
-			};
-		}
-
-		@Override
-		public DeploymentSpec build () throws BuildFailure
-		{
-			if ( fJob == null ) throw new BuildFailure ( "No job provided." );
-			return new LocalDeploymentSpec ( this );
-		}
-
-		private FlowControlJob fJob;
-		private int fInstances = 1;
-		private HashMap<String,String> fEnv = new HashMap<> ();
-		private String fCpuLimit = fDefCpuLimit;
-		private String fCpuRequest = fDefCpuRequest;
-		private String fMemLimit = fDefMemLimit;
-		private String fPersistDiskSize = fDefPersistDiskSize;
-		private String fLogDiskSize = fDefLogDiskSize;
-		private LinkedList<Toleration> fTolerations = new LinkedList<>();
-	}
-
-	private static class LocalDeploymentSpec implements DeploymentSpec
-	{
-		private final LocalDeploymentSpecBuilder fBuilder;
-
-		public LocalDeploymentSpec ( LocalDeploymentSpecBuilder builder )
-		{
-			fBuilder = builder;
-		}
-
-		@Override
-		public FlowControlJob getJob () { return fBuilder.fJob; }
-
-		@Override
-		public int getInstanceCount () { return fBuilder.fInstances; }
-
-		@Override
-		public Map<String, String> getEnv () { return fBuilder.fEnv; }
-
-		@Override
-		public ResourceSpecs getResourceSpecs ()
-		{
-			return new ResourceSpecs ()
-			{
-				public String cpuRequest () { return fBuilder.fCpuRequest; }
-				public String cpuLimit () { return fBuilder.fCpuLimit; }
-				public String memLimit () { return fBuilder.fMemLimit; }
-				public String persistDiskSize () { return fBuilder.fPersistDiskSize; }
-				public String logDiskSize () { return fBuilder.fLogDiskSize; }
-				public List<Toleration> tolerations ()
-				{
-					return fBuilder.fTolerations;
-				}
-			};
-		}
-	}
-
 	private static final Logger log = LoggerFactory.getLogger ( K8sController.class );
 
 	private static int safeInt ( Integer i )
 	{
 		return i == null ? 0 : i;
-	}
-
-	private static String selectValue ( String... values )
-	{
-		for ( String val : values )
-		{
-			if ( val != null && val.length() > 0 )
-			{
-				return val;
-			}
-		}
-		return null;
 	}
 
 	private static String getJobIdFrom ( K8sDeployWrapper dw, String defval )

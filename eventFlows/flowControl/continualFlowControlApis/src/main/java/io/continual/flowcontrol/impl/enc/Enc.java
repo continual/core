@@ -8,26 +8,38 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 
 import javax.crypto.Cipher;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import io.continual.builder.Builder.BuildFailure;
+import io.continual.flowcontrol.services.encryption.Encryptor;
+import io.continual.services.ServiceContainer;
+import io.continual.services.SimpleService;
 import io.continual.util.data.TypeConvertor;
 import io.continual.util.data.UniqueStringGenerator;
+import io.continual.util.data.exprEval.ExpressionEvaluator;
 
-public class Enc implements Encryptor
+public class Enc extends SimpleService implements Encryptor
 {
-	/**
-	 * Create an encrypt/decrypt tool with the given password
-	 * @param pwd
-	 * @throws GeneralSecurityException
-	 */
-	public Enc ( String pwd ) throws GeneralSecurityException
+	public Enc ( ServiceContainer sc, JSONObject config ) throws BuildFailure
 	{
-		fEncKey = pwd;
-		fCipher = Cipher.getInstance ( "AES/CBC/PKCS5Padding" );
+		final ExpressionEvaluator ee = sc.getExprEval ();
+		try
+		{
+			fEncKey = ee.evaluateText ( config.getString ( "key" ) );
+			fCipher = Cipher.getInstance ( ee.evaluateText ( config.optString ( "cipher", "AES/CBC/PKCS5Padding" ) ) );
+		}
+		catch ( JSONException | NoSuchAlgorithmException | NoSuchPaddingException x )
+		{
+			throw new BuildFailure ( x );
+		}
 	}
 
 	@Override
@@ -84,7 +96,27 @@ public class Enc implements Encryptor
 		final SecretKey tmp = factory.generateSecret ( spec );
 		return new SecretKeySpec ( tmp.getEncoded (), "AES" );
 	}
-	
+
 	// older data used this static salt
 	private static final byte[] kFixmeSalt = "salty".getBytes ( StandardCharsets.UTF_8 );
+
+	/**
+	 * Provided for unit test of backward compatible decrypt. Don't use this for new code.
+	 * @param val
+	 * @Deprecated
+	 * @return an encrypted string using the older format
+	 * @throws GeneralSecurityException
+	 */
+	@Deprecated
+	String _encryptOld ( String val ) throws GeneralSecurityException
+	{
+		final SecretKeySpec secretKeySpec = getSecretKeySpec ( kFixmeSalt );
+
+		fCipher.init ( Cipher.ENCRYPT_MODE, secretKeySpec );
+		final AlgorithmParameters params = fCipher.getParameters ();
+		final byte[] iv = params.getParameterSpec ( IvParameterSpec.class ).getIV ();
+		final byte[] ciphertext = fCipher.doFinal ( val.getBytes ( StandardCharsets.UTF_8 ) );
+
+		return TypeConvertor.base64Encode ( ciphertext ) + ":" + TypeConvertor.base64Encode ( iv );
+	}
 }

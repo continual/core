@@ -9,7 +9,6 @@ import io.continual.flowcontrol.FlowControlCallContext;
 import io.continual.flowcontrol.impl.jobdb.test.DummyJobDb;
 import io.continual.flowcontrol.services.deployer.FlowControlDeployment;
 import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService.ServiceException;
-import io.continual.flowcontrol.testSupport.DummyConfigTransfer;
 import io.continual.iam.identity.Identity;
 import io.continual.services.ServiceContainer;
 import io.continual.util.console.CmdLineParser;
@@ -41,7 +40,6 @@ public class K8sClientAuthTester extends ConfiguredConsole
 			final ServiceContainer sc = new ServiceContainer ();
 			sc
 				.add ( "jobDb", new DummyJobDb () )
-				.add ( "configTransfer", new DummyConfigTransfer () )
 			;
 
 			log.info ( "Building Kubernetes controller config..." );

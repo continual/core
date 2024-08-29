@@ -22,6 +22,7 @@
 		<module>continualEmail</module>
 		<module>continualMetrics</module>
 		<module>continualMetricsDropWiz</module>
+		<module>continualMetricsOtel</module>
 		<module>continualEmailTest</module>
 		<module>continualScript</module>
 		<module>continualNotify</module>

@@ -13,8 +13,8 @@ import java.util.TreeSet;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import io.continual.flowcontrol.FlowControlJob;
-import io.continual.flowcontrol.impl.enc.Encryptor;
+import io.continual.flowcontrol.services.encryption.Encryptor;
+import io.continual.flowcontrol.services.jobdb.FlowControlJob;
 import io.continual.flowcontrol.services.jobdb.FlowControlJobDb;
 import io.continual.flowcontrol.services.jobdb.FlowControlJobDb.ServiceException;
 import io.continual.iam.access.AccessControlList;
@@ -30,6 +30,7 @@ import io.continual.util.standards.MimeTypes;
 
 public class JsonJob implements FlowControlJob, JsonSerialized
 {
+	private static final String kId = "id";
 	private static final String kName = "name";
 	private static final String kVersion = "version";
 	private static final String kAcl = "acl";
@@ -40,7 +41,9 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 
 	public JsonJob ( String name, Encryptor enc )
 	{
+		fId = name;
 		fData = new JSONObject ()
+			.put ( kId, name )
 			.put ( kName, name )
 			.put ( kAcl, AccessControlList.initialize ( null ).asJson () )
 			.put ( kRuntime, new JSONObject ()
@@ -56,18 +59,24 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 	public JsonJob ( String name, Encryptor enc, JSONObject persisted )
 	{
 		this ( name, enc );
-		
+
 		// copy persisted data into our std starting template
 		JsonUtil.copyInto ( persisted, fData );
 
 		// but make sure the name didn't get overwritten by rogue data
-		fData.put ( kName, name );
+		fData
+			.put ( kId, name )
+			.put ( kName, name )
+		;
 	}
 
 	@Override
 	public JSONObject toJson ()
 	{
-		return JsonUtil.clone ( fData );
+		return JsonUtil.clone ( fData )
+			.put ( kId, fId )
+			.put ( kName, fId )
+		;
 	}
 
 	@Override
@@ -92,7 +101,7 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 	@Override
 	public String getName ()
 	{
-		return fData.getString ( kName );
+		return fId;
 	}
 
 	@Override
@@ -251,6 +260,7 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 		return result;
 	}
 
+	private final String fId;
 	private final JSONObject fData;
 	private final Encryptor fEncryptor;
 

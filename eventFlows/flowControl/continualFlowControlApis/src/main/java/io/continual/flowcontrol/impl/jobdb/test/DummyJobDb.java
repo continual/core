@@ -3,7 +3,7 @@ package io.continual.flowcontrol.impl.jobdb.test;
 import java.util.Collection;
 
 import io.continual.flowcontrol.FlowControlCallContext;
-import io.continual.flowcontrol.FlowControlJob;
+import io.continual.flowcontrol.services.jobdb.FlowControlJob;
 import io.continual.flowcontrol.services.jobdb.FlowControlJobDb;
 import io.continual.iam.access.AccessException;
 import io.continual.services.SimpleService;
