@@ -52,7 +52,7 @@ import io.continual.util.data.exprEval.SpecialFnsDataSource;
  */
 public class Engine extends SimpleService
 {
-	public static final long kDefault_MetricsReportSeconds = 60L;
+	public static final long kDefault_MetricsReportSeconds = 300L;
 	
 	public Engine ( Program p )
 	{
