@@ -160,6 +160,44 @@ public class ShardedExpiringCacheTest extends TestCase
 		assertNull ( postGc );
 	}
 
+	//@Test
+	public void _testLongRunPerf ()
+	{
+		final ShardedExpiringCache<String,String> cache = new ShardedExpiringCache.Builder<String,String> ()
+			.named ( "test" )
+			.cachingFor ( 15, TimeUnit.MINUTES )
+			.withShardMaxSize ( 128 )
+			.withShardCount ( 32 )
+			.build ()
+		;
+
+		final int useCount = 1000*1000*10;
+
+		final Runtime rt = Runtime.getRuntime ();
+
+		final int reportInterval = 10000;
+		long internalStartMs = System.currentTimeMillis ();
+
+		for ( int i=0; i<useCount; i++ )
+		{
+			cache.write ( "key_" + i, "data" );
+			if ( i % reportInterval == 0 )
+			{
+				final long intervalEndMs = System.currentTimeMillis ();
+				final long durationMs = intervalEndMs - internalStartMs;
+				final long totalMem = rt.totalMemory () - rt.freeMemory ();
+				log.info ( "index {}, last interval {} ms, cache size {}, memory {} MB", i, durationMs, cache.size (), ( totalMem / (1024*1024) ) );
+
+				internalStartMs = System.currentTimeMillis ();
+			}
+		}
+
+		final long intervalEndMs = System.currentTimeMillis ();
+		final long durationMs = intervalEndMs - internalStartMs;
+		final long totalMem = rt.totalMemory () - rt.freeMemory ();
+		log.info ( "index {}, last interval {} ms, cache size {}, memory {} MB", useCount, durationMs, cache.size (), ( totalMem / (1024*1024) ) );
+	}
+
 	private static final String kMagicValue = "fetched value";
 	private static final Logger log = LoggerFactory.getLogger ( ShardedExpiringCacheTest.class );
 	
