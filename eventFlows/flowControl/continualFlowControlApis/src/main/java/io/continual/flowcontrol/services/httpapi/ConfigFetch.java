@@ -7,11 +7,11 @@ import java.io.OutputStream;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.flowcontrol.services.deployer.FlowControlDeployment;
+import io.continual.flowcontrol.model.FlowControlDeployment;
+import io.continual.flowcontrol.model.FlowControlJob.FlowControlJobConfig;
 import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService;
 import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService.RequestException;
 import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService.ServiceException;
-import io.continual.flowcontrol.services.jobdb.FlowControlJob.FlowControlJobConfig;
 import io.continual.http.app.servers.endpoints.TypicalRestApiEndpoint;
 import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.http.service.framework.context.CHttpResponse;

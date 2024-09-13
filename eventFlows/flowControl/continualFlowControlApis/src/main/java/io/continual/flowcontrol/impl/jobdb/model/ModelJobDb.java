@@ -7,9 +7,9 @@ import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.flowcontrol.FlowControlCallContext;
-import io.continual.flowcontrol.impl.jobdb.common.JsonJob;
+import io.continual.flowcontrol.impl.common.JsonJobWas;
+import io.continual.flowcontrol.model.FlowControlJob;
 import io.continual.flowcontrol.services.encryption.Encryptor;
-import io.continual.flowcontrol.services.jobdb.FlowControlJob;
 import io.continual.flowcontrol.services.jobdb.FlowControlJobDb;
 import io.continual.iam.access.AccessControlEntry;
 import io.continual.iam.access.AccessControlList;
@@ -269,7 +269,7 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 		private LinkedList<AccessControlEntry> fAces;
 	}
 
-	private class ModelFcJob extends JsonJob
+	private class ModelFcJob extends JsonJobWas
 	{
 		public ModelFcJob ( ModelFcJobBuilder builder )
 		{

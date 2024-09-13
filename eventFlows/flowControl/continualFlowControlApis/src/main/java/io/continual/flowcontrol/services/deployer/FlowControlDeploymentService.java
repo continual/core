@@ -5,7 +5,11 @@ import java.util.Map;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.flowcontrol.FlowControlCallContext;
-import io.continual.flowcontrol.services.jobdb.FlowControlJob;
+import io.continual.flowcontrol.model.FlowControlDeployment;
+import io.continual.flowcontrol.model.FlowControlDeploymentSpec;
+import io.continual.flowcontrol.model.FlowControlJob;
+import io.continual.flowcontrol.model.FlowControlResourceSpecs;
+import io.continual.flowcontrol.model.FlowControlResourceSpecs.Toleration;
 import io.continual.services.Service;
 
 /**
@@ -30,32 +34,6 @@ public interface FlowControlDeploymentService extends Service
 		public RequestException ( Throwable t ) { super(t); }
 		public RequestException ( String msg, Throwable t ) { super(msg,t); }
 		private static final long serialVersionUID = 1L;
-	}
-
-	/**
-	 * For deployment environments that support it, a toleration. This is modeled after
-	 * the Kubernetes concept of the same name.
-	 */
-	interface Toleration
-	{
-		default String effect () { return null; }
-		default String key () { return null; }
-		default String operator () { return null; }
-		default Long seconds () { return null; }
-		default String value () { return null; }
-	}
-	
-	/**
-	 * For deployment environments that support it, resource request and limits. 
-	 */
-	interface ResourceSpecs
-	{
-		default String cpuRequest () { return null; }
-		default String cpuLimit () { return null; }
-		default String memLimit () { return null; }
-		default String persistDiskSize () { return null; }
-		default String logDiskSize () { return null; }
-		default List<Toleration> tolerations () { return null; }
 	}
 
 	/**
@@ -131,36 +109,6 @@ public interface FlowControlDeploymentService extends Service
 	};
 
 	/**
-	 * A deployment specification.
-	 */
-	interface DeploymentSpec
-	{
-		/**
-		 * The job to deploy
-		 * @return the job
-		 */
-		FlowControlJob getJob ();
-
-		/**
-		 * The number of instances to deploy
-		 * @return a number, min 1
-		 */
-		int getInstanceCount ();
-
-		/**
-		 * The process environment to provide in the deployment
-		 * @return a map of keys/values
-		 */
-		Map<String,String> getEnv ();
-
-		/**
-		 * Get resource specs. This result is always non-null.
-		 * @return a resource spec
-		 */
-		ResourceSpecs getResourceSpecs ();
-	}
-
-	/**
 	 * A builder for deployment specs. 
 	 */
 	interface DeploymentSpecBuilder
@@ -207,7 +155,7 @@ public interface FlowControlDeploymentService extends Service
 		 * @param spec
 		 * @return this builder
 		 */
-		default DeploymentSpecBuilder withResourceSpecs ( ResourceSpecs spec )
+		default DeploymentSpecBuilder withResourceSpecs ( FlowControlResourceSpecs spec )
 		{
 			return withResourceSpecs ()
 				.withCpuRequest ( spec.cpuRequest () )
@@ -225,7 +173,7 @@ public interface FlowControlDeploymentService extends Service
 		 * @return a deployment spec
 		 * @throws BuildFailure
 		 */
-		DeploymentSpec build () throws BuildFailure;
+		FlowControlDeploymentSpec build () throws BuildFailure;
 	}
 
 	/**
@@ -242,7 +190,7 @@ public interface FlowControlDeploymentService extends Service
 	 * @throws ServiceException
 	 * @throws RequestException 
 	 */
-	FlowControlDeployment deploy ( FlowControlCallContext ctx, DeploymentSpec spec ) throws ServiceException, RequestException;
+	FlowControlDeployment deploy ( FlowControlCallContext ctx, FlowControlDeploymentSpec spec ) throws ServiceException, RequestException;
 
 	/**
 	 * Remove a job from deployment

@@ -2,6 +2,8 @@ package io.continual.flowcontrol.services.deployer;
 
 import java.util.Set;
 
+import io.continual.flowcontrol.model.FlowControlDeployment;
+
 public interface FlowControlRuntimeState
 {
 	enum DeploymentStatus

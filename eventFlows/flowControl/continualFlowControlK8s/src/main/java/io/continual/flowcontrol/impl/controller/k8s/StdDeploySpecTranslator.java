@@ -3,7 +3,7 @@ package io.continual.flowcontrol.impl.controller.k8s;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService.DeploymentSpec;
+import io.continual.flowcontrol.model.FlowControlDeploymentSpec;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.templating.ContinualTemplateContext;
@@ -14,7 +14,7 @@ public class StdDeploySpecTranslator extends SimpleService implements DeploySpec
 	{
 	}
 
-	public void populate ( DeploymentSpec ds, ContinualTemplateContext intoContext )
+	public void populate ( FlowControlDeploymentSpec ds, ContinualTemplateContext intoContext )
 	{
 		intoContext
 			.put ( "FC_INSTANCE_COUNT", "" + ds.getInstanceCount () )

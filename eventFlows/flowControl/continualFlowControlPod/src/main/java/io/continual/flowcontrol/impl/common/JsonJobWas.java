@@ -1,4 +1,4 @@
-package io.continual.flowcontrol.impl.jobdb.common;
+package io.continual.flowcontrol.impl.common;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -13,12 +13,8 @@ import java.util.TreeSet;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import io.continual.flowcontrol.model.FlowControlJob;
 import io.continual.flowcontrol.services.encryption.Encryptor;
-import io.continual.flowcontrol.services.jobdb.FlowControlJob;
-import io.continual.flowcontrol.services.jobdb.FlowControlJobDb;
-import io.continual.flowcontrol.services.jobdb.FlowControlJobDb.ServiceException;
-import io.continual.iam.access.AccessControlList;
-import io.continual.iam.access.AclUpdateListener;
 import io.continual.util.data.StreamTools;
 import io.continual.util.data.TypeConvertor;
 import io.continual.util.data.json.CommentedJsonTokener;
@@ -28,24 +24,22 @@ import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.data.json.JsonVisitor.ObjectVisitor;
 import io.continual.util.standards.MimeTypes;
 
-public class JsonJob implements FlowControlJob, JsonSerialized
+public class JsonJobWas implements FlowControlJob, JsonSerialized
 {
 	private static final String kId = "id";
 	private static final String kName = "name";
 	private static final String kVersion = "version";
-	private static final String kAcl = "acl";
 	private static final String kRuntime = "runtime";
 	private static final String kConfig = "config";
 	private static final String kSecrets = "secrets";
 	private static final String kSecretValue = "value";
 
-	public JsonJob ( String name, Encryptor enc )
+	public JsonJobWas ( String name, Encryptor enc )
 	{
 		fId = name;
 		fData = new JSONObject ()
 			.put ( kId, name )
 			.put ( kName, name )
-			.put ( kAcl, AccessControlList.initialize ( null ).asJson () )
 			.put ( kRuntime, new JSONObject ()
 				.put ( "name", "current" )	// FIXME: that doesn't make sense
 				.put ( "version", "current" )
@@ -56,7 +50,7 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 		fEncryptor = enc;
 	}
 
-	public JsonJob ( String name, Encryptor enc, JSONObject persisted )
+	public JsonJobWas ( String name, Encryptor enc, JSONObject persisted )
 	{
 		this ( name, enc );
 
@@ -77,19 +71,6 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 			.put ( kId, fId )
 			.put ( kName, fId )
 		;
-	}
-
-	@Override
-	public AccessControlList getAccessControlList ()
-	{
-		return AccessControlList.deserialize ( fData.getJSONObject ( kAcl ), new AclUpdateListener ()
-		{
-			@Override
-			public void onAclUpdate ( AccessControlList accessControlList )
-			{
-				fData.put ( kAcl, accessControlList.asJson () );
-			}
-		} );
 	}
 
 	@Override
@@ -147,6 +128,70 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 	}
 
 	@Override
+	public FlowControlRuntimeSpec getRuntimeSpec ()
+	{
+		final JSONObject runtime = fData.getJSONObject ( kRuntime );
+		return new FlowControlRuntimeSpec () 
+		{
+			@Override
+			public String getName ()
+			{
+				return runtime.getString ( kName );
+			}
+
+			@Override
+			public String getVersion ()
+			{
+				return runtime.getString ( kVersion );
+			}
+		};
+	}
+
+	@Override
+	public Set<String> getSecretRefs ()
+	{
+		final TreeSet<String> result = new TreeSet<>();
+		result.addAll ( fData.getJSONObject ( kSecrets ).keySet () );
+		return result;
+	}
+
+	@Override
+	public Map<String, String> getSecrets ( Encryptor enc )
+	{
+		final HashMap<String,String> result = new HashMap<> ();
+		JsonVisitor.forEachElement ( fData.getJSONObject ( kSecrets ), new ObjectVisitor<JSONObject,RuntimeException> ()
+		{
+			@Override
+			public boolean visit ( String secretName, JSONObject secretValueHolder ) throws JSONException, RuntimeException
+			{
+				final String val = secretValueHolder.getString ( kSecretValue );
+				try
+				{
+					result.put ( secretName, enc.decrypt ( val ) );
+				}
+				catch ( GeneralSecurityException e )
+				{
+					throw new RuntimeException ( e );
+				}
+				return true;
+			}
+		} );
+		return result;
+	}
+
+	private final String fId;
+	private final JSONObject fData;
+	private final Encryptor fEncryptor;
+
+
+	private JSONObject buildEmptyConfig ( )
+	{
+		return new JSONObject ()
+			.put ( "type", MimeTypes.kAppJson )
+			.put ( "data", new JSONObject () )
+		;
+	}
+
 	public FlowControlJob setConfiguration ( FlowControlJobConfig config ) throws IOException
 	{
 		final JSONObject configData = fData.getJSONObject ( kConfig );
@@ -182,27 +227,6 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 		return this;
 	}
 
-	@Override
-	public FlowControlRuntimeSpec getRuntimeSpec ()
-	{
-		final JSONObject runtime = fData.getJSONObject ( kRuntime );
-		return new FlowControlRuntimeSpec () 
-		{
-			@Override
-			public String getName ()
-			{
-				return runtime.getString ( kName );
-			}
-
-			@Override
-			public String getVersion ()
-			{
-				return runtime.getString ( kVersion );
-			}
-		};
-	}
-
-	@Override
 	public FlowControlJob setRuntimeSpec ( FlowControlRuntimeSpec runtimeSpec )
 	{
 		fData.put ( kRuntime, new JSONObject ()
@@ -212,77 +236,19 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 		return this;
 	}
 
-	@Override
-	public Set<String> getSecretRefs ()
+	public FlowControlJob registerSecret ( String key, String value ) throws GeneralSecurityException
 	{
-		final TreeSet<String> result = new TreeSet<>();
-		result.addAll ( fData.getJSONObject ( kSecrets ).keySet () );
-		return result;
-	}
-
-	@Override
-	public FlowControlJob registerSecret ( String key, String value ) throws ServiceException
-	{
+		final String encval = fEncryptor.encrypt ( value );
+		
 		fData.getJSONObject ( kSecrets )
-			.put ( key, buildSecretValue ( value ) )
+			.put ( key, encval )
 		;
 		return this;
 	}
 
-	@Override
 	public FlowControlJob removeSecretRef ( String key )
 	{
 		fData.getJSONObject ( kSecrets ).remove ( key );
 		return this;
-	}
-
-	@Override
-	public Map<String, String> getSecrets () throws ServiceException
-	{
-		final HashMap<String,String> result = new HashMap<> ();
-		JsonVisitor.forEachElement ( fData.getJSONObject ( kSecrets ), new ObjectVisitor<JSONObject,FlowControlJobDb.ServiceException> ()
-		{
-			@Override
-			public boolean visit ( String secretName, JSONObject secretValueHolder ) throws JSONException, FlowControlJobDb.ServiceException
-			{
-				final String val = secretValueHolder.getString ( kSecretValue );
-				try
-				{
-					result.put ( secretName, fEncryptor.decrypt ( val ) );
-				}
-				catch ( GeneralSecurityException e )
-				{
-					throw new FlowControlJobDb.ServiceException ( e );
-				}
-				return true;
-			}
-		} );
-		return result;
-	}
-
-	private final String fId;
-	private final JSONObject fData;
-	private final Encryptor fEncryptor;
-
-	private JSONObject buildSecretValue ( String value ) throws FlowControlJobDb.ServiceException
-	{
-		try
-		{
-			return new JSONObject ()
-				.put ( kSecretValue, fEncryptor.encrypt ( value ) )
-			;
-		}
-		catch ( GeneralSecurityException e )
-		{
-			throw new FlowControlJobDb.ServiceException ( e );
-		}
-	}
-
-	private JSONObject buildEmptyConfig ( )
-	{
-		return new JSONObject ()
-			.put ( "type", MimeTypes.kAppJson )
-			.put ( "data", new JSONObject () )
-		;
 	}
 }

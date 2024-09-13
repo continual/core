@@ -1,7 +1,7 @@
 package io.continual.flowcontrol.impl.controller.k8s;
 
+import io.continual.flowcontrol.model.FlowControlJob.FlowControlRuntimeSpec;
 import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService.RequestException;
-import io.continual.flowcontrol.services.jobdb.FlowControlJob.FlowControlRuntimeSpec;
 
 public interface ContainerImageMapper
 {

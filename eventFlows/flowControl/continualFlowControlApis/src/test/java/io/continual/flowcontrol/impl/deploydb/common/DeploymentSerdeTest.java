@@ -5,7 +5,7 @@ import org.junit.Test;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.flowcontrol.impl.enc.Enc;
-import io.continual.flowcontrol.services.deployer.FlowControlDeployment;
+import io.continual.flowcontrol.model.FlowControlDeployment;
 import io.continual.flowcontrol.services.jobdb.FlowControlJobDb.ServiceException;
 import io.continual.services.ServiceContainer;
 import junit.framework.TestCase;

@@ -1,24 +1,29 @@
-package io.continual.flowcontrol.services.jobdb;
+package io.continual.flowcontrol.model;
 
-import java.io.IOException;
 import java.io.InputStream;
+import java.security.GeneralSecurityException;
 import java.util.Map;
 import java.util.Set;
 
-import io.continual.flowcontrol.services.jobdb.FlowControlJobDb.ServiceException;
-import io.continual.iam.access.ProtectedResource;
+import io.continual.flowcontrol.services.encryption.Encryptor;
 
 /**
  * A flow control job is a spec that includes configuration data, secrets, and a 
  * runtime system selection.
  */
-public interface FlowControlJob extends ProtectedResource
+public interface FlowControlJob
 {
 	/**
-	 * Get this job's name.
+	 * Get this job's unique ID.
+	 * @return a unique ID
+	 */
+	String getId ();
+
+	/**
+	 * Get this job's name, expected to be suitable for display.
 	 * @return the job's name
 	 */
-	String getName ();
+	default String getName () { return getId(); }
 
 	/**
 	 * The job configuration is opaque to this service. It has a MIME type (e.g. application/json) and
@@ -44,12 +49,6 @@ public interface FlowControlJob extends ProtectedResource
 	 * @return a configuration
 	 */
 	FlowControlJobConfig getConfiguration ();
-
-	/**
-	 * Overwrite the configuration for this job.
-	 * @param config
-	 */
-	FlowControlJob setConfiguration ( FlowControlJobConfig config ) throws IOException;
 
 	/**
 	 * A specification of an event processing runtime. Job configs contain a runtime spec like
@@ -78,39 +77,18 @@ public interface FlowControlJob extends ProtectedResource
 	FlowControlRuntimeSpec getRuntimeSpec ();
 
 	/**
-	 * Set the runtime spec for this job.
-	 * @param runtimeSpec
-	 */
-	FlowControlJob setRuntimeSpec ( FlowControlRuntimeSpec runtimeSpec );
-
-	/**
 	 * Get a map of secrets and their values.
+	 * @param enc the encryption tool to decrypt values
 	 * @return a map of secrets
+	 * @throws GeneralSecurityException 
 	 * @throws ServiceException 
 	 */
-	Map<String,String> getSecrets () throws ServiceException;
+	Map<String,String> getSecrets ( Encryptor enc ) throws GeneralSecurityException;
 
 	/**
 	 * Get a set of secret references used in this job's deployment. 
 	 * @return a list of 0 or more secret references
 	 * @throws ServiceException 
 	 */
-	default Set<String> getSecretRefs () throws ServiceException
-	{
-		return getSecrets().keySet ();
-	}
-
-	/**
-	 * Register a secret key and value. The value is encrypted and stored within the FlowControl job database.
-	 * @param key
-	 * @param value
-	 * @throws ServiceException 
-	 */
-	FlowControlJob registerSecret ( String key, String value ) throws ServiceException;
-
-	/**
-	 * Remove a secret reference from this job.
-	 * @param key
-	 */
-	FlowControlJob removeSecretRef ( String key );
+	Set<String> getSecretRefs ();
 }

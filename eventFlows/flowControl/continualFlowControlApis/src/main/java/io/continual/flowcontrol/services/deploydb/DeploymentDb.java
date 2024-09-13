@@ -2,7 +2,7 @@ package io.continual.flowcontrol.services.deploydb;
 
 import java.util.List;
 
-import io.continual.flowcontrol.services.deployer.FlowControlDeployment;
+import io.continual.flowcontrol.model.FlowControlDeployment;
 import io.continual.iam.identity.Identity;
 import io.continual.services.Service;
 

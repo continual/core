@@ -16,6 +16,7 @@
 	<name>Flow Control</name>
 
 	<modules>
+		<module>continualFlowControlPod</module>
 		<module>continualFlowControlApis</module>
 		<module>continualFlowControlK8s</module>
 		<module>continualFlowControl</module>

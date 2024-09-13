@@ -9,8 +9,8 @@ import io.continual.builder.Builder.BuildFailure;
 import io.continual.flowcontrol.impl.deploydb.common.DeploymentSerde;
 import io.continual.flowcontrol.impl.deploydb.common.DummyDeployment;
 import io.continual.flowcontrol.impl.enc.Enc;
+import io.continual.flowcontrol.model.FlowControlDeployment;
 import io.continual.flowcontrol.services.deploydb.DeploymentDb.DeployDbException;
-import io.continual.flowcontrol.services.deployer.FlowControlDeployment;
 import io.continual.services.ServiceContainer;
 import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelRequestContext;
@@ -57,12 +57,12 @@ public class ModelDeployDbTest extends TestCase
 		final JSONObject d2ser = DeploymentSerde.serialize ( d2, enc );
 		assertEquals ( JsonUtil.writeConsistently ( d1ser ), JsonUtil.writeConsistently ( d2ser ) );
 
-		final FlowControlDeployment d3 = db.getDeploymentByConfigKey ( d1.getConfigKey () );
+		final FlowControlDeployment d3 = db.getDeploymentByConfigKey ( d1.getConfigToken () );
 		assertNotNull ( d3 );
 		final JSONObject d3ser = DeploymentSerde.serialize ( d3, enc );
 		assertEquals ( JsonUtil.writeConsistently ( d1ser ), JsonUtil.writeConsistently ( d3ser ) );
 
-		final FlowControlDeployment d4 = db.getDeploymentByConfigKey ( d1.getConfigKey () + "bogus" );
+		final FlowControlDeployment d4 = db.getDeploymentByConfigKey ( d1.getConfigToken () + "bogus" );
 		assertNull ( d4 );
 
 		final List<FlowControlDeployment> d5 = db.getDeploymentsForUser ( d1.getDeployer () );

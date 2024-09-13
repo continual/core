@@ -21,6 +21,12 @@
 
 		<dependency>
 			<groupId>io.continual</groupId>
+			<artifactId>continualFlowControlPod</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.continual</groupId>
 			<artifactId>continualAssembly</artifactId>
 			<version>${project.version}</version>
 		</dependency>

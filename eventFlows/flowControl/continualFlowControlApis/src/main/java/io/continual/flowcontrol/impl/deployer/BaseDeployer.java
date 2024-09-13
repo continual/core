@@ -12,11 +12,14 @@ import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.flowcontrol.FlowControlCallContext;
+import io.continual.flowcontrol.model.FlowControlDeployment;
+import io.continual.flowcontrol.model.FlowControlDeploymentSpec;
+import io.continual.flowcontrol.model.FlowControlJob;
+import io.continual.flowcontrol.model.FlowControlResourceSpecs;
+import io.continual.flowcontrol.model.FlowControlResourceSpecs.Toleration;
 import io.continual.flowcontrol.services.deploydb.DeploymentDb;
 import io.continual.flowcontrol.services.deploydb.DeploymentDb.DeployDbException;
-import io.continual.flowcontrol.services.deployer.FlowControlDeployment;
 import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService;
-import io.continual.flowcontrol.services.jobdb.FlowControlJob;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.util.data.Sha256HmacSigner;
@@ -60,7 +63,7 @@ public class BaseDeployer extends SimpleService implements FlowControlDeployment
 	}
 
 	@Override
-	public FlowControlDeployment deploy ( FlowControlCallContext ctx, DeploymentSpec spec ) throws ServiceException, RequestException
+	public FlowControlDeployment deploy ( FlowControlCallContext ctx, FlowControlDeploymentSpec spec ) throws ServiceException, RequestException
 	{
 		final String configKey = createConfigurationKey ( spec.getJob () );
 
@@ -171,7 +174,7 @@ public class BaseDeployer extends SimpleService implements FlowControlDeployment
 	 * @throws ServiceException
 	 * @throws RequestException
 	 */
-	protected FlowControlDeployment internalDeploy ( FlowControlCallContext ctx, DeploymentSpec spec, String configKey ) throws ServiceException, RequestException
+	protected FlowControlDeployment internalDeploy ( FlowControlCallContext ctx, FlowControlDeploymentSpec spec, String configKey ) throws ServiceException, RequestException
 	{
 		throw new ServiceException ( "Not implemented in " + this.getClass ().getName () );
 	}
@@ -273,7 +276,7 @@ public class BaseDeployer extends SimpleService implements FlowControlDeployment
 		}
 
 		@Override
-		public DeploymentSpec build () throws BuildFailure
+		public FlowControlDeploymentSpec build () throws BuildFailure
 		{
 			if ( fJob == null ) throw new BuildFailure ( "No job provided." );
 			return new LocalDeploymentSpec ( this );
@@ -338,7 +341,7 @@ public class BaseDeployer extends SimpleService implements FlowControlDeployment
 		}
 	}
 
-	private static class LocalDeploymentSpec implements DeploymentSpec
+	private static class LocalDeploymentSpec implements FlowControlDeploymentSpec
 	{
 		private final LocalDeploymentSpecBuilder fBuilder;
 
@@ -357,9 +360,9 @@ public class BaseDeployer extends SimpleService implements FlowControlDeployment
 		public Map<String, String> getEnv () { return fBuilder.fEnv; }
 
 		@Override
-		public ResourceSpecs getResourceSpecs ()
+		public FlowControlResourceSpecs getResourceSpecs ()
 		{
-			return new ResourceSpecs ()
+			return new FlowControlResourceSpecs ()
 			{
 				public String cpuRequest () { return fBuilder.fCpuRequest; }
 				public String cpuLimit () { return fBuilder.fCpuLimit; }

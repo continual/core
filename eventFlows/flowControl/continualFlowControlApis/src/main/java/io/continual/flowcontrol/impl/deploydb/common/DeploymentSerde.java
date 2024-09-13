@@ -8,13 +8,13 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import io.continual.flowcontrol.impl.jobdb.common.JsonJob;
-import io.continual.flowcontrol.services.deployer.FlowControlDeployment;
-import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService.DeploymentSpec;
-import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService.ResourceSpecs;
-import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService.Toleration;
+import io.continual.flowcontrol.impl.common.JsonJobWas;
+import io.continual.flowcontrol.model.FlowControlDeployment;
+import io.continual.flowcontrol.model.FlowControlDeploymentSpec;
+import io.continual.flowcontrol.model.FlowControlJob;
+import io.continual.flowcontrol.model.FlowControlResourceSpecs;
+import io.continual.flowcontrol.model.FlowControlResourceSpecs.Toleration;
 import io.continual.flowcontrol.services.encryption.Encryptor;
-import io.continual.flowcontrol.services.jobdb.FlowControlJob;
 import io.continual.iam.identity.Identity;
 import io.continual.iam.impl.common.SimpleIdentityReference;
 import io.continual.util.data.json.JsonVisitor;
@@ -28,7 +28,7 @@ public class DeploymentSerde
 		return new JSONObject ()
 			.put ( "id", d.getId () )
 			.put ( kField_Owner, d.getDeployer ().getId () )
-			.put ( kField_ConfigKey, d.getConfigKey () )
+			.put ( kField_ConfigKey, d.getConfigToken () )
 			.put ( kField_JobId, d.getDeploymentSpec ().getJob ().getId () )	// pull this up for easy access and indexing 
 			.put ( "spec", serialize ( d.getDeploymentSpec () ) )
 		;
@@ -43,7 +43,7 @@ public class DeploymentSerde
 	public static final String kField_ConfigKey = "configKey";
 	public static final String kField_JobId = "jobId";
 
-	private static JSONObject serialize ( DeploymentSpec ds )
+	private static JSONObject serialize ( FlowControlDeploymentSpec ds )
 	{
 		return new JSONObject ()
 			.put ( "job", serialize ( ds.getJob () ) )
@@ -55,11 +55,11 @@ public class DeploymentSerde
 
 	private static JSONObject serialize ( FlowControlJob job )
 	{
-		if ( job instanceof JsonJob ) return ((JsonJob) job).toJson ();
+		if ( job instanceof JsonJobWas ) return ((JsonJobWas) job).toJson ();
 		throw new RuntimeException ( "The DeploymentSerde only works with JsonJob FlowControlJobs." );
 	}
 
-	private static JSONObject serialize ( ResourceSpecs rs )
+	private static JSONObject serialize ( FlowControlResourceSpecs rs )
 	{
 		return new JSONObject ()
 			.put ( "cpuReq", rs.cpuRequest () )
@@ -105,24 +105,24 @@ public class DeploymentSerde
 		}
 
 		@Override
-		public String getConfigKey ()
+		public String getConfigToken ()
 		{
 			return fJson.optString ( DeploymentSerde.kField_ConfigKey, null );
 		}
 
 		@Override
-		public DeploymentSpec getDeploymentSpec ()
+		public FlowControlDeploymentSpec getDeploymentSpec ()
 		{
 			final JSONObject specData = fJson.optJSONObject ( "spec" );
 			if ( specData != null )
 			{
-				return new DeploymentSpec ()
+				return new FlowControlDeploymentSpec ()
 				{
 					@Override
 					public FlowControlJob getJob ()
 					{
 						final JSONObject job = specData.optJSONObject ( "job" );
-						return new JsonJob ( job.getString ( "name" ), fLdEnc, job );
+						return new JsonJobWas ( job.getString ( "name" ), fLdEnc, job );
 					}
 
 					@Override
@@ -138,12 +138,12 @@ public class DeploymentSerde
 					}
 
 					@Override
-					public ResourceSpecs getResourceSpecs ()
+					public FlowControlResourceSpecs getResourceSpecs ()
 					{
 						final JSONObject rs = specData.optJSONObject ( "resources" );
 						if ( rs == null ) return null;
 
-						return new ResourceSpecs ()
+						return new FlowControlResourceSpecs ()
 						{
 							public String cpuRequest () { return rs.optString ( "cpuReq", null ); }
 							public String cpuLimit () { return rs.optString ( "cpuLim", null ); }

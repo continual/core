@@ -7,6 +7,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -20,10 +21,14 @@ import io.continual.builder.Builder;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.flowcontrol.FlowControlCallContext;
 import io.continual.flowcontrol.impl.deployer.BaseDeployer;
-import io.continual.flowcontrol.services.deployer.FlowControlDeployment;
+import io.continual.flowcontrol.model.FlowControlDeployment;
+import io.continual.flowcontrol.model.FlowControlDeploymentSpec;
+import io.continual.flowcontrol.model.FlowControlJob.FlowControlRuntimeSpec;
+import io.continual.flowcontrol.model.FlowControlResourceSpecs;
+import io.continual.flowcontrol.model.FlowControlResourceSpecs.Toleration;
 import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService;
 import io.continual.flowcontrol.services.deployer.FlowControlRuntimeState;
-import io.continual.flowcontrol.services.jobdb.FlowControlJob.FlowControlRuntimeSpec;
+import io.continual.flowcontrol.services.encryption.Encryptor;
 import io.continual.iam.identity.Identity;
 import io.continual.resources.ResourceLoader;
 import io.continual.services.ServiceContainer;
@@ -98,6 +103,9 @@ public class K8sController extends BaseDeployer
 	static final String kSetting_DeploySpecCtxPop = "deploymentSpecToContext";
 	static final String kSetting_TemplateEngine = "templateEngine";
 
+	static final String kSetting_EncryptorSvc = "encryptor";
+	static final String kDefault_EncryptorSvc = "encryptor";
+
 	public K8sController ( ServiceContainer sc, JSONObject rawConfig ) throws BuildFailure
 	{
 		super ( sc, rawConfig );
@@ -159,6 +167,8 @@ public class K8sController extends BaseDeployer
 			log.info ( "No templating engine specified; defaulting to ${} evals." );
 			fTemplateEngine = new DollarEvalTemplateEngine ( sc, new JSONObject () );
 		}
+
+		fEncryptor = sc.getReqd ( config.optString ( kSetting_EncryptorSvc, kDefault_EncryptorSvc ), Encryptor.class );
 	}
 
 	@Override
@@ -170,7 +180,7 @@ public class K8sController extends BaseDeployer
 	}
 
 	@Override
-	protected FlowControlDeployment internalDeploy ( FlowControlCallContext ctx, DeploymentSpec ds, String configKey ) throws ServiceException, RequestException
+	protected FlowControlDeployment internalDeploy ( FlowControlCallContext ctx, FlowControlDeploymentSpec ds, String configKey ) throws ServiceException, RequestException
 	{
 		try
 		{
@@ -185,7 +195,7 @@ public class K8sController extends BaseDeployer
 			final String secretsName = tagToSecret ( tag );
 
 			// start a secret for this job's secret data
-			final Map<String,String> secrets = ds.getJob ().getSecrets ();
+			final Map<String,String> secrets = ds.getJob ().getSecrets ( fEncryptor );
 			SecretBuilder sb = new SecretBuilder ()
 				.withType ( "Opaque" )
 				.withNewMetadata ()
@@ -307,7 +317,7 @@ public class K8sController extends BaseDeployer
 	
 			return new IntDeployment ( tag, jobId, ds, ctx.getUser (), configKey );
 		}
-		catch ( io.continual.flowcontrol.services.jobdb.FlowControlJobDb.ServiceException x )
+		catch ( GeneralSecurityException x )
 		{
 			throw new ServiceException ( x );
 		}
@@ -415,6 +425,7 @@ public class K8sController extends BaseDeployer
 	}
 */
 	private final ContinualTemplateEngine fTemplateEngine;
+	private final Encryptor fEncryptor;
 
 	private final KubernetesClient fApiClient;
 	private final String fNamespace;
@@ -472,7 +483,7 @@ public class K8sController extends BaseDeployer
 		return "secret-" + tag;
 	}
 
-	private void updateTemplate ( DeploymentSpec ds, PodTemplateSpec template, HashMap<String,String> env, String secretsName, Map<String,String> secrets )
+	private void updateTemplate ( FlowControlDeploymentSpec ds, PodTemplateSpec template, HashMap<String,String> env, String secretsName, Map<String,String> secrets )
 	{
 		final PodSpec ps = template.getSpec ();
 
@@ -533,9 +544,9 @@ public class K8sController extends BaseDeployer
 		}
 	}
 
-	private void setLimitsOnContainer ( DeploymentSpec ds, Container c )
+	private void setLimitsOnContainer ( FlowControlDeploymentSpec ds, Container c )
 	{
-		final ResourceSpecs rs = ds.getResourceSpecs ();
+		final FlowControlResourceSpecs rs = ds.getResourceSpecs ();
 		final String cpuReq = rs.cpuRequest ();
 		final String cpuLimit = rs.cpuLimit ();
 		final String mem = rs.memLimit ();
@@ -695,7 +706,7 @@ public class K8sController extends BaseDeployer
 	
 	private class IntDeployment implements FlowControlDeployment
 	{
-		public IntDeployment ( String tag, String jobId, DeploymentSpec ds, Identity deployer, String configKey )
+		public IntDeployment ( String tag, String jobId, FlowControlDeploymentSpec ds, Identity deployer, String configKey )
 		{
 			fTag = tag;
 			fDeployer = deployer;
@@ -708,18 +719,18 @@ public class K8sController extends BaseDeployer
 		public String getId () { return fTag; }
 
 		@Override
-		public DeploymentSpec getDeploymentSpec () { return fDeploymentSpec; }
+		public FlowControlDeploymentSpec getDeploymentSpec () { return fDeploymentSpec; }
 
 		@Override
 		public Identity getDeployer () { return fDeployer; }
 
 		@Override
-		public String getConfigKey () { return fConfigKey; }
+		public String getConfigToken () { return fConfigKey; }
 
 		private final String fTag;
 		private final String fJobId;
 		private final Identity fDeployer;
-		private final DeploymentSpec fDeploymentSpec;
+		private final FlowControlDeploymentSpec fDeploymentSpec;
 		private final String fConfigKey;
 	}
 
