@@ -3,11 +3,11 @@ package io.continual.flowcontrol.services.httpapi;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.flowcontrol.FlowControlCallContext;
-import io.continual.flowcontrol.FlowControlCallContextBuilder;
 import io.continual.flowcontrol.FlowControlService;
+import io.continual.flowcontrol.model.FlowControlCallContext;
+import io.continual.flowcontrol.model.FlowControlCallContextBuilder;
+import io.continual.flowcontrol.model.FlowControlJobDb;
 import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService;
-import io.continual.flowcontrol.services.jobdb.FlowControlJobDb;
 import io.continual.http.app.servers.routeInstallers.TypicalApiServiceRouteInstaller;
 import io.continual.http.service.framework.CHttpService;
 import io.continual.iam.identity.Identity;

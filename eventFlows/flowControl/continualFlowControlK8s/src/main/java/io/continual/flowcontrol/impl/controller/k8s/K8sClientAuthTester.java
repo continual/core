@@ -5,8 +5,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.flowcontrol.FlowControlCallContext;
 import io.continual.flowcontrol.impl.jobdb.test.DummyJobDb;
+import io.continual.flowcontrol.model.FlowControlCallContext;
 import io.continual.flowcontrol.model.FlowControlDeployment;
 import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService.ServiceException;
 import io.continual.iam.identity.Identity;

@@ -8,7 +8,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import io.continual.flowcontrol.impl.common.JsonJobWas;
+import io.continual.flowcontrol.impl.common.JsonJob;
 import io.continual.flowcontrol.model.FlowControlDeployment;
 import io.continual.flowcontrol.model.FlowControlDeploymentSpec;
 import io.continual.flowcontrol.model.FlowControlJob;
@@ -34,9 +34,9 @@ public class DeploymentSerde
 		;
 	}
 
-	public static FlowControlDeployment deserialize ( JSONObject data, Encryptor enc )
+	public static FlowControlDeployment deserialize ( JSONObject data )
 	{
-		return new LocalDeployment ( data, enc );
+		return new LocalDeployment ( data );
 	}
 	
 	public static final String kField_Owner = "deployer";
@@ -55,7 +55,7 @@ public class DeploymentSerde
 
 	private static JSONObject serialize ( FlowControlJob job )
 	{
-		if ( job instanceof JsonJobWas ) return ((JsonJobWas) job).toJson ();
+		if ( job instanceof JsonJob ) return ((JsonJob) job).toJson ();
 		throw new RuntimeException ( "The DeploymentSerde only works with JsonJob FlowControlJobs." );
 	}
 
@@ -86,10 +86,9 @@ public class DeploymentSerde
 
 	private static final class LocalDeployment implements FlowControlDeployment
 	{
-		public LocalDeployment ( JSONObject top, Encryptor enc )
+		public LocalDeployment ( JSONObject top )
 		{
 			fJson = top;
-			fLdEnc = enc;
 		}
 
 		@Override
@@ -122,7 +121,7 @@ public class DeploymentSerde
 					public FlowControlJob getJob ()
 					{
 						final JSONObject job = specData.optJSONObject ( "job" );
-						return new JsonJobWas ( job.getString ( "name" ), fLdEnc, job );
+						return new JsonJob ( job );
 					}
 
 					@Override
@@ -186,6 +185,5 @@ public class DeploymentSerde
 		}
 
 		private final JSONObject fJson;
-		private final Encryptor fLdEnc;
 	}
 }

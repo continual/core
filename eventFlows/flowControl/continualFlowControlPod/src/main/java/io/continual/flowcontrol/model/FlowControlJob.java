@@ -5,13 +5,15 @@ import java.security.GeneralSecurityException;
 import java.util.Map;
 import java.util.Set;
 
+import io.continual.flowcontrol.model.FlowControlJobDb.ServiceException;
 import io.continual.flowcontrol.services.encryption.Encryptor;
+import io.continual.iam.access.ProtectedResource;
 
 /**
  * A flow control job is a spec that includes configuration data, secrets, and a 
  * runtime system selection.
  */
-public interface FlowControlJob
+public interface FlowControlJob extends ProtectedResource
 {
 	/**
 	 * Get this job's unique ID.
@@ -23,7 +25,7 @@ public interface FlowControlJob
 	 * Get this job's name, expected to be suitable for display.
 	 * @return the job's name
 	 */
-	default String getName () { return getId(); }
+	String getName ();
 
 	/**
 	 * The job configuration is opaque to this service. It has a MIME type (e.g. application/json) and

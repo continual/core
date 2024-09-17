@@ -19,8 +19,8 @@ import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder;
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.flowcontrol.FlowControlCallContext;
 import io.continual.flowcontrol.impl.deployer.BaseDeployer;
+import io.continual.flowcontrol.model.FlowControlCallContext;
 import io.continual.flowcontrol.model.FlowControlDeployment;
 import io.continual.flowcontrol.model.FlowControlDeploymentSpec;
 import io.continual.flowcontrol.model.FlowControlJob.FlowControlRuntimeSpec;

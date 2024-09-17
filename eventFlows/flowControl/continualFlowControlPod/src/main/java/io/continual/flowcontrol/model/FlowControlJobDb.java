@@ -1,9 +1,7 @@
-package io.continual.flowcontrol.services.jobdb;
+package io.continual.flowcontrol.model;
 
 import java.util.Collection;
 
-import io.continual.flowcontrol.FlowControlCallContext;
-import io.continual.flowcontrol.model.FlowControlJob;
 import io.continual.iam.access.AccessException;
 import io.continual.services.Service;
 
@@ -30,49 +28,12 @@ public interface FlowControlJobDb extends Service
 	}
 
 	/**
-	 * a builder for job entries
-	 */
-	interface Builder
-	{
-		/**
-		 * Use the given name for this job
-		 * @param name
-		 * @return this builder
-		 */
-		Builder withName ( String name );
-
-		/**
-		 * Use the given owner ID for this job
-		 * @param ownerId
-		 * @return this builder
-		 */
-		Builder withOwner ( String ownerId );
-
-		/**
-		 * Grant the given user the given operations
-		 * @param user
-		 * @param ops
-		 * @return this builder
-		 */
-		Builder withAccess ( String user, String... ops );
-
-		/**
-		 * Build the job
-		 * @return a job
-		 * @throws RequestException
-		 * @throws ServiceException
-		 * @throws AccessException
-		 */
-		FlowControlJob build () throws RequestException, ServiceException, AccessException;
-	};
-
-	/**
 	 * Create a job using a builder
 	 * @param fccc
 	 * @return a new job builder
 	 * @throws ServiceException
 	 */
-	Builder createJob ( FlowControlCallContext fccc ) throws ServiceException;
+	FlowControlJobBuilder createJobBuilder ( FlowControlCallContext fccc ) throws ServiceException;
 
 	/**
 	 * Get the jobs for the given user
@@ -85,12 +46,12 @@ public interface FlowControlJobDb extends Service
 	/**
 	 * Get a flow control job or return null if it does not exist for the calling user.
 	 * @param ctx
-	 * @param name
+	 * @param jobId
 	 * @return a job or null
 	 * @throws ServiceException
 	 * @throws AccessException 
 	 */
-	FlowControlJob getJob ( FlowControlCallContext ctx, String name ) throws ServiceException, AccessException;
+	FlowControlJob getJob ( FlowControlCallContext ctx, String jobId ) throws ServiceException, AccessException;
 
 	/**
 	 * Get a job (or return null) without checking access rights.
@@ -103,15 +64,15 @@ public interface FlowControlJobDb extends Service
 	/**
 	 * Check if a job exists.
 	 * @param ctx
-	 * @param name
+	 * @param jobId
 	 * @return true if the job exists and the user can read it.
 	 * @throws ServiceException
 	 */
-	default boolean jobExists ( FlowControlCallContext ctx, String name ) throws ServiceException
+	default boolean jobExists ( FlowControlCallContext ctx, String jobId ) throws ServiceException
 	{
 		try
 		{
-			return getJob ( ctx, name ) != null;
+			return getJob ( ctx, jobId ) != null;
 		}
 		catch ( AccessException e )
 		{
@@ -120,23 +81,23 @@ public interface FlowControlJobDb extends Service
 	}
 	
 	/**
-	 * Store the give job
+	 * Store the given job. If the ID exists, it's overwritten.
 	 * @param ctx
-	 * @param name
+	 * @param jobId
 	 * @param job
 	 * @throws ServiceException
 	 * @throws AccessException
 	 * @throws RequestException
 	 */
-	void storeJob ( FlowControlCallContext ctx, String name, FlowControlJob job ) throws ServiceException, AccessException, RequestException;
+	void storeJob ( FlowControlCallContext ctx, String jobId, FlowControlJob job ) throws ServiceException, AccessException, RequestException;
 
 	/**
 	 * Remove the given job
 	 * @param ctx
-	 * @param name
+	 * @param jobId
 	 * @throws ServiceException
 	 * @throws AccessException
 	 * @throws RequestException
 	 */
-	void removeJob ( FlowControlCallContext ctx, String name ) throws ServiceException, AccessException, RequestException;
+	void removeJob ( FlowControlCallContext ctx, String jobId ) throws ServiceException, AccessException, RequestException;
 }

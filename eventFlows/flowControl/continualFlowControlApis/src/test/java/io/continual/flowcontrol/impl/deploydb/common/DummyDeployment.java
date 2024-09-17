@@ -11,10 +11,13 @@ import java.util.Map;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.flowcontrol.model.FlowControlDeploymentSpec;
-import io.continual.flowcontrol.impl.common.JsonJobWas;
+import io.continual.flowcontrol.impl.common.JsonJob;
+import io.continual.flowcontrol.model.FlowControlCallContext;
 import io.continual.flowcontrol.model.FlowControlDeployment;
+import io.continual.flowcontrol.model.FlowControlDeploymentSpec;
 import io.continual.flowcontrol.model.FlowControlJob;
+import io.continual.flowcontrol.model.FlowControlJob.FlowControlJobConfig;
+import io.continual.flowcontrol.model.FlowControlJob.FlowControlRuntimeSpec;
 import io.continual.flowcontrol.model.FlowControlResourceSpecs;
 import io.continual.flowcontrol.services.encryption.Encryptor;
 import io.continual.iam.identity.Identity;
@@ -25,7 +28,7 @@ public class DummyDeployment implements FlowControlDeployment
 {
 	public DummyDeployment ( Encryptor enc ) throws BuildFailure
 	{
-		this ( new DefaultJob ( enc ) );
+		this ( buildDefaultJob ( enc ) );
 	}
 
 	public DummyDeployment ( FlowControlJob job )
@@ -63,38 +66,46 @@ public class DummyDeployment implements FlowControlDeployment
 
 	private final FlowControlJob fJob;
 
-	private static class DefaultJob extends JsonJobWas
+	private static JsonJob buildDefaultJob ( Encryptor enc ) throws BuildFailure
 	{
-		public DefaultJob ( Encryptor enc ) throws BuildFailure
+		try
 		{
-			super ( "myJob", enc );
-
-			try
+			final FlowControlCallContext fccc = new FlowControlCallContext ()
 			{
-				setConfiguration ( new FlowControlJobConfig ()
+				@Override
+				public Identity getUser () { return new SimpleIdentityReference ( "user" ); }
+			};
+	
+			return new JsonJob.JsonJobBuilder ( fccc, enc )
+	
+				.withId ( "id" )
+
+				.setConfiguration ( new FlowControlJobConfig ()
 				{
 					@Override
 					public String getDataType () { return MimeTypes.kAppJson; }
-
+	
 					@Override
 					public InputStream readConfiguration () { return new ByteArrayInputStream ( new JSONObject().put ( "foo", "bar" ).toString().getBytes ( StandardCharsets.UTF_8 ) ); }
-				} );
-
-				setRuntimeSpec ( new FlowControlRuntimeSpec ()
+				} )
+	
+				.setRuntimeSpec ( new FlowControlRuntimeSpec ()
 				{
 					@Override
 					public String getName () { return "myEngine"; }
-
+	
 					@Override
 					public String getVersion () { return "1.0"; }
-				} );
-
-				registerSecret ( "topSecret", "shh" );
-			}
-			catch ( IOException | GeneralSecurityException e )
-			{
-				throw new BuildFailure ( e );
-			}
+				} )
+	
+				.registerSecret ( "topSecret", "shh" )
+	
+				.build ()
+			;
 		}
-	};
+		catch ( IOException | GeneralSecurityException x )
+		{
+			throw new BuildFailure ( x );
+		}
+	}
 }

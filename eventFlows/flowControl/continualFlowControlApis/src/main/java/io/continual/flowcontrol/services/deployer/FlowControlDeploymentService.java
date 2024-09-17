@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.flowcontrol.FlowControlCallContext;
+import io.continual.flowcontrol.model.FlowControlCallContext;
 import io.continual.flowcontrol.model.FlowControlDeployment;
 import io.continual.flowcontrol.model.FlowControlDeploymentSpec;
 import io.continual.flowcontrol.model.FlowControlJob;

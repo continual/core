@@ -61,7 +61,7 @@ public class MemoryDeployDb extends SimpleService implements DeploymentDb
 		final JSONObject obj = fDeploys.get ( deployId );
 		if ( obj != null )
 		{
-			return DeploymentSerde.deserialize ( obj, fEnc );
+			return DeploymentSerde.deserialize ( obj );
 		}
 		return null;
 	}

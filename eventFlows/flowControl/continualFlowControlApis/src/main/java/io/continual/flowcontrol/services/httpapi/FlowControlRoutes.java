@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -12,16 +13,17 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.flowcontrol.FlowControlCallContext;
 import io.continual.flowcontrol.FlowControlService;
+import io.continual.flowcontrol.model.FlowControlCallContext;
 import io.continual.flowcontrol.model.FlowControlDeployment;
 import io.continual.flowcontrol.model.FlowControlJob;
 import io.continual.flowcontrol.model.FlowControlJob.FlowControlJobConfig;
 import io.continual.flowcontrol.model.FlowControlJob.FlowControlRuntimeSpec;
+import io.continual.flowcontrol.model.FlowControlJobBuilder;
+import io.continual.flowcontrol.model.FlowControlJobDb;
+import io.continual.flowcontrol.model.FlowControlJobDb.RequestException;
+import io.continual.flowcontrol.model.FlowControlJobDb.ServiceException;
 import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService;
-import io.continual.flowcontrol.services.jobdb.FlowControlJobDb;
-import io.continual.flowcontrol.services.jobdb.FlowControlJobDb.RequestException;
-import io.continual.flowcontrol.services.jobdb.FlowControlJobDb.ServiceException;
 import io.continual.http.app.servers.endpoints.TypicalRestApiEndpoint;
 import io.continual.http.service.framework.context.CHttpRequestContext;
 import io.continual.iam.access.AccessControlEntry;
@@ -127,27 +129,23 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 					final FlowControlCallContext fccc = fFlowControl.createtContextBuilder ().asUser ( uc.getUser () ).build ();
 
 					final FlowControlJobDb jobDb = fFlowControl.getJobDb ( fccc );
-					final FlowControlJob job = jobDb.createJob ( fccc )
+					final FlowControlJobBuilder jobBuilder = jobDb.createJobBuilder ( fccc )
 						.withName ( name )
 						.withOwner ( uc.getUser ().getId () )
-						.build ()
+						.withAccess ( AccessControlEntry.kOwner, AccessControlList.READ, AccessControlList.UPDATE, AccessControlList.DELETE )
 					;
 
-					job.getAccessControlList ()
-						.setOwner ( uc.getEffectiveUserId () )
-						.addAclEntry ( new AccessControlEntry.Builder().forOwner ().permit ().operations ( AccessControlList.READ, AccessControlList.UPDATE, AccessControlList.DELETE ).build () )
-					;
-					readJobPayloadInto ( payload, job );
+					readJobPayloadInto ( payload, jobBuilder );
 
+					final FlowControlJob job = jobBuilder.build ();
 					jobDb.storeJob ( fccc, name, job );
-
 					sendJson ( context, render ( job ) );
 				}
 				catch ( FlowControlJobDb.ServiceException e )
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the flow control job database." );
 				}
-				catch ( FlowControlJobDb.RequestException | JSONException e )
+				catch ( FlowControlJobDb.RequestException | BuildFailure | JSONException e )
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, "There was a problem with your request: " + e.getMessage () );
 				}
@@ -181,20 +179,25 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 					}
 					else
 					{
-						final boolean changesMade = readJobPayloadInto ( payload, job );
+						final FlowControlJobBuilder jobBuilder = jobDb.createJobBuilder ( fccc )
+							.clone ( job )
+						;
+						final boolean changesMade = readJobPayloadInto ( payload, jobBuilder );
+						final FlowControlJob updatedJob = jobBuilder.build ();
+
 						if ( changesMade )
 						{
-							jobDb.storeJob ( fccc, name, job );
+							jobDb.storeJob ( fccc, name, updatedJob );
 						}
 
-						sendJson ( context, render ( job ) );
+						sendJson ( context, render ( updatedJob ) );
 					}
 				}
-				catch ( FlowControlJobDb.ServiceException e )
+				catch ( FlowControlJobDb.ServiceException | GeneralSecurityException e )
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the flow control job database." );
 				}
-				catch ( FlowControlJobDb.RequestException | JSONException e )
+				catch ( FlowControlJobDb.RequestException | BuildFailure | JSONException e )
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, "There was a problem with your request: " + e.getMessage () );
 				}
@@ -230,30 +233,30 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 						final Object value = payload.opt ( "value" );
 						if ( value != null )
 						{
-							job.registerSecret ( secretId, value.toString () );
+							final FlowControlJob jobUpdate = jobDb.createJobBuilder ( fccc )
+								.clone ( job )
+								.registerSecret ( secretId, value.toString () )
+								.build ()
+							;
+							jobDb.storeJob (
+								fccc,
+								name,
+								jobUpdate
+							);
+							sendJson ( context, render ( jobUpdate ) );
 						}
 						else
 						{
-							// FIXME: at this time, we have no real way to support "external" secrets because we don't expect
-							// users to create secrets in our operating namespace and kubernetes secrets must reside in the
-							// same namespace as the pod.
-							//
-							// job.registerExternalSecret ( secretId );
-
 							sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, "A value must be provided." );
 							return;
 						}
-
-						jobDb.storeJob ( fccc, name, job );
-
-						sendJson ( context, render ( job ) );
 					}
 				}
-				catch ( FlowControlJobDb.ServiceException e )
+				catch ( FlowControlJobDb.ServiceException | GeneralSecurityException e )
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the flow control job database." );
 				}
-				catch ( FlowControlJobDb.RequestException e )
+				catch ( FlowControlJobDb.RequestException | BuildFailure  e )
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, "Couldn't process your request: " + e.getMessage () );
 				}
@@ -290,17 +293,24 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 					}
 					else
 					{
-						job.removeSecretRef ( secretId );
-						jobDb.storeJob ( fccc, name, job );
-
-						sendJson ( context, render ( job ) );
+						final FlowControlJob jobUpdate = jobDb.createJobBuilder ( fccc )
+							.clone ( job )
+							.removeSecretRef ( secretId )
+							.build ()
+						;
+						jobDb.storeJob (
+							fccc,
+							name,
+							jobUpdate
+						);
+						sendJson ( context, render ( jobUpdate ) );
 					}
 				}
-				catch ( FlowControlJobDb.ServiceException e )
+				catch ( FlowControlJobDb.ServiceException | GeneralSecurityException e )
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the flow control job database." );
 				}
-				catch ( FlowControlJobDb.RequestException e )
+				catch ( FlowControlJobDb.RequestException | BuildFailure  e )
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, "Couldn't process your request: " + e.getMessage () );
 				}
@@ -316,7 +326,7 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 		} );
 	}
 
-	private boolean readJobPayloadInto ( JSONObject payload, FlowControlJob job ) throws RequestException, IOException, ServiceException, JSONException
+	private boolean readJobPayloadInto ( JSONObject payload, FlowControlJobBuilder job ) throws RequestException, IOException, ServiceException, JSONException
 	{
 		boolean changesMade = false;
 
@@ -365,7 +375,14 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 				@Override
 				public boolean visit ( String key, String t ) throws JSONException, ServiceException
 				{
-					job.registerSecret ( key, t );
+					try
+					{
+						job.registerSecret ( key, t );
+					}
+					catch ( GeneralSecurityException x )
+					{
+						throw new ServiceException ( x );
+					}
 					return true;
 				}
 			} );

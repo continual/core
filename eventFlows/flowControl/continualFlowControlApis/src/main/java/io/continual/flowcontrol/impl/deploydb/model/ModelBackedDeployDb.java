@@ -202,6 +202,6 @@ public class ModelBackedDeployDb extends SimpleService implements DeploymentDb
 	private FlowControlDeployment deploymentFrom ( BasicModelObject bmo )
 	{
 		if ( bmo == null ) return null;
-		return DeploymentSerde.deserialize ( JsonModelObject.modelObjectToJson ( bmo.getData () ), fEnc );
+		return DeploymentSerde.deserialize ( JsonModelObject.modelObjectToJson ( bmo.getData () ) );
 	}
 }

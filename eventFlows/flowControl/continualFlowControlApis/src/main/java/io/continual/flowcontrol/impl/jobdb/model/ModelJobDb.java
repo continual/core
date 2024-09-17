@@ -6,12 +6,11 @@ import java.util.LinkedList;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.flowcontrol.FlowControlCallContext;
-import io.continual.flowcontrol.impl.common.JsonJobWas;
+import io.continual.flowcontrol.model.FlowControlCallContext;
 import io.continual.flowcontrol.model.FlowControlJob;
+import io.continual.flowcontrol.model.FlowControlJobBuilder;
+import io.continual.flowcontrol.model.FlowControlJobDb;
 import io.continual.flowcontrol.services.encryption.Encryptor;
-import io.continual.flowcontrol.services.jobdb.FlowControlJobDb;
-import io.continual.iam.access.AccessControlEntry;
 import io.continual.iam.access.AccessControlList;
 import io.continual.iam.access.AccessException;
 import io.continual.iam.exceptions.IamSvcException;
@@ -22,7 +21,6 @@ import io.continual.services.SimpleService;
 import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelPathListPage;
 import io.continual.services.model.core.ModelRequestContext;
-import io.continual.services.model.core.data.BasicModelObject;
 import io.continual.services.model.core.data.JsonModelObject;
 import io.continual.services.model.core.exceptions.ModelItemDoesNotExistException;
 import io.continual.services.model.core.exceptions.ModelRequestException;
@@ -42,9 +40,9 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 	}
 
 	@Override
-	public Builder createJob ( FlowControlCallContext fccc )
+	public FlowControlJobBuilder createJobBuilder ( FlowControlCallContext fccc )
 	{
-		return new ModelFcJobBuilder ( fccc );
+		return new ModelJob.ModelJobBuilder ( fccc, fEnc );
 	}
 
 	@Override
@@ -64,7 +62,7 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 				{
 					try
 					{
-						final FlowControlJob job = internalLoadJob ( mrc, p.getItemName ().toString () );
+						final ModelJob job = internalLoadJob ( mrc, p.getItemName ().toString () );
 						if ( job != null && job.getAccessControlList ().canUser ( fccc.getUser (), AccessControlList.READ ) )
 						{
 							result.add ( job );
@@ -115,15 +113,15 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 	}
 
 	@Override
-	public void storeJob ( FlowControlCallContext fccc, String name, FlowControlJob job ) throws ServiceException, AccessException
+	public void storeJob ( FlowControlCallContext fccc, String jobId, FlowControlJob job ) throws ServiceException, AccessException
 	{
 		try
 		{
 			final ModelRequestContext mrc = buildContext ();
 
-			final FlowControlJob existing = internalLoadJob ( mrc, name );
+			final FlowControlJob existing = internalLoadJob ( mrc, jobId );
 			checkAccess ( existing, fccc, AccessControlList.UPDATE );
-			internalStoreJob ( mrc, job );
+			internalStoreJob ( mrc, jobId, job );
 		}
 		catch ( BuildFailure e )
 		{
@@ -138,7 +136,7 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 		{
 			final ModelRequestContext mrc = buildContext ();
 			checkAccess ( internalLoadJob ( mrc, name ), fccc, AccessControlList.UPDATE );
-			final Path path = jobNameToPath ( name );
+			final Path path = jobIdToPath ( name );
 			fModel.remove ( mrc, path );
 		}
 		catch ( BuildFailure | ModelRequestException | ModelServiceException e )
@@ -151,13 +149,11 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 	private final Identity fModelUser;
 	private final Encryptor fEnc;
 
-	private FlowControlJob internalLoadJob ( ModelRequestContext mrc, String name ) throws ServiceException
+	private ModelJob internalLoadJob ( ModelRequestContext mrc, String jobId ) throws ServiceException
 	{
 		try
 		{
-			final Path path = jobNameToPath ( name );
-			final BasicModelObject mo = fModel.load ( mrc, path );
-			return new ModelFcJob ( name, mo );
+			return fModel.load ( mrc, jobIdToPath ( jobId ), ModelJob.class );
 		}
 		catch ( ModelItemDoesNotExistException e )
 		{
@@ -169,116 +165,22 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 		}
 	}
 
-	private FlowControlJob internalStoreJob ( ModelRequestContext mrc, FlowControlJob job ) throws ServiceException
+	private ModelJob internalStoreJob ( ModelRequestContext mrc, String jobId, FlowControlJob job ) throws ServiceException
 	{
 		try
 		{
-			final String name = job.getName ();
-			final Path path = jobNameToPath ( name );
+			final Path path = jobIdToPath ( jobId );
 
 			fModel.createUpdate ( mrc, path )
-				.overwriteData ( new JsonModelObject ( ((ModelFcJob)job).toJson() ) )
+				.overwriteData ( new JsonModelObject ( ((ModelJob)job).toJson() ) )
 				.execute ()
 			;
 
-			return internalLoadJob ( mrc, name );
+			return internalLoadJob ( mrc, jobId );
 		}
 		catch ( ModelRequestException | ModelServiceException e )
 		{
 			throw new ServiceException ( e );
-		}
-	}
-
-	private class ModelFcJobBuilder implements Builder
-	{
-		public ModelFcJobBuilder ( FlowControlCallContext fccc )
-		{
-			fCtx = fccc;
-			fAces = new LinkedList<> ();
-			
-			withAccess ( AccessControlEntry.kOwner, AccessControlList.READ, AccessControlList.UPDATE, AccessControlList.DELETE );
-		}
-
-		@Override
-		public Builder withName ( String name )
-		{
-			fName = name;
-			return this;
-		}
-
-		@Override
-		public Builder withOwner ( String owner )
-		{
-			fOwner = owner;
-			return this;
-		}
-
-		@Override
-		public Builder withAccess ( String user, String... ops )
-		{
-			fAces.add ( AccessControlEntry.builder ()
-				.permit ()
-				.forSubject ( user )
-				.operations ( ops )
-				.build ()
-			);
-			return this;
-		}
-
-		@Override
-		public FlowControlJob build () throws RequestException, ServiceException, AccessException
-		{
-			if ( fName == null || fName.length () == 0 )
-			{
-				throw new RequestException ( "Name is not set." );
-			}
-
-			FlowControlJob existing = getJob ( fCtx, fName );
-			if ( existing != null ) 
-			{
-				throw new RequestException ( "Job " + fName + " already exists." );
-			}
-
-			try
-			{
-				final ModelRequestContext mrc = buildContext ();
-				final ModelFcJob job = new ModelFcJob ( this );
-
-				final AccessControlList acl = job.getAccessControlList ();
-				acl
-					.setOwner ( fOwner )
-					.clear ()
-				;
-				for ( AccessControlEntry ace : fAces )
-				{
-					acl.addAclEntry ( ace );
-				}
-
-				internalStoreJob ( mrc, job );
-				return internalLoadJob ( mrc, fName );
-			}
-			catch ( BuildFailure e )
-			{
-				throw new ServiceException ( e );
-			}
-		}
-
-		private final FlowControlCallContext fCtx;
-		private String fName;
-		private String fOwner;
-		private LinkedList<AccessControlEntry> fAces;
-	}
-
-	private class ModelFcJob extends JsonJobWas
-	{
-		public ModelFcJob ( ModelFcJobBuilder builder )
-		{
-			super ( builder.fName, fEnc );
-		}
-
-		public ModelFcJob ( String name, BasicModelObject mo )
-		{
-			super ( name, fEnc, JsonModelObject.modelObjectToJson ( mo.getData() ) );
 		}
 	}
 
@@ -287,9 +189,9 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 		return Path.fromString ( "/jobs" );
 	}
 
-	private static Path jobNameToPath ( String name )
+	private static Path jobIdToPath ( String jobId )
 	{
-		return getBaseJobPath().makeChildItem ( Name.fromString ( name ) );
+		return getBaseJobPath().makeChildItem ( Name.fromString ( jobId ) );
 	}
 
 	private void checkAccess ( final FlowControlJob job, FlowControlCallContext fccc, String op ) throws AccessException, ServiceException
