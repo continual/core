@@ -5,7 +5,6 @@ import java.security.GeneralSecurityException;
 import java.util.Map;
 import java.util.Set;
 
-import io.continual.flowcontrol.model.FlowControlJobDb.ServiceException;
 import io.continual.flowcontrol.services.encryption.Encryptor;
 import io.continual.iam.access.ProtectedResource;
 
@@ -83,14 +82,12 @@ public interface FlowControlJob extends ProtectedResource
 	 * @param enc the encryption tool to decrypt values
 	 * @return a map of secrets
 	 * @throws GeneralSecurityException 
-	 * @throws ServiceException 
 	 */
 	Map<String,String> getSecrets ( Encryptor enc ) throws GeneralSecurityException;
 
 	/**
 	 * Get a set of secret references used in this job's deployment. 
 	 * @return a list of 0 or more secret references
-	 * @throws ServiceException 
 	 */
 	Set<String> getSecretRefs ();
 }

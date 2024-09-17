@@ -59,7 +59,6 @@ public interface FlowControlJobBuilder
 	 * @param key
 	 * @param value
 	 * @throws GeneralSecurityException 
-	 * @throws ServiceException 
 	 */
 	FlowControlJobBuilder registerSecret ( String key, String value ) throws GeneralSecurityException;
 

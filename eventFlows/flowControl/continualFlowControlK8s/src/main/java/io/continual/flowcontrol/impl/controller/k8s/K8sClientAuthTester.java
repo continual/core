@@ -5,12 +5,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.flowcontrol.impl.jobdb.test.DummyJobDb;
+import io.continual.flowcontrol.impl.enc.Enc;
+import io.continual.flowcontrol.impl.jobdb.model.ModelJobDb;
 import io.continual.flowcontrol.model.FlowControlCallContext;
 import io.continual.flowcontrol.model.FlowControlDeployment;
 import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService.ServiceException;
+import io.continual.flowcontrol.services.encryption.Encryptor;
 import io.continual.iam.identity.Identity;
 import io.continual.services.ServiceContainer;
+import io.continual.services.model.impl.mem.InMemoryModel;
 import io.continual.util.console.CmdLineParser;
 import io.continual.util.console.CmdLinePrefs;
 import io.continual.util.console.ConfiguredConsole;
@@ -38,8 +41,20 @@ public class K8sClientAuthTester extends ConfiguredConsole
 		try
 		{
 			final ServiceContainer sc = new ServiceContainer ();
+
+			final Encryptor enc = new Enc ( sc, new JSONObject ()
+				.put ( "key", "test" )
+			);
+			sc.add ( "encryptor", enc );
+
+			final ModelJobDb jobDb = new ModelJobDb ( sc, new JSONObject ()
+				.put ( "model", new JSONObject ()
+					.put ( "class", InMemoryModel.class.getCanonicalName () )
+					.put ( "modelId", "test" )
+				)
+			);
 			sc
-				.add ( "jobDb", new DummyJobDb () )
+				.add ( "jobDb", jobDb )
 			;
 
 			log.info ( "Building Kubernetes controller config..." );
