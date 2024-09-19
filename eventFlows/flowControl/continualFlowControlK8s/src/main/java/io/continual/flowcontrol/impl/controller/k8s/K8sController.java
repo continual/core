@@ -84,8 +84,6 @@ public class K8sController extends BaseDeployer
 	static final String kSetting_LogsMountLoc = "logsMountLoc";
 	static final String kDefault_LogsMountLoc = "/var/flowcontrol/logs";
 
-	static final String kSetting_ConfigTransfer = "configTransfer";
-
 	static final String kSetting_InitYamlResource = "deploymentYaml";
 	static final String kDefault_InitYamlResource = "initDeployment.yaml";
 

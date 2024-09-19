@@ -41,7 +41,7 @@ public class BaseDeployer extends SimpleService implements FlowControlDeployment
 	{
 		final JSONObject config = sc.getExprEval ().evaluateJsonObject ( rawConfig );
 
-		fDeployDb = sc.getReqd ( config.optString ( kSetting_DeployDb, "deploymentDb" ), DeploymentDb.class );
+		fDeployDb = sc.getReqd ( config.optString ( kSetting_DeployDb, "deployDb" ), DeploymentDb.class );
 
 		fSigningKey = config.getString ( "signingKey" );
 		if ( fSigningKey.length () == 0 )

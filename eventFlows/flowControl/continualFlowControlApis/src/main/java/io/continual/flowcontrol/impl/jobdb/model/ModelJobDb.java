@@ -32,8 +32,7 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 {
 	public ModelJobDb ( ServiceContainer sc, JSONObject config ) throws BuildFailure
 	{
-		final JSONObject modelData = config.getJSONObject ( "model" );
-		fModel = io.continual.builder.Builder.fromJson ( Model.class, modelData, sc );
+		fModel = sc.getReqd ( sc.getExprEval ().evaluateText ( config.optString ( kSetting_ModelName, kDefault_ModelName ) ), Model.class );
 		fModelUser = new CommonJsonIdentity ( "flowControlUser", CommonJsonIdentity.initializeIdentity (), null );
 
 		fEnc = sc.getReqd ( sc.getExprEval ().evaluateText ( config.optString ( "encryptor", "encryptor" ) ), Encryptor.class );
@@ -148,6 +147,9 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 	private final Model fModel;
 	private final Identity fModelUser;
 	private final Encryptor fEnc;
+
+	private static final String kSetting_ModelName = "model";
+	private static final String kDefault_ModelName = "jobDbModel";
 
 	private ModelJob internalLoadJob ( ModelRequestContext mrc, String jobId ) throws ServiceException
 	{

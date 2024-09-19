@@ -17,34 +17,41 @@
 		},
 
 		//
-		//	job db over a model
+		//	encryption service
+		//
+		{
+			"name": "encryptor",
+			"class": "io.continual.flowcontrol.impl.enc.Enc",
+			"key": "fuga.key.123"
+		},
+
+		//
+		//	model service
+		//
+		{
+			"name": "db",
+			"class": "io.continual.services.model.impl.files.FileSystemModel",
+			"acctId": "none",
+			"modelId": "jobDb",
+			"baseDir": "${TESTDBDIR|/tmp}/flowControlDb"
+		},
+
+		//
+		//	job db
 		//
 		{
 			"name": "jobDb",
 			"class": "io.continual.flowcontrol.impl.jobdb.model.ModelJobDb",
-
-			"model":
-			{
-				"class": "io.continual.services.model.impl.files.FileSystemModel",
-				"acctId": "none",
-				"modelId": "jobDb",
-				"baseDir": "/tmp/flowControlJobDb"
-			},
-
-			"secretEncryptKey": "fuga.key.123"
+			"model": "db"
 		},
 
 		//
-		//	Config Transfer
+		//	deployment db
 		//
 		{
-			"name": "configTransfer",
-			"class": "io.continual.flowcontrol.impl.transfer.ConfigFetchService",
-
-			"jobDb": "jobDb",
-
-			"signingKey": "test",
-			"baseUrl": "http://10.94.62.115:8080/config/"
+			"name": "deployDb",
+			"class": "io.continual.flowcontrol.impl.deploydb.model.ModelBackedDeployDb",
+			"model": "db"
 		},
 
 		//
@@ -63,8 +70,6 @@
 			"class": "io.continual.flowcontrol.impl.controller.k8s.K8sController",
 			"dumpInitYaml": true,	// debugging
 
-			"configTransfer": "configTransfer",
-
 			"installationName": "${INSTALLATION_NAME|testInstallationName}",
 
 			"context": "minikube",
@@ -75,7 +80,10 @@
 
 			"templateEngine": "goTemplateEngine",
 
-			"namespace": "flowcontrol"
+			"namespace": "flowcontrol",
+
+			"deploymentDb": "deployDb",
+			"signingKey": "fuga.key.456"
 		},
 
 		//
@@ -92,7 +100,7 @@
 		//
 		{
 			"name": "flowcontrol",
-			"class": "io.continual.flowcontrol.svcapi.BaseHttpService",
+			"class": "io.continual.flowcontrol.services.httpapi.BaseHttpService",
 			"namespace": "api-test-namespace",
 
 			"accounts": "accounts",

@@ -59,7 +59,6 @@ public class K8sClientAuthTester extends ConfiguredConsole
 
 			log.info ( "Building Kubernetes controller config..." );
 			final JSONObject config = new JSONObject ()
-				.put ( K8sController.kSetting_ConfigTransfer, "configTransfer" )
 			;
 
 			final String context = clp.getString ( kContext, null );
