@@ -75,6 +75,11 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 			}
 			return result;
 		}
+		catch ( ModelItemDoesNotExistException e )
+		{
+			// the jobs db has not been initialized
+			return new LinkedList<> ();
+		}
 		catch ( BuildFailure | ModelServiceException | ModelRequestException e )
 		{
 			throw new ServiceException ( e );
