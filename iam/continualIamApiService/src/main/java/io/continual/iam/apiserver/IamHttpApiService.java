@@ -20,8 +20,8 @@ public class IamHttpApiService<I extends Identity> extends SimpleService
 
 		http.addRouteInstaller (
 			new TypicalApiServiceRouteInstaller ()
-				.registerRoutes ( "authRoutes.conf", new AuthApiHandler<I> ( sc, config ) )
-				.registerRoutes ( "iamRoutes.conf", new IamApiHandler<I> ( sc, config ) )
+				.registerRoutes ( "authRoutes.conf", this.getClass (), new AuthApiHandler<I> ( sc, config ) )
+				.registerRoutes ( "iamRoutes.conf", this.getClass (), new IamApiHandler<I> ( sc, config ) )
 				.registerRouteSource (
 					new CHttpPlayishStaticEntryPointRoutingSource ()
 						.addRoute ( "GET", "/guide", "staticDir:com/rathravane/labels/guide;index.html" )
