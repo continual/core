@@ -189,7 +189,7 @@ public class ContinualAlertAgent
 
 			byCondition.put ( condition, alert );
 
-			log.info ( "Raised alert: " + alert.toString () );
+			log.info ( "Raised alert: {}", alert );
 		}
 		return alert;
 	}
@@ -289,6 +289,7 @@ public class ContinualAlertAgent
 					.asClear ()
 					.send ()
 				;
+				log.info ( "Cleared alert: {}", this );
 			}
 		}
 
