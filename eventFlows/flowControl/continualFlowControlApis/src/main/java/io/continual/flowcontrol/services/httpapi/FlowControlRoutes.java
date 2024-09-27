@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedList;
 
 import org.json.JSONException;
@@ -33,8 +34,10 @@ import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.Identity;
 import io.continual.iam.identity.UserContext;
 import io.continual.services.ServiceContainer;
+import io.continual.util.data.UniqueStringGenerator;
 import io.continual.util.data.json.CommentedJsonTokener;
 import io.continual.util.data.json.JsonVisitor;
+import io.continual.util.data.json.JsonVisitor.ItemRenderer;
 import io.continual.util.data.json.JsonVisitor.ObjectVisitor;
 import io.continual.util.standards.HttpStatusCodes;
 import io.continual.util.standards.MimeTypes;
@@ -62,13 +65,26 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 					final FlowControlJobDb jobDb = fFlowControl.getJobDb ( fccc );
 					final Collection<FlowControlJob> jobs = jobDb.getJobsFor ( fccc );
 
-					final LinkedList<String> jobNames = new LinkedList<> ();
-					for ( FlowControlJob job : jobs )
+					final LinkedList<FlowControlJob> jobList = new LinkedList<> ( jobs );
+					Collections.sort ( jobList, new Comparator<FlowControlJob> ()
 					{
-						jobNames.add ( job.getName () );
-					}
-					Collections.sort ( jobNames );
-					sendJson ( context, new JSONObject().put ( "jobs", JsonVisitor.listToArray ( jobNames ) ) );
+						@Override
+						public int compare ( FlowControlJob o1, FlowControlJob o2 )
+						{
+							return o1.getName ().compareTo ( o2.getName () );
+						}
+					} );
+					sendJson ( context, new JSONObject().put ( "jobs", JsonVisitor.listToArray ( jobList, new ItemRenderer<FlowControlJob,JSONObject> ()
+					{
+						@Override
+						public JSONObject render ( FlowControlJob job ) throws IllegalArgumentException
+						{
+							return new JSONObject ()
+								.put ( "id", job.getId () )
+								.put ( "name", job.getName () )
+							;
+						}
+					} ) ) );
 				}
 				catch ( FlowControlJobDb.ServiceException e )
 				{
@@ -124,12 +140,14 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 				{
 					final JSONObject payload = new JSONObject ( new CommentedJsonTokener ( context.request ().getBodyStream () ) );
 
+					final String id = UniqueStringGenerator.createUlid ();
 					final String name = payload.getString ( "name" );
 
 					final FlowControlCallContext fccc = fFlowControl.createtContextBuilder ().asUser ( uc.getUser () ).build ();
 
 					final FlowControlJobDb jobDb = fFlowControl.getJobDb ( fccc );
 					final FlowControlJobBuilder jobBuilder = jobDb.createJobBuilder ( fccc )
+						.withId ( id )
 						.withName ( name )
 						.withOwner ( uc.getUser ().getId () )
 						.withAccess ( AccessControlEntry.kOwner, AccessControlList.READ, AccessControlList.UPDATE, AccessControlList.DELETE )
@@ -138,7 +156,7 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 					readJobPayloadInto ( payload, jobBuilder );
 
 					final FlowControlJob job = jobBuilder.build ();
-					jobDb.storeJob ( fccc, name, job );
+					jobDb.storeJob ( fccc, job.getId (), job );
 					sendJson ( context, render ( job ) );
 				}
 				catch ( FlowControlJobDb.ServiceException e )
@@ -634,18 +652,22 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 
 	private static JSONObject render ( FlowControlJob job ) throws JSONException, IOException, ServiceException
 	{
+		final FlowControlRuntimeSpec runtime = job.getRuntimeSpec ();
+		
 		return new JSONObject ()
 			.put ( "name", job.getName () )
 			.put ( "config", render ( job.getConfiguration () ) )
-			.put ( "runtime", new JSONObject ()
-				.put ( "name", job.getRuntimeSpec ().getName () )
-				.put ( "version", job.getRuntimeSpec ().getVersion () ) )
+			.put ( "runtime", runtime == null ? null : new JSONObject ()
+				.put ( "name", runtime.getName () )
+				.put ( "version", runtime.getVersion () ) )
 			.put ( "secrets", JsonVisitor.listToArray ( job.getSecretRefs () ) )
 		;
 	}
 
 	private static JSONObject render ( FlowControlJobConfig config ) throws IOException
 	{
+		if ( config == null ) return null;
+
 		final JSONObject result = new JSONObject ();
 
 		final String type = config.getDataType ();
@@ -667,6 +689,8 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 
 	private static JSONObject render ( FlowControlDeployment deploy, boolean withId ) throws JSONException, IOException
 	{
+		if ( deploy == null ) return null;
+
 		final JSONObject result = new JSONObject ()
 			.put ( "jobId", deploy.getDeploymentSpec ().getJob ().getId () )
 		;

@@ -72,7 +72,7 @@ public class K8sClientAuthTester extends ConfiguredConsole
 			if ( namespace != null )
 			{
 				log.info ( "    namespace: " + namespace );
-				config.put ( K8sController.kSetting_Namespace, namespace );
+				config.put ( K8sController.kSetting_K8sNamespace, namespace );
 			}
 			log.info ( "... complete" );
 

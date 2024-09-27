@@ -73,7 +73,7 @@ import io.fabric8.kubernetes.client.dsl.PodResource;
 public class K8sController extends BaseDeployer
 {
 	static final String kSetting_k8sContext = "context";
-	static final String kSetting_Namespace = "namespace";
+	static final String kSetting_K8sNamespace = "namespace";
 
 	static final String kSetting_ConfigMountLoc = "configMountLoc";
 	static final String kDefault_ConfigMountLoc = "/var/flowcontrol/config";
@@ -104,46 +104,44 @@ public class K8sController extends BaseDeployer
 	static final String kSetting_EncryptorSvc = "encryptor";
 	static final String kDefault_EncryptorSvc = "encryptor";
 
+	static final String kSetting_ImageMapper = "imageMapper";
+	
 	public K8sController ( ServiceContainer sc, JSONObject rawConfig ) throws BuildFailure
 	{
 		super ( sc, rawConfig );
 
+		// evaluate the config in bulk...
 		final JSONObject config = sc.getExprEval ().evaluateJsonObject ( rawConfig );
 
+		// get the k8s context name
 		final String contextName = config.optString ( kSetting_k8sContext, null );
 		if ( contextName != null && contextName.length () > 0 )
 		{
+			log.info ( "Using Kubernetes context {}", contextName );
 			final Config cfgWithContext = Config.autoConfigure ( contextName );
 			fApiClient = new KubernetesClientBuilder().withConfig ( cfgWithContext ).build ();
 		}
 		else
 		{
+			log.info ( "Using default Kubernetes context via fabric8 auto config." );
 			fApiClient = new KubernetesClientBuilder().build();
 		}
-		fNamespace = config.getString ( kSetting_Namespace );
-		fConfigMountLoc = config.optString ( kSetting_ConfigMountLoc, kDefault_ConfigMountLoc );
-		fPersistMountLoc = config.optString ( kSetting_PersistMountLoc, kDefault_PersistMountLoc );
-		fLogsMountLoc = config.optString ( kSetting_LogsMountLoc, kDefault_LogsMountLoc );
 
-		final JSONObject mapperSpec = config.optJSONObject ( "imageMapper" );
+		// get the image mapper
+		final JSONObject mapperSpec = config.optJSONObject ( kSetting_ImageMapper );
 		if ( mapperSpec != null )
 		{
+			log.info ( "Building image mapper from {} setting.", kSetting_ImageMapper );
 			fImageMapper = Builder.fromJson ( ContainerImageMapper.class, mapperSpec, sc );
 		}
 		else
 		{
+			log.info ( "Using default (name:version) image mapper" );
 			fImageMapper = new SimpleImageMapper ();
 		}
 
-		fInitYamlResource = config.optString ( kSetting_InitYamlResource, kDefault_InitYamlResource );
-		fInitYamlSettings = config.optJSONObject ( kSetting_InitYamlSettings );
-		fInitYamlStorageClass= config.optString ( kSetting_StorageClass, kDefault_StorageClass );
-
-		fInstallationName = config.optString ( kSetting_InstallationName, "" );
-
-		fImgPullSecrets = JsonVisitor.arrayToList ( config.optJSONArray ( kSetting_InitYamlImagePullSecrets ) );
-		fDumpInitYaml = config.optBoolean ( kSetting_DumpInitYaml, false );
-
+		// The deployment spec translator populates the templating context with data from the deployment spec.
+		// It can be overridden in config.
 		final String deploySpecCtxPopSpec = config.optString ( kSetting_DeploySpecCtxPop, null );
 		if ( deploySpecCtxPopSpec != null )
 		{
@@ -151,10 +149,11 @@ public class K8sController extends BaseDeployer
 		}
 		else
 		{
-			log.info ( "No deployment spec to context translator specified; defaulting to {}.", StdDeploySpecTranslator.class.getSimpleName () );
+			log.info ( "Using default deployment spec translator." );
 			fDeploySpecPopulator = new StdDeploySpecTranslator ( sc, new JSONObject () );
 		}
-		
+
+		// the templating engine...
 		final String templateEngineSpec = config.optString ( kSetting_TemplateEngine, null );
 		if ( templateEngineSpec != null )
 		{
@@ -162,11 +161,39 @@ public class K8sController extends BaseDeployer
 		}
 		else
 		{
-			log.info ( "No templating engine specified; defaulting to ${} evals." );
+			log.info ( "Using default templating engine." );
 			fTemplateEngine = new DollarEvalTemplateEngine ( sc, new JSONObject () );
 		}
 
+		// an encryption service
 		fEncryptor = sc.getReqd ( config.optString ( kSetting_EncryptorSvc, kDefault_EncryptorSvc ), Encryptor.class );
+
+		// kubernetes API settings
+		fK8sNamespace = config.getString ( kSetting_K8sNamespace );
+		fImgPullSecrets = JsonVisitor.arrayToList ( config.optJSONArray ( kSetting_InitYamlImagePullSecrets ) );
+
+
+		//
+		//	FIXME: the remaining settings feel like they should be in a list of arbitrary items that
+		//	meet a container image spec for the system.  For example, why can't this system just dictate
+		//	"here's where to put your logs?" why not always put them into /opt/logs, for example, and 
+		//	mount a volume there (or don't)....  Or why does this system need to dictate to the processing
+		//	engine container where to find its config? Why can't that image just deal with the URL 
+		//	provided in any way it prefers?
+		//
+		
+		// on-pod mount points
+		fConfigMountLoc = config.optString ( kSetting_ConfigMountLoc, kDefault_ConfigMountLoc );
+		fPersistMountLoc = config.optString ( kSetting_PersistMountLoc, kDefault_PersistMountLoc );
+		fLogsMountLoc = config.optString ( kSetting_LogsMountLoc, kDefault_LogsMountLoc );
+
+		fInitYamlResource = config.optString ( kSetting_InitYamlResource, kDefault_InitYamlResource );
+		fInitYamlSettings = config.optJSONObject ( kSetting_InitYamlSettings );
+		fInitYamlStorageClass= config.optString ( kSetting_StorageClass, kDefault_StorageClass );
+
+		fInstallationName = config.optString ( kSetting_InstallationName, "" );
+
+		fDumpInitYaml = config.optBoolean ( kSetting_DumpInitYaml, false );
 	}
 
 	@Override
@@ -216,7 +243,7 @@ public class K8sController extends BaseDeployer
 			}
 			if ( anyInternalSecrets )
 			{
-				fApiClient.secrets ().inNamespace ( fNamespace ).resource ( sb.build () ).serverSideApply ();
+				fApiClient.secrets ().inNamespace ( fK8sNamespace ).resource ( sb.build () ).serverSideApply ();
 			}
 
 			// Get deployment installed.  
@@ -300,7 +327,7 @@ public class K8sController extends BaseDeployer
 
 				fApiClient
 					.resourceList ( items )
-					.inNamespace ( fNamespace )
+					.inNamespace ( fK8sNamespace )
 					.serverSideApply ()
 				;
 			}
@@ -338,7 +365,7 @@ public class K8sController extends BaseDeployer
 			{
 				final Secret secret = fApiClient
 					.secrets ()
-					.inNamespace ( fNamespace )
+					.inNamespace ( fK8sNamespace )
 					.withName ( tagToSecret ( deploymentId ) )
 					.get ()
 				;
@@ -426,7 +453,7 @@ public class K8sController extends BaseDeployer
 	private final Encryptor fEncryptor;
 
 	private final KubernetesClient fApiClient;
-	private final String fNamespace;
+	private final String fK8sNamespace;
 	private final String fConfigMountLoc;
 	private final String fPersistMountLoc;
 	private final String fLogsMountLoc;
@@ -766,7 +793,7 @@ public class K8sController extends BaseDeployer
 		try
 		{
 			// get the stateful set list
-			final StatefulSetList ssl = fApiClient.apps().statefulSets ().inNamespace ( fNamespace ).list ();
+			final StatefulSetList ssl = fApiClient.apps().statefulSets ().inNamespace ( fK8sNamespace ).list ();
 			for ( StatefulSet ss : ssl.getItems () )
 			{
 				if ( ss.getMetadata ().getName ().equals ( tag ) )
@@ -784,7 +811,7 @@ public class K8sController extends BaseDeployer
 		try
 		{
 			// now try deployment list
-			final DeploymentList dl = fApiClient.apps().deployments ().inNamespace ( fNamespace ).list ();
+			final DeploymentList dl = fApiClient.apps().deployments ().inNamespace ( fK8sNamespace ).list ();
 			for ( Deployment d : dl.getItems () )
 			{
 				if ( d.getMetadata ().getName ().equals ( tag ) )
@@ -805,11 +832,11 @@ public class K8sController extends BaseDeployer
 	private List<K8sDeployWrapper> getK8sDeployments ( )
 	{
 		final LinkedList<K8sDeployWrapper> result = new LinkedList<> ();
-		for ( Deployment d : fApiClient.apps().deployments().inNamespace ( fNamespace ).list ().getItems () )
+		for ( Deployment d : fApiClient.apps().deployments().inNamespace ( fK8sNamespace ).list ().getItems () )
 		{
 			result.add ( new K8sDeployWrapper ( d ) );
 		}
-		for ( StatefulSet d : fApiClient.apps().statefulSets ().inNamespace ( fNamespace ).list ().getItems () )
+		for ( StatefulSet d : fApiClient.apps().statefulSets ().inNamespace ( fK8sNamespace ).list ().getItems () )
 		{
 			result.add ( new K8sDeployWrapper ( d ) );
 		}
@@ -820,7 +847,7 @@ public class K8sController extends BaseDeployer
 	{
 		final PodList pl = fApiClient
 			.pods ()
-			.inNamespace ( fNamespace )
+			.inNamespace ( fK8sNamespace )
 			.withLabel ( "app", "job-" + tag )
 
 			.list ()

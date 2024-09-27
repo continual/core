@@ -10,7 +10,7 @@ import io.continual.services.model.core.ModelObjectFactory;
 import io.continual.services.model.core.data.JsonModelObject;
 import io.continual.util.data.json.JsonUtil;
 
-class ModelJob extends JsonJob
+public class ModelJob extends JsonJob
 {
 	public ModelJob ( ModelObjectFactory.ObjectCreateContext<?> ctx )
 	{

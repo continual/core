@@ -70,7 +70,8 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 	@Override
 	public FlowControlJobConfig getConfiguration ()
 	{
-		final JSONObject config = fData.getJSONObject ( kConfig );
+		final JSONObject config = fData.optJSONObject ( kConfig );
+		if ( config == null ) return null;
 
 		return new FlowControlJobConfig ()
 		{
@@ -112,7 +113,9 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 	@Override
 	public FlowControlRuntimeSpec getRuntimeSpec ()
 	{
-		final JSONObject runtime = fData.getJSONObject ( kRuntime );
+		final JSONObject runtime = fData.optJSONObject ( kRuntime );
+		if ( runtime == null ) return null;
+
 		return new FlowControlRuntimeSpec () 
 		{
 			@Override
@@ -139,7 +142,7 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 	public Map<String, String> getSecrets ( Encryptor enc ) throws GeneralSecurityException
 	{
 		final HashMap<String,String> result = new HashMap<> ();
-		JsonVisitor.forEachElement ( fData.getJSONObject ( kSecrets ), new ObjectVisitor<String,GeneralSecurityException> ()
+		JsonVisitor.forEachElement ( fData.optJSONObject ( kSecrets ), new ObjectVisitor<String,GeneralSecurityException> ()
 		{
 			@Override
 			public boolean visit ( String secretName, String secretValue ) throws JSONException, GeneralSecurityException
@@ -173,6 +176,7 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 			withAccess ( AccessControlEntry.kOwner, AccessControlList.READ, AccessControlList.UPDATE, AccessControlList.DELETE );
 		}
 
+		@Override
 		public JsonJobBuilder withId ( String id )
 		{
 			fBuildingData.put ( kId, id );
@@ -314,14 +318,17 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 		@Override
 		public JsonJob build () throws BuildFailure
 		{
-			return new JsonJob ( fBuildingData );
+			return new JsonJob ( getBuildingData () );
 		}
 
 		private final Encryptor fEnc;
 		
 		private JSONObject fBuildingData;
 
-		protected JSONObject getBuildingData () { return fBuildingData; }
+		protected JSONObject getBuildingData ()
+		{
+			return fBuildingData;
+		}
 	}
 
 }
