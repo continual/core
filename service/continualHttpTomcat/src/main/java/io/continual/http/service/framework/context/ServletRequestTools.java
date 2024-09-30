@@ -1,5 +1,7 @@
 package io.continual.http.service.framework.context;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -88,5 +90,18 @@ public class ServletRequestTools
 		// else: javadocs say some containers return null.
 
 		return result;
+	}
+
+	public static boolean isNonRouteable ( String fwdHost )
+	{
+		try
+		{
+			final InetAddress addr = InetAddress.getByName ( fwdHost  );
+			return addr.isSiteLocalAddress ();
+		}
+		catch ( UnknownHostException e )
+		{
+			return false;
+		}
 	}
 }
