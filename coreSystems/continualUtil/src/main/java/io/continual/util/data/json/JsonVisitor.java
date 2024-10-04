@@ -295,15 +295,25 @@ public class JsonVisitor
 
 	public static JSONObject mapToObject ( Map<String, Integer> list )
 	{
-		return mapToObject ( list, ( i ) -> { return i; } );
+		return mapToObject ( list, i -> i );
 	}
 
-	public static <T,O> JSONObject mapToObject ( Map<String, T> list, ItemRenderer<T,O> renderer )
+	public static JSONObject mapOfJsonToObject ( Map<String, ? extends JsonSerialized> list )
+	{
+		return mapToObject ( list, i -> i.toJson () );
+	}
+
+	public static <T> JSONObject mapToObject ( Map<String, T> list, ItemRenderer<T,?> renderer )
+	{
+		return mapToObject ( list, k -> k, renderer );
+	}
+
+	public static <K,T> JSONObject mapToObject ( Map<K, T> list, ItemRenderer<K,String> keyRender, ItemRenderer<T,?> valRender )
 	{
 		final JSONObject obj = new JSONObject ();
-		for ( Map.Entry<String,T> e : list.entrySet () )
+		for ( Map.Entry<K,T> e : list.entrySet () )
 		{
-			obj.put ( e.getKey (), renderer.render ( e.getValue () ) );
+			obj.put ( keyRender.render ( e.getKey () ), valRender.render ( e.getValue () ) );
 		}
 		return obj;
 	}
