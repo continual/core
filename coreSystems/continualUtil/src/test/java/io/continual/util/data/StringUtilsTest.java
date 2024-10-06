@@ -277,14 +277,16 @@ public class StringUtilsTest {
     public void limitLengthTo_short(){
 		Assert.assertEquals("flowers good", StringUtils.limitLengthTo("flowers good", 45));
     }
+
 	@Test
     public void isEmptyTest(){
 		Assert.assertEquals(true, StringUtils.isEmpty(null));
 		Assert.assertEquals(true, StringUtils.isEmpty(""));
+		Assert.assertEquals(false, StringUtils.isEmpty("fun"));
 	}
 
 	@Test
-    public void isNotEmptyTest(){
+	public void isNotEmptyTest(){
 		Assert.assertEquals(true, StringUtils.isNotEmpty("fun"));
 		Assert.assertEquals(false, StringUtils.isNotEmpty(null));
 	}
