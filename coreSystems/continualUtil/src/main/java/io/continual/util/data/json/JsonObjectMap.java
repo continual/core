@@ -121,7 +121,7 @@ public class JsonObjectMap implements Map<String,String>
 	@Override
 	public Set<Map.Entry<String, String>> entrySet ()
 	{
-		final TreeSet<Map.Entry<String, String>> result = new TreeSet<Map.Entry<String, String>> ();
+		final TreeSet<Map.Entry<String, String>> result = new TreeSet<> ();
 		try
 		{
 			final JSONArray names = fObject.names ();
@@ -144,7 +144,7 @@ public class JsonObjectMap implements Map<String,String>
 
 	private final JSONObject fObject;
 
-	private static class entry implements Map.Entry<String,String> 
+	private static class entry implements Map.Entry<String,String>, Comparable<entry>
 	{
 		private final String fK, fV;
 
@@ -170,6 +170,11 @@ public class JsonObjectMap implements Map<String,String>
 		{
 			return null;
 		}
-		
+
+		@Override
+		public int compareTo ( entry that )
+		{
+			return fK.compareTo ( that.fK );
+		}
 	};
 }

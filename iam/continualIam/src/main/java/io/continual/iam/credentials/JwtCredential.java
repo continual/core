@@ -34,7 +34,7 @@ public class JwtCredential
 {
 	public static class InvalidJwtToken extends Exception
 	{
-		public InvalidJwtToken () { super(); }	// we don't normally say much for failed authentication
+		public InvalidJwtToken ( String msg ) { super(msg); }
 		private static final long serialVersionUID = 1L;
 	}
 
@@ -54,7 +54,7 @@ public class JwtCredential
 				return new JwtCredential ( parts[1] );
 			}
 		}
-		throw new InvalidJwtToken ();
+		throw new InvalidJwtToken ("The auth header value doesn't start with Bearer.");
 	}
 
 	/**
@@ -72,7 +72,7 @@ public class JwtCredential
 		fOrigToken = jwtToken;
 
 		final String[] parts = jwtToken.split ( "\\." );
-		if ( parts.length != 3 ) throw new InvalidJwtToken ();
+		if ( parts.length != 3 ) throw new InvalidJwtToken ( "The JWT token doesn't have three segments." );
 
 		fSignedContent = parts[0] + "." + parts[1];
 
@@ -91,7 +91,7 @@ public class JwtCredential
 			{
 				// all we know so far...
 				log.info ( "Unrecognized type or algo on JWT: " + type + " / " + fAlgo );
-				throw new InvalidJwtToken ();
+				throw new InvalidJwtToken ( "Token type is not JWT or we don't know algo [" + fAlgo + "]" );
 			}
 			
 
@@ -118,7 +118,7 @@ public class JwtCredential
 			if ( checkExpired && fExpiresSec < nowSec )
 			{
 				log.info ( "Expired token. exp=" + fExpiresSec + "; currently " + nowSec );
-				throw new InvalidJwtToken ();
+				throw new InvalidJwtToken ( "The token is expired." );
 			}
 
 			// at this point, we have a token that's valid in terms of time and audience (but hasn't been
@@ -127,13 +127,13 @@ public class JwtCredential
 			if ( fSubject.length () == 0 )
 			{
 				log.info ( "No subject on token" );
-				throw new InvalidJwtToken ();
+				throw new InvalidJwtToken ( "The token has no subject." );
 			}
 		}
 		catch ( JSONException e )
 		{
 			log.info ( "Couldn't parse token." );
-			throw new InvalidJwtToken ();
+			throw new InvalidJwtToken ( "The token text is not JSON." );
 		}
 	}
 
