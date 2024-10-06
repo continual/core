@@ -6,6 +6,7 @@ import java.util.Map;
 import org.junit.Assert;
 import org.junit.Test;
 
+import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.Service.FailedToStart;
 import io.continual.util.console.ConsoleProgram.StartupFailureException;
 import io.continual.util.nv.impl.nvReadableTable;
@@ -108,5 +109,27 @@ public class ServiceContainerTest
 		{
 			throw new FailedToStart ( new Throwable ( "FailedToStart" ) );
 		}
+	}
+
+	@Test
+	public void getReqdTest1() throws BuildFailure
+	{
+		final ServiceContainer sc = new ServiceContainer ();
+		try
+		{
+			sc.getReqd ( String.class );
+			Assert.fail ( "Expected getReqd to fail" );
+		}
+		catch ( BuildFailure x )
+		{
+			// expected
+		}
+	}
+	
+	@Test
+	public void getReqdTest2() throws BuildFailure
+	{
+		final ServiceContainer sc = new ServiceContainer ();
+		Assert.assertEquals ( null, sc.get ( String.class ) );
 	}
 }
