@@ -85,7 +85,6 @@ public class JsonObjectMapTest {
 		Assert.assertEquals(0, jsonObjectMap.size());
     }
 
-	//New stuff
 	@Test
     public void containsValueTest(){
 		JsonObjectMap jsonObjectMap = generate();

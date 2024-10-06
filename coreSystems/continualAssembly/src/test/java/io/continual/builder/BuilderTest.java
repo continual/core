@@ -60,14 +60,11 @@ public class BuilderTest
 	@Test
 	public void testBuildPreferences ()
 	{
-		  ClassLoader classLoader = new ClassLoader() {};
-
 		try {
 			Assert.assertNotNull ( Builder.withBaseClass ( CommonDataSource.class )
 					.usingClassName ( "BuilderPrefsDataSource" )
 					.searchingPath ( "io.continual.builder.sources" )
 					.usingData ( (Preferences) null )
-					.usingClassLoader(classLoader)
 					.restrictFullClassnames ()
 					.build () );
 		} catch (BuildFailure e) {
@@ -78,7 +75,6 @@ public class BuilderTest
 	@Test
 	public void testBuildReadable ()
 	{
-		ClassLoader classLoader = new ClassLoader() {};
 		final List<String> lstPaths = new ArrayList<>();
 		lstPaths.add ( "io.continual.builder.sources" );
 		try {
@@ -86,7 +82,6 @@ public class BuilderTest
 					.usingClassName ( "BuilderReadableDataSource" )
 					.searchingPaths ( lstPaths )
 					.usingData ( (NvReadable) null )
-					.usingClassLoader(classLoader)
 					.build () );
 		} catch (BuildFailure e) {
 			Assert.fail ( "Expected to execute but failed with exception " + e.getMessage () );
@@ -96,12 +91,10 @@ public class BuilderTest
 	@Test
 	public void testBuildJsonObject ()
 	{
-		ClassLoader classLoader = new ClassLoader() {};
 		try {
 			Assert.assertNotNull ( Builder.withBaseClass ( CommonDataSource.class )
 					.usingClassName ( "io.continual.builder.sources.BuilderJsonDataSource" )
 					.usingData ( (JSONObject) null )
-					.usingClassLoader(classLoader)
 					.build () );
 		} catch (BuildFailure e) {
 			Assert.fail ( "Expected to execute but failed with exception " + e.getMessage () );
@@ -161,34 +154,29 @@ public class BuilderTest
 	@Test
 	public void testBuildMethod ()
 	{
-		ClassLoader classLoader = new ClassLoader() {};
 		try {
 			// Single Param
 			Assert.assertNotNull ( Builder.withBaseClass ( BuilderJsonDataSource.class )
 					.usingClassName ( "io.continual.builder.BuilderTest$TestBuilderJsonDataSource1" )
 					.usingData ( new JSONObject () )
-					.usingClassLoader(classLoader)
 					.providingContext ( new JSONObject () )
 					.build () );
 			// Double Param
 			Assert.assertNotNull ( Builder.withBaseClass ( BuilderJsonDataSource.class )
 					.usingClassName ( "io.continual.builder.BuilderTest$TestBuilderJsonDataSource2" )
 					.usingData ( new JSONObject () )
-					.usingClassLoader(classLoader)
 					.providingContext ( new JSONObject () )
 					.build () );
 			// Static Single Param
 			Builder.withBaseClass ( BuilderJsonDataSource.class )
 					.usingClassName ( "io.continual.builder.BuilderTest$TestBuilderJsonDataSource3" )
 					.usingData ( new JSONObject () )
-					.usingClassLoader(classLoader)
 					.providingContext ( new JSONObject () )
 					.build ();
 			// Static Double Param
 			Builder.withBaseClass ( BuilderJsonDataSource.class )
 					.usingClassName ( "io.continual.builder.BuilderTest$TestBuilderJsonDataSource4" )
 					.usingData ( new JSONObject () )
-					.usingClassLoader(classLoader)
 					.providingContext ( new JSONObject () )
 					.build ();
 		} catch (BuildFailure e) {
@@ -232,6 +220,4 @@ public class BuilderTest
 			return null;
 		}
 	}
-	
-
 }

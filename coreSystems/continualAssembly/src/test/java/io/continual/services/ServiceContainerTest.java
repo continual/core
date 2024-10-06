@@ -63,7 +63,6 @@ public class ServiceContainerTest
 		Assert.assertEquals ( 1 , sc.getServiceNames ().size () );
 	}
 
-	//look at this code as a basis
 	@Test
 	public void testGet ()
 	{
@@ -110,30 +109,27 @@ public class ServiceContainerTest
 		{
 			throw new FailedToStart ( new Throwable ( "FailedToStart" ) );
 		}
-		
+	}
+
 	@Test
-	public void getReqdTest1() {
-		Class<String> asClass = null;
+	public void getReqdTest1() throws BuildFailure
+	{
 		final ServiceContainer sc = new ServiceContainer ();
-		try {
-			Assert.assertNull(sc.getReqd(asClass));
-		} catch (BuildFailure e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		try
+		{
+			sc.getReqd ( String.class );
+			Assert.fail ( "Expected getReqd to fail" );
+		}
+		catch ( BuildFailure x )
+		{
+			// expected
 		}
 	}
 	
 	@Test
-	public void getReqdTest2() {
-		Class<String> asClass = null;
+	public void getReqdTest2() throws BuildFailure
+	{
 		final ServiceContainer sc = new ServiceContainer ();
-		try {
-			Assert.assertNotNull(sc.getReqd(asClass));
-		} catch (BuildFailure e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-	
+		Assert.assertEquals ( null, sc.get ( String.class ) );
 	}
 }
