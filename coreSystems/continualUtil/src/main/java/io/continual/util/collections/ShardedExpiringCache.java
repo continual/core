@@ -1,6 +1,6 @@
 package io.continual.util.collections;
 
-import java.lang.ref.WeakReference;
+import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -354,7 +354,7 @@ public class ShardedExpiringCache<K,V>
 		public CacheEntry ( K key, V val, long expiresAtMs )
 		{
 			fKey = key;
-			fVal = new WeakReference<V> ( val );
+			fVal = new SoftReference<V> ( val );
 			fExpiresAtMs = expiresAtMs;
 		}
 
@@ -370,7 +370,7 @@ public class ShardedExpiringCache<K,V>
 		private void $testGc () { fVal.clear (); }
 
 		private final K fKey;
-		private final WeakReference<V> fVal;
+		private final SoftReference<V> fVal;
 		private final long fExpiresAtMs;
 	}
 
