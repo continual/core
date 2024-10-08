@@ -68,6 +68,7 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.dsl.Gettable;
 import io.fabric8.kubernetes.client.dsl.PodResource;
 
 public class K8sController extends BaseDeployer
@@ -172,7 +173,6 @@ public class K8sController extends BaseDeployer
 		fK8sNamespace = config.getString ( kSetting_K8sNamespace );
 		fImgPullSecrets = JsonVisitor.arrayToList ( config.optJSONArray ( kSetting_InitYamlImagePullSecrets ) );
 
-
 		//
 		//	FIXME: the remaining settings feel like they should be in a list of arbitrary items that
 		//	meet a container image spec for the system.  For example, why can't this system just dictate
@@ -255,6 +255,9 @@ public class K8sController extends BaseDeployer
 			{
 				if ( deployTemplate == null ) throw new ServiceException ( "Couldn't load " + fInitYamlResource );
 
+				final FlowControlRuntimeSpec runtimeSpec = ds.getJob ().getRuntimeSpec ();
+				if ( runtimeSpec == null ) throw new RequestException ( "There's no runtime spec on this job." );
+
 				// get a template context and initialize it with basic information
 				final ContinualTemplateContext templateCtx = fTemplateEngine.createContext ();
 				templateCtx
@@ -267,7 +270,7 @@ public class K8sController extends BaseDeployer
 					.put ( "FC_PERSISTENCE_MOUNT", fPersistMountLoc )
 					.put ( "FC_LOGS_MOUNT", fLogsMountLoc )
 					.put ( "FC_CONFIG_FILE", targetConfigFile )
-					.put ( "FC_RUNTIME_IMAGE", fImageMapper.getImageName ( ds.getJob ().getRuntimeSpec () ) )
+					.put ( "FC_RUNTIME_IMAGE", fImageMapper.getImageName ( runtimeSpec ) )
 					.put ( "FC_STORAGE_CLASS", fInitYamlStorageClass )
 				;
 
@@ -286,7 +289,8 @@ public class K8sController extends BaseDeployer
 				dumpYaml ( tag, deployYaml );
 
 				// build deployable item list
-				final List<HasMetadata> items = fApiClient.load ( bais ).get ();
+				final Gettable<List<HasMetadata>> gets = fApiClient.load ( bais );
+				final List<HasMetadata> items = gets.get ();
 
 				// push environment
 				final HashMap<String,String> env = new HashMap<String,String> ();
