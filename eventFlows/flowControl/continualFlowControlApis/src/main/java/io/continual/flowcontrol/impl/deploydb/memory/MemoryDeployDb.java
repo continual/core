@@ -34,25 +34,27 @@ public class MemoryDeployDb extends SimpleService implements DeploymentDb
 	@Override
 	public synchronized void storeDeployment ( FlowControlDeployment deployment ) throws DeployDbException
 	{
-		final String did = deployment.getId ();
+		final String deployId = deployment.getId ();
 		final JSONObject ser = DeploymentSerde.serialize ( deployment, fEnc );
 
-		fDeploys.put ( did, ser );
+		fDeploys.put ( deployId, ser );
 	
 		// add to our indexes using the serialized values for consistency with the removal below
-		fConfigKeyToId.put ( ser.optString ( DeploymentSerde.kField_ConfigKey ), did );
-		fUserToDeploys.put ( ser.optString ( DeploymentSerde.kField_Owner ) , did );
-		fJobIdToDeploys.put ( ser.optString ( DeploymentSerde.kField_JobId ), did );
+		fConfigKeyToId.put ( ser.optString ( DeploymentSerde.kField_ConfigKey ), deployId );
+		fUserToDeploys.put ( ser.optString ( DeploymentSerde.kField_Owner ) , deployId );
+		fJobIdToDeploys.put ( ser.optString ( DeploymentSerde.kField_JobId ), deployId );
 	}
 
 	@Override
-	public synchronized void removeDeployment ( String deployId ) throws DeployDbException
+	public synchronized FlowControlDeployment removeDeployment ( String deployId ) throws DeployDbException
 	{
 		final JSONObject obj = fDeploys.remove ( deployId );
 
 		fConfigKeyToId.remove ( obj.optString ( DeploymentSerde.kField_ConfigKey ) );
 		fUserToDeploys.remove ( obj.optString ( DeploymentSerde.kField_Owner ), deployId );
 		fJobIdToDeploys.remove ( obj.optString ( DeploymentSerde.kField_JobId ), deployId );
+
+		return DeploymentSerde.deserialize ( obj );
 	}
 
 	@Override

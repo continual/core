@@ -70,14 +70,23 @@ public class ModelBackedDeployDb extends SimpleService implements DeploymentDb
 	}
 
 	@Override
-	public void removeDeployment ( String deployId ) throws DeployDbException
+	public FlowControlDeployment removeDeployment ( String deployId ) throws DeployDbException
 	{
 		try ( final ModelRequestContext mrc = fModel.getRequestContextBuilder ()
 			.forSimpleIdentity ( fModelUser )
 			.build ()
 		)
 		{
-			fModel.remove ( mrc, makeDeployIdPath ( deployId ) );
+			final Path deployPath = makeDeployIdPath ( deployId );
+			final FlowControlDeployment d = deploymentFrom ( fModel.load ( mrc, deployPath ) );
+			if ( fModel.remove ( mrc, makeDeployIdPath ( deployId ) ) )
+			{
+				return d;
+			}
+			else
+			{
+				return null;
+			}
 		}
 		catch ( BuildFailure | ModelRequestException | ModelServiceException e )
 		{

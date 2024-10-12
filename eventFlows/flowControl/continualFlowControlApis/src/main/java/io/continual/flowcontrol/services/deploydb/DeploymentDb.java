@@ -28,8 +28,9 @@ public interface DeploymentDb extends Service
 	/**
 	 * Remove the given deployment
 	 * @param deployId
+	 * @return the deployment record if it existed
 	 */
-	void removeDeployment ( String deployId ) throws DeployDbException;
+	FlowControlDeployment removeDeployment ( String deployId ) throws DeployDbException;
 
 	/**
 	 * Load a deployment based on its ID

@@ -55,35 +55,59 @@
 		},
 
 		//
-		//	template engine
-		//
-		{
-			"name": "goTemplateEngine",
-			"class": "io.continual.templating.impl.golang.GoTemplateEngine"
-		},
-
-		//
 		//	controller
 		//
 		{
 			"name": "controller",
 			"class": "io.continual.flowcontrol.impl.controller.k8s.K8sController",
-			"dumpInitYaml": true,	// debugging
 
 			"installationName": "${INSTALLATION_NAME|testInstallationName}",
 
-			"context": "minikube",
-			"storageClass": "standard",
+			///////////////////////////////////////////////////////////////////////////////////////////////////////////
+			//
+			//	internal config URL for runtime pods
+			//
+			"internalConfigUrl": "${INTERNAL_CONFIG_BASE_URL}",
 
-//			"context": "do-nyc3-rr-k8s-do-nyc3",
-//			"storageClass": "do-block-storage",
 
-			"templateEngine": "goTemplateEngine",
+			///////////////////////////////////////////////////////////////////////////////////////////////////////////
+			//
+			//	Connecting to Kubernetes
+			//
 
+			// setting useKubeConfig to true, or explicitly setting the name of the config file
+			// as kubeConfig will have the controller use the appropriate kube config.
+			"useKubeConfig": true,
+			//"kubeConfig": "${HOME}/.kube/config",
+
+			// if using kube config, which context?
+			"kubeConfigContext": "minikube",
+
+			// the namespace assigned to flowcontrol
 			"namespace": "flowcontrol",
 
+			///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 			"deploymentDb": "deployDb",
-			"signingKey": "fuga.key.456"
+			"signingKey": "fuga.key.456",
+
+			// k8s deployment elements
+			"elements":
+			[
+				{ "class": "SecretDeployer" },
+				{ "class": "ConfigPullScriptDeployer", "scriptResource": "configPullScript.sh" },
+				{
+					"class": "StatefulSetDeployer",
+
+					//
+					//	additional environment vars in the pods
+					//
+					"applyEnv":
+					{
+						"FC_TEST": "123"
+					}
+				}
+			]
 		},
 
 		//
@@ -106,8 +130,7 @@
 			"accounts": "accounts",
 			"httpService": "HttpService",
 			"jobDb": "jobDb",
-			"deployApi": "controller",
-			"configTransfer": "configTransfer"
+			"deployApi": "controller"
 		}
 	],
 

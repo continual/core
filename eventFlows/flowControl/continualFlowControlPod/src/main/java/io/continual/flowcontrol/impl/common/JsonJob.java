@@ -71,8 +71,24 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 	public FlowControlJobConfig getConfiguration ()
 	{
 		final JSONObject config = fData.optJSONObject ( kConfig );
-		if ( config == null ) return null;
 
+		// in practical cases, config shouldn't be null. If it is, just return an empty object
+		if ( config == null )
+		{
+			return new FlowControlJobConfig ()
+			{
+				@Override
+				public String getDataType () { return MimeTypes.kAppJson; }
+
+				@Override
+				public InputStream readConfiguration ()
+				{
+					return new ByteArrayInputStream ( new JSONObject ().toString ().getBytes ( StandardCharsets.UTF_8 ) );
+				}
+			};
+		}
+
+		// return the actual config
 		return new FlowControlJobConfig ()
 		{
 			@Override

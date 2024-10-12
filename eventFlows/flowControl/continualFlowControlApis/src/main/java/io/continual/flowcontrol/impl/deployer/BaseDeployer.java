@@ -74,7 +74,7 @@ public class BaseDeployer extends SimpleService implements FlowControlDeployment
 		}
 		catch ( DeployDbException e )
 		{
-			internalUndeploy ( ctx, deploy.getId () );
+			internalUndeploy ( ctx, deploy.getId (), deploy );
 			throw new ServiceException ( e );
 		}
 		return deploy;
@@ -84,9 +84,10 @@ public class BaseDeployer extends SimpleService implements FlowControlDeployment
 	public void undeploy ( FlowControlCallContext ctx, String deploymentId ) throws ServiceException
 	{
 		// remove from the deploy db...
+		final FlowControlDeployment deployment;
 		try
 		{
-			fDeployDb.removeDeployment ( deploymentId );
+			deployment = fDeployDb.removeDeployment ( deploymentId );
 		}
 		catch ( DeployDbException e )
 		{
@@ -94,7 +95,7 @@ public class BaseDeployer extends SimpleService implements FlowControlDeployment
 		}
 
 		// then from the platform
-		internalUndeploy ( ctx, deploymentId );
+		internalUndeploy ( ctx, deploymentId, deployment );
 	}
 
 	@Override
@@ -103,7 +104,7 @@ public class BaseDeployer extends SimpleService implements FlowControlDeployment
 		try
 		{
 			final FlowControlDeployment d = fDeployDb.getDeploymentById ( deploymentId );
-			if ( d != null && d.getDeployer ().equals ( ctx.getUser () ) )
+			if ( d != null && d.getDeployer ().getId ().equals ( ctx.getUser ().getId () ) )
 			{
 				return d;
 			}
@@ -183,9 +184,10 @@ public class BaseDeployer extends SimpleService implements FlowControlDeployment
 	 * Undeploy the deployment
 	 * @param ctx
 	 * @param deploymentId
+	 * @param deployment 
 	 * @throws ServiceException
 	 */
-	protected void internalUndeploy ( FlowControlCallContext ctx, String deploymentId ) throws ServiceException
+	protected void internalUndeploy ( FlowControlCallContext ctx, String deploymentId, FlowControlDeployment deployment ) throws ServiceException
 	{
 		throw new ServiceException ( "Not implemented in " + this.getClass ().getName () );
 	}
