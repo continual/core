@@ -47,7 +47,7 @@ public class VelocityTemplateEngine extends SimpleService implements ContinualTe
 		{
 			props.setProperty ( RuntimeConstants.RESOURCE_LOADER, "catalog" );
 			props.setProperty ( "resource.loader.catalog.class", CatalogLoader.class.getName () );
-			props.setProperty ( "resource.loader.catalog.cache", new Boolean ( config.optBoolean ( "catalogCache", true ) ).toString () );
+			props.setProperty ( "resource.loader.catalog.cache", Boolean.valueOf ( config.optBoolean ( "catalogCache", true ) ).toString () );
 		}
 
 		fEngine = new VelocityEngine ( props );
