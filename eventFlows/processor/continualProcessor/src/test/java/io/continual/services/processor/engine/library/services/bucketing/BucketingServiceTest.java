@@ -2,8 +2,8 @@ package io.continual.services.processor.engine.library.services.bucketing;
 
 import java.util.List;
 
-import org.junit.Test;
 import org.junit.Ignore;
+import org.junit.Test;
 
 import io.continual.services.processor.engine.library.services.bucketing.BucketingService.Period;
 import junit.framework.TestCase;
@@ -22,7 +22,7 @@ public class BucketingServiceTest extends TestCase
 
 		final List<Long> between = Period.getTimestampsBetween ( p, ts2020Jan15, ts2020Apr15 );
 		assertEquals ( 2, between.size () );
-		assertEquals ( new Long ( 1581786000000L ), between.get ( 0 ) );
-		assertEquals ( new Long ( 1584291600000L ), between.get ( 1 ) );
+		assertEquals ( Long.valueOf ( 1581786000000L ), between.get ( 0 ) );
+		assertEquals ( Long.valueOf ( 1584291600000L ), between.get ( 1 ) );
 	}
 }

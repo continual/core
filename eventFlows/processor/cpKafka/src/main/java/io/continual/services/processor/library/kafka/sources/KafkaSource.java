@@ -1,6 +1,7 @@
 package io.continual.services.processor.library.kafka.sources;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Properties;
@@ -67,8 +68,8 @@ public class KafkaSource extends BasicSource
 		{
 			return fPendingMsgs.remove ();
 		}
-		
-		final ConsumerRecords<String,String> records = fConsumer.poll ( 100L );
+
+		final ConsumerRecords<String,String> records = fConsumer.poll ( Duration.ofMillis ( 100L ) );
 		for ( ConsumerRecord<String,String> cr : records )
 		{
 			final String msgStr = cr.value ();

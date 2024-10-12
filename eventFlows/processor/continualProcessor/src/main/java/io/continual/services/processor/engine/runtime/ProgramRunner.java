@@ -49,7 +49,7 @@ public class ProgramRunner extends ConsoleProgram
 			System.err.println ( e.getMessage () );
 		}
 	}
-	
+
 	public static void main ( String[] args )
 	{
 		if ( args.length != 1 )

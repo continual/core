@@ -68,15 +68,15 @@ public class TestProcessingContext implements MessageProcessingContext
 		}
 		if ( targetType.equals ( Long.class ) )
 		{
-			return (T) new Long ( Long.parseLong ( asString ) );
+			return (T) Long.valueOf ( Long.parseLong ( asString ) );
 		}
 		if ( targetType.equals ( Integer.class ) )
 		{
-			return (T) new Integer ( Integer.parseInt ( asString ) );
+			return (T) Integer.valueOf ( Integer.parseInt ( asString ) );
 		}
 		if ( targetType.equals ( Double.class ) )
 		{
-			return (T) new Double ( Double.parseDouble ( asString ) );
+			return (T) Double.valueOf ( Double.parseDouble ( asString ) );
 		}
 
 		throw new IllegalArgumentException ( "Can't eval to " + targetType.getName () );

@@ -122,15 +122,15 @@ public class SimpleMessageProcessingContext implements MessageProcessingContext
 		}
 		if ( targetClass.equals ( Long.class ) )
 		{
-			return (T) new Long ( Long.parseLong ( asString ) );
+			return (T) Long.valueOf ( Long.parseLong ( asString ) );
 		}
 		if ( targetClass.equals ( Integer.class ) )
 		{
-			return (T) new Integer ( Integer.parseInt ( asString ) );
+			return (T) Integer.valueOf ( Integer.parseInt ( asString ) );
 		}
 		if ( targetClass.equals ( Double.class ) )
 		{
-			return (T) new Double ( Double.parseDouble ( asString ) );
+			return (T) Double.valueOf ( Double.parseDouble ( asString ) );
 		}
 		if ( targetClass.equals ( JSONArray.class ) )
 		{

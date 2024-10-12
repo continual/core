@@ -32,25 +32,25 @@ public abstract class nvBaseWriteable extends nvBaseReadable implements NvWritea
 	@Override
 	public void set ( String key, boolean value )
 	{
-		set ( key, new Boolean ( value ).toString () );
+		set ( key, Boolean.valueOf ( value ).toString () );
 	}
 
 	@Override
 	public void set ( String key, int value )
 	{
-		set ( key, new Integer ( value ).toString () );
+		set ( key, Integer.valueOf ( value ).toString () );
 	}
 
 	@Override
 	public void set ( String key, long value )
 	{
-		set ( key, new Long ( value ).toString () );
+		set ( key, Long.valueOf ( value ).toString () );
 	}
 
 	@Override
 	public void set ( String key, double value )
 	{
-		set ( key, new Double ( value ).toString () );
+		set ( key, Double.valueOf ( value ).toString () );
 	}
 
 	@Override

@@ -17,6 +17,8 @@
 package io.continual.http.app.servers.routeInstallers;
 
 import org.json.JSONException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.continual.http.service.framework.routing.CHttpRequestRouter;
 import io.continual.iam.access.AccessException;
@@ -40,7 +42,9 @@ public class TypicalApiServiceRouteInstaller extends BaseRouteInstaller
 			registerErrorHandler ( JSONException.class, HttpStatusCodes.k400_badRequest, "Bad request. See the API docs." );
 			registerErrorHandler ( AccessException.class, HttpStatusCodes.k403_forbidden, "Forbidden." );
 			registerErrorHandler ( IamSvcException.class, HttpStatusCodes.k503_serviceUnavailable );
-			registerErrorHandler ( Throwable.class, HttpStatusCodes.k500_internalServerError, "There was a problem at the server." );
+			registerErrorHandler ( Throwable.class, HttpStatusCodes.k500_internalServerError, "There was a problem at the server.", log );
 		}
 	}
+
+	private static final Logger log = LoggerFactory.getLogger ( TypicalApiServiceRouteInstaller.class );
 }
