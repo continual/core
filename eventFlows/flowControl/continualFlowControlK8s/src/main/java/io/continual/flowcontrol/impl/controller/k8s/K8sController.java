@@ -1,81 +1,45 @@
 package io.continual.flowcontrol.impl.controller.k8s;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileWriter;
+import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.introspector.PropertySubstitute;
 
 import io.continual.builder.Builder;
 import io.continual.builder.Builder.BuildFailure;
+import io.continual.builder.sources.BuilderJsonDataSource;
+import io.continual.flowcontrol.impl.controller.k8s.K8sElement.ElementDeployException;
+import io.continual.flowcontrol.impl.controller.k8s.K8sElement.K8sDeployContext;
+import io.continual.flowcontrol.impl.controller.k8s.elements.SecretDeployer;
 import io.continual.flowcontrol.impl.deployer.BaseDeployer;
 import io.continual.flowcontrol.model.FlowControlCallContext;
 import io.continual.flowcontrol.model.FlowControlDeployment;
 import io.continual.flowcontrol.model.FlowControlDeploymentSpec;
 import io.continual.flowcontrol.model.FlowControlJob.FlowControlRuntimeSpec;
-import io.continual.flowcontrol.model.FlowControlResourceSpecs;
-import io.continual.flowcontrol.model.FlowControlResourceSpecs.Toleration;
-import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService;
-import io.continual.flowcontrol.services.deployer.FlowControlRuntimeState;
 import io.continual.flowcontrol.services.encryption.Encryptor;
 import io.continual.iam.identity.Identity;
-import io.continual.resources.ResourceLoader;
 import io.continual.services.ServiceContainer;
-import io.continual.templating.ContinualTemplateContext;
-import io.continual.templating.ContinualTemplateEngine;
-import io.continual.templating.ContinualTemplateEngine.TemplateParseException;
-import io.continual.templating.ContinualTemplateSource;
-import io.continual.templating.ContinualTemplateSource.TemplateNotFoundException;
-import io.continual.templating.impl.dollarEval.DollarEvalTemplateEngine;
-import io.continual.util.data.TypeConvertor;
+import io.continual.util.data.StringUtils;
 import io.continual.util.data.json.JsonVisitor;
-import io.continual.util.standards.HttpStatusCodes;
-import io.fabric8.kubernetes.api.model.Container;
-import io.fabric8.kubernetes.api.model.EnvVar;
-import io.fabric8.kubernetes.api.model.EnvVarSource;
-import io.fabric8.kubernetes.api.model.HasMetadata;
-import io.fabric8.kubernetes.api.model.LocalObjectReference;
-import io.fabric8.kubernetes.api.model.ObjectMeta;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.PodList;
-import io.fabric8.kubernetes.api.model.PodSpec;
-import io.fabric8.kubernetes.api.model.PodTemplateSpec;
-import io.fabric8.kubernetes.api.model.Quantity;
-import io.fabric8.kubernetes.api.model.ResourceRequirements;
-import io.fabric8.kubernetes.api.model.Secret;
-import io.fabric8.kubernetes.api.model.SecretBuilder;
-import io.fabric8.kubernetes.api.model.SecretKeySelector;
-import io.fabric8.kubernetes.api.model.apps.Deployment;
-import io.fabric8.kubernetes.api.model.apps.DeploymentCondition;
-import io.fabric8.kubernetes.api.model.apps.DeploymentList;
-import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
-import io.fabric8.kubernetes.api.model.apps.StatefulSet;
-import io.fabric8.kubernetes.api.model.apps.StatefulSetList;
-import io.fabric8.kubernetes.api.model.apps.StatefulSetSpec;
-import io.fabric8.kubernetes.api.model.apps.StatefulSetStatus;
-import io.fabric8.kubernetes.client.Config;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientBuilder;
-import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.client.dsl.Gettable;
-import io.fabric8.kubernetes.client.dsl.PodResource;
+import io.continual.util.data.json.JsonVisitor.ArrayVisitor;
+import io.kubernetes.client.openapi.ApiClient;
+import io.kubernetes.client.openapi.ApiException;
+import io.kubernetes.client.openapi.Configuration;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
+import io.kubernetes.client.util.ClientBuilder;
+import io.kubernetes.client.util.KubeConfig;
 
 public class K8sController extends BaseDeployer
 {
-	static final String kSetting_k8sContext = "context";
-	static final String kSetting_K8sNamespace = "namespace";
-
 	static final String kSetting_ConfigMountLoc = "configMountLoc";
 	static final String kDefault_ConfigMountLoc = "/var/flowcontrol/config";
 
@@ -88,25 +52,29 @@ public class K8sController extends BaseDeployer
 	static final String kSetting_InitYamlResource = "deploymentYaml";
 	static final String kDefault_InitYamlResource = "initDeployment.yaml";
 
-	static final String kSetting_InitYamlSettings = "deploymentSettings";
-
-	static final String kSetting_InitYamlImagePullSecrets = "imagePullSecrets";
-
-	static final String kSetting_StorageClass = "storageClass";
-	static final String kDefault_StorageClass = "standard";
+	static final String kSetting_ImagePullSecrets = "imagePullSecrets";
 
 	static final String kSetting_InstallationName = "installationName";
+	static final String kSetting_InternalConfigUrl = "internalConfigUrl";
 
 	static final String kSetting_DumpInitYaml = "dumpInitYaml";
 
-	static final String kSetting_DeploySpecCtxPop = "deploymentSpecToContext";
-	static final String kSetting_TemplateEngine = "templateEngine";
-
+	static final String kSetting_Elements = "elements";
+	
 	static final String kSetting_EncryptorSvc = "encryptor";
 	static final String kDefault_EncryptorSvc = "encryptor";
 
 	static final String kSetting_ImageMapper = "imageMapper";
-	
+
+	static final String kSetting_UseKubeConfig = "useKubeConfig";
+	static final boolean kDefault_UseKubeConfig = true;
+
+	static final String kSetting_KubeConfigFile = "kubeConfig";
+	static final String kDefault_KubeConfigFile = System.getenv("HOME") + "/.kube/config";
+
+	static final String kSetting_k8sContext = "kubeConfigContext";
+	static final String kSetting_K8sNamespace = "namespace";
+
 	public K8sController ( ServiceContainer sc, JSONObject rawConfig ) throws BuildFailure
 	{
 		super ( sc, rawConfig );
@@ -114,19 +82,9 @@ public class K8sController extends BaseDeployer
 		// evaluate the config in bulk...
 		final JSONObject config = sc.getExprEval ().evaluateJsonObject ( rawConfig );
 
-		// get the k8s context name
-		final String contextName = config.optString ( kSetting_k8sContext, null );
-		if ( contextName != null && contextName.length () > 0 )
-		{
-			log.info ( "Using Kubernetes context {}", contextName );
-			final Config cfgWithContext = Config.autoConfigure ( contextName );
-			fApiClient = new KubernetesClientBuilder().withConfig ( cfgWithContext ).build ();
-		}
-		else
-		{
-			log.info ( "Using default Kubernetes context via fabric8 auto config." );
-			fApiClient = new KubernetesClientBuilder().build();
-		}
+		// get k8s client config setup
+		fK8sNamespace = config.getString ( kSetting_K8sNamespace );
+		setupK8sConfig ( config, fK8sNamespace );
 
 		// get the image mapper
 		final JSONObject mapperSpec = config.optJSONObject ( kSetting_ImageMapper );
@@ -141,37 +99,11 @@ public class K8sController extends BaseDeployer
 			fImageMapper = new SimpleImageMapper ();
 		}
 
-		// The deployment spec translator populates the templating context with data from the deployment spec.
-		// It can be overridden in config.
-		final String deploySpecCtxPopSpec = config.optString ( kSetting_DeploySpecCtxPop, null );
-		if ( deploySpecCtxPopSpec != null )
-		{
-			fDeploySpecPopulator = sc.getReqd ( deploySpecCtxPopSpec, DeploySpecTranslator.class );
-		}
-		else
-		{
-			log.info ( "Using default deployment spec translator." );
-			fDeploySpecPopulator = new StdDeploySpecTranslator ( sc, new JSONObject () );
-		}
-
-		// the templating engine...
-		final String templateEngineSpec = config.optString ( kSetting_TemplateEngine, null );
-		if ( templateEngineSpec != null )
-		{
-			fTemplateEngine = sc.getReqd ( templateEngineSpec, ContinualTemplateEngine.class );
-		}
-		else
-		{
-			log.info ( "Using default templating engine." );
-			fTemplateEngine = new DollarEvalTemplateEngine ( sc, new JSONObject () );
-		}
-
 		// an encryption service
 		fEncryptor = sc.getReqd ( config.optString ( kSetting_EncryptorSvc, kDefault_EncryptorSvc ), Encryptor.class );
 
 		// kubernetes API settings
-		fK8sNamespace = config.getString ( kSetting_K8sNamespace );
-		fImgPullSecrets = JsonVisitor.arrayToList ( config.optJSONArray ( kSetting_InitYamlImagePullSecrets ) );
+		fImgPullSecrets = JsonVisitor.arrayToList ( config.optJSONArray ( kSetting_ImagePullSecrets ) );
 
 		//
 		//	FIXME: the remaining settings feel like they should be in a list of arbitrary items that
@@ -181,29 +113,34 @@ public class K8sController extends BaseDeployer
 		//	engine container where to find its config? Why can't that image just deal with the URL 
 		//	provided in any way it prefers?
 		//
-		
+
 		// on-pod mount points
 		fConfigMountLoc = config.optString ( kSetting_ConfigMountLoc, kDefault_ConfigMountLoc );
 		fPersistMountLoc = config.optString ( kSetting_PersistMountLoc, kDefault_PersistMountLoc );
 		fLogsMountLoc = config.optString ( kSetting_LogsMountLoc, kDefault_LogsMountLoc );
 
-		fInitYamlResource = config.optString ( kSetting_InitYamlResource, kDefault_InitYamlResource );
-		fInitYamlSettings = config.optJSONObject ( kSetting_InitYamlSettings );
-		fInitYamlStorageClass= config.optString ( kSetting_StorageClass, kDefault_StorageClass );
-
 		fInstallationName = config.optString ( kSetting_InstallationName, "" );
+		fInternalConfigBaseUrl = config.optString ( kSetting_InternalConfigUrl, "localhost:8080" );
 
-		fDumpInitYaml = config.optBoolean ( kSetting_DumpInitYaml, false );
+		fElements = new LinkedList<> ();
+		JsonVisitor.forEachElement ( config.optJSONArray ( kSetting_Elements ), new ArrayVisitor<JSONObject,BuildFailure> ()
+		{
+			@Override
+			public boolean visit ( JSONObject element ) throws JSONException, BuildFailure
+			{
+				final K8sElement elementBuilder = Builder.withBaseClass ( K8sElement.class )
+					.withClassNameInData ()
+					.searchingPath ( SecretDeployer.class.getPackageName () )
+					.usingData ( new BuilderJsonDataSource ( element ) )
+					.build ()
+				;
+				fElements.add ( elementBuilder );
+				return true;
+			}
+		} );
 	}
 
-	@Override
-	protected void onStopRequested ()
-	{
-		super.onStopRequested ();
-
-		fApiClient.close ();
-	}
-
+	
 	@Override
 	protected FlowControlDeployment internalDeploy ( FlowControlCallContext ctx, FlowControlDeploymentSpec ds, String configKey ) throws ServiceException, RequestException
 	{
@@ -211,177 +148,86 @@ public class K8sController extends BaseDeployer
 		{
 			// setup job for transfer via config transfer service
 			final String jobId = ds.getJob ().getId ();
-			final String k8sJobId = makeK8sName ( jobId );
-			final String tag = k8sJobId;
+			final String k8sDeployId = makeK8sName ( jobId );
+			final String tag = k8sDeployId;
 
-			final String targetConfigFile = fConfigMountLoc + "/jobConfig.json";
+			// get the runtime spec 
+			final FlowControlRuntimeSpec runtimeSpec = ds.getJob ().getRuntimeSpec ();
+			if ( runtimeSpec == null ) throw new RequestException ( "There's no runtime spec on this job." );
+			final String runtimeImage = fImageMapper.getImageName ( runtimeSpec );
 
-			// place any secrets from this job
-			final String secretsName = tagToSecret ( tag );
+			// build the container environment starting with what's in the spec from the user
+			final HashMap<String,String> env = new HashMap<> ();
 
-			// start a secret for this job's secret data
-			final Map<String,String> secrets = ds.getJob ().getSecrets ( fEncryptor );
-			SecretBuilder sb = new SecretBuilder ()
-				.withType ( "Opaque" )
-				.withNewMetadata ()
-					.withName ( secretsName )
-				.endMetadata ()
-			;
+			// user settings
+			env.putAll ( ds.getEnv () );
 
-			// iterate through registered secrets and add them to the secret builder
-			boolean anyInternalSecrets = false;
-			for ( Map.Entry<String,String> secret : secrets.entrySet () )
+			// forced environment from flow control (after user settings so they're not changed)
+			env.put ( "FC_DEPLOYMENT_NAME", k8sDeployId );
+			env.put ( "FC_JOB_TAG", "job-" + k8sDeployId );
+			env.put ( "FC_JOB_ID", jobId );
+			env.put ( "FC_CONFIG_URL", configKeyToUrl ( configKey ) );
+			env.put ( "FC_CONFIG_MOUNT", fConfigMountLoc );
+			env.put ( "FC_CONFIG_FILE", fConfigMountLoc + "/jobConfig.json" );
+			env.put ( "FC_PERSISTENCE_MOUNT", fPersistMountLoc );
+			env.put ( "FC_LOGS_MOUNT", fLogsMountLoc );
+			env.put ( "FC_RUNTIME_IMAGE", runtimeImage );
+			
+			// builder workspace
+			final JSONObject workspace = new JSONObject ();
+
+			final K8sDeployContext deployContext = new K8sDeployContext ()
 			{
-				final String val = secret.getValue ();
-				final boolean isInternal = val != null;
-
-				if ( isInternal )
-				{
-					anyInternalSecrets = true;
-					sb = sb.addToData ( secret.getKey (), TypeConvertor.base64Encode ( secret.getValue () ) );
-				}
-			}
-			if ( anyInternalSecrets )
+				@Override
+				public String getInstallationName () { return fInstallationName; }
+				@Override
+				public String getNamespace () { return fK8sNamespace; }
+				@Override
+				public String getDeployId () { return k8sDeployId; }
+				@Override
+				public FlowControlDeploymentSpec getDeploymentSpec () { return ds; }
+				@Override
+				public String getRuntimeImage () { return runtimeImage; }
+				@Override
+				public Encryptor getEncryptor () { return fEncryptor; }
+				@Override
+				public JSONObject getWorkspace () { return workspace; }
+				@Override
+				public Map<String, String> getEnvironment () { return env; }
+				@Override
+				public List<String> getImagePullSecrets () { return fImgPullSecrets; }
+			};
+			
+			// build each element
+			for ( K8sElement element : fElements )
 			{
-				fApiClient.secrets ().inNamespace ( fK8sNamespace ).resource ( sb.build () ).serverSideApply ();
+				element.deploy ( deployContext );
 			}
 
-			// Get deployment installed.  
-			try ( final InputStream deployTemplate = new ResourceLoader ()
-				.usingStandardSources ( false, K8sController.class )
-				.named ( fInitYamlResource )
-				.load ()
-			)
-			{
-				if ( deployTemplate == null ) throw new ServiceException ( "Couldn't load " + fInitYamlResource );
-
-				final FlowControlRuntimeSpec runtimeSpec = ds.getJob ().getRuntimeSpec ();
-				if ( runtimeSpec == null ) throw new RequestException ( "There's no runtime spec on this job." );
-
-				// get a template context and initialize it with basic information
-				final ContinualTemplateContext templateCtx = fTemplateEngine.createContext ();
-				templateCtx
-					.putAll ( System.getenv () )
-					.put ( "CONFIG_URL", "${CONFIG_URL}" )	// this is to restore the evaluation text that's required during actual deployment
-					.put ( "FC_DEPLOYMENT_NAME", tag )
-					.put ( "FC_JOB_TAG", "job-" + tag )
-					.put ( "FC_JOB_ID", jobId )
-					.put ( "FC_CONFIG_MOUNT", fConfigMountLoc )
-					.put ( "FC_PERSISTENCE_MOUNT", fPersistMountLoc )
-					.put ( "FC_LOGS_MOUNT", fLogsMountLoc )
-					.put ( "FC_CONFIG_FILE", targetConfigFile )
-					.put ( "FC_RUNTIME_IMAGE", fImageMapper.getImageName ( runtimeSpec ) )
-					.put ( "FC_STORAGE_CLASS", fInitYamlStorageClass )
-				;
-
-				// allow our deployment spec populator to add to the context
-				fDeploySpecPopulator.populate ( ds, templateCtx );
-
-				// add init yaml settings (these are fixed)
-				templateCtx.putAll ( JsonVisitor.objectToMap ( fInitYamlSettings ) );
-
-				// expand the template into our output stream
-				final ByteArrayOutputStream baos = new ByteArrayOutputStream ();
-				fTemplateEngine.renderTemplate ( ContinualTemplateSource.fromInputStream ( deployTemplate ), templateCtx, baos );
-				final String deployYaml = new String ( baos.toByteArray (), StandardCharsets.UTF_8 );
-				final ByteArrayInputStream bais = new ByteArrayInputStream ( deployYaml.getBytes ( StandardCharsets.UTF_8 ) );
-
-				dumpYaml ( tag, deployYaml );
-
-				// build deployable item list
-				final Gettable<List<HasMetadata>> gets = fApiClient.load ( bais );
-				final List<HasMetadata> items = gets.get ();
-
-				// push environment
-				final HashMap<String,String> env = new HashMap<String,String> ();
-				env.putAll ( ds.getEnv () );
-				env.put ( "CONFIG_URL", configKeyToUrl ( configKey ) );
-				env.put ( "FC_INSTALLATION_NAME", fInstallationName );
-				env.put ( "FC_CONFIG_DIR", fConfigMountLoc );
-				env.put ( "FC_PERSISTENCE_DIR", fPersistMountLoc );
-				env.put ( "FC_LOGS_DIR", fLogsMountLoc );
-				env.put ( "JOB_ID", jobId );
-				env.put ( "CONFIG_FILE", targetConfigFile );
-				updateEnv ( env );
-
-				for ( HasMetadata md : items )
-				{
-					final String kind = md.getKind ();
-					final String name = md.getMetadata ().getName ();
-					log.info ( "Manifest includes {} {}.", kind, name );
-
-					PodTemplateSpec template = null;
-					if ( kind.equals ( "Deployment" ) )
-					{
-						final Deployment d = (Deployment) md;
-						final io.fabric8.kubernetes.api.model.apps.DeploymentSpec deploySpec = d.getSpec ();
-						template = deploySpec.getTemplate ();
-					}
-					else if ( kind.equals ( "StatefulSet" ) )
-					{
-						final StatefulSet ss = (StatefulSet) md;
-						final StatefulSetSpec sss = ss.getSpec ();
-						template = sss.getTemplate ();
-					}
-					if ( template != null )
-					{
-						updateTemplate ( ds, template, env, secretsName, secrets );
-					}
-				}
-
-				fApiClient
-					.resourceList ( items )
-					.inNamespace ( fK8sNamespace )
-					.serverSideApply ()
-				;
-			}
-			catch ( IOException | TemplateNotFoundException | TemplateParseException e )
-			{
-				throw new ServiceException ( e );
-			}
-			catch ( KubernetesClientException x )
-			{
-				mapException ( x );
-			}
-	
-			return new IntDeployment ( tag, jobId, ds, ctx.getUser (), configKey );
+			return new IntDeployment ( tag, ds, ctx.getUser (), configKey );
 		}
-		catch ( GeneralSecurityException x )
+		catch ( ElementDeployException x )
 		{
 			throw new ServiceException ( x );
 		}
 	}
 
-	private String configKeyToUrl ( String configKey )
-	{
-		return "http://foo.bar/"  + configKey;
-	}
-	
 	@Override
-	protected void internalUndeploy ( FlowControlCallContext ctx, String deploymentId ) throws ServiceException
+	protected void internalUndeploy ( FlowControlCallContext ctx, String deploymentId, FlowControlDeployment deployment ) throws ServiceException
 	{
-		final K8sDeployWrapper dw = getDeployment ( deploymentId );
-		if ( dw != null )
+		// build elements
+		try
 		{
-			dw.delete ();
-		
-			try
+			final LinkedList<K8sElement> reversed = new LinkedList<> ( fElements );
+			Collections.reverse ( reversed );
+			for ( K8sElement element : reversed )
 			{
-				final Secret secret = fApiClient
-					.secrets ()
-					.inNamespace ( fK8sNamespace )
-					.withName ( tagToSecret ( deploymentId ) )
-					.get ()
-				;
-				if ( secret != null )
-				{
-					fApiClient.resource ( secret ).delete ();
-				}
+				element.undeploy ( fK8sNamespace, deploymentId );
 			}
-			catch ( KubernetesClientException | IllegalStateException x )
-			{
-				// spec says object should be null if it doesn't exist, but testing implies this exception is thrown instead
-			}
+		}
+		catch ( ElementDeployException x )
+		{
+			throw new ServiceException ( x );
 		}
 	}
 /*
@@ -453,30 +299,28 @@ public class K8sController extends BaseDeployer
 		return result;
 	}
 */
-	private final ContinualTemplateEngine fTemplateEngine;
 	private final Encryptor fEncryptor;
 
-	private final KubernetesClient fApiClient;
 	private final String fK8sNamespace;
 	private final String fConfigMountLoc;
 	private final String fPersistMountLoc;
 	private final String fLogsMountLoc;
 	private final ContainerImageMapper fImageMapper;
-	private final String fInitYamlResource;
-	private final DeploySpecTranslator fDeploySpecPopulator;
-	private final JSONObject fInitYamlSettings;
-	private final String fInitYamlStorageClass;
 	private final String fInstallationName;
 	private final List<String> fImgPullSecrets;
-	private final boolean fDumpInitYaml;
+	private final LinkedList<K8sElement> fElements;
+	private final String fInternalConfigBaseUrl;
 
-	protected void updateEnv ( HashMap<String,String> env )
+	private static final Logger log = LoggerFactory.getLogger ( K8sController.class );
+
+	private String configKeyToUrl ( String configKey )
 	{
+		return StringUtils.appendIfMissing ( fInternalConfigBaseUrl, "/" )  + configKey;
 	}
 
 	private static String makeK8sName ( String from )
 	{
-		return "s-" + from.toLowerCase ();
+		return from.toLowerCase ();
 	}
 	
 	private static class SimpleImageMapper implements ContainerImageMapper
@@ -488,166 +332,7 @@ public class K8sController extends BaseDeployer
 		}
 	}
 
-	private void dumpYaml ( String tag, String deployYaml )
-	{
-		if ( fDumpInitYaml )
-		{
-			final File tmpDir = new File ( "/tmp/flowControlYamls" );
-			tmpDir.mkdir ();
-	
-			final File yamlFile = new File ( tmpDir, tag + ".yaml" );
-			try ( final FileWriter fw = new FileWriter ( yamlFile ) )
-			{
-				fw.write ( deployYaml );
-			}
-			catch ( IOException x )
-			{
-				log.warn ( "Couldn't write {}", yamlFile );
-			}
-		}
-	}
-
-	private static String tagToSecret ( String tag )
-	{
-		return "secret-" + tag;
-	}
-
-	private void updateTemplate ( FlowControlDeploymentSpec ds, PodTemplateSpec template, HashMap<String,String> env, String secretsName, Map<String,String> secrets )
-	{
-		final PodSpec ps = template.getSpec ();
-
-		// apply any image pull secrets we have
-		final List<LocalObjectReference> ipsList = new LinkedList<> ();
-		for ( String ips : fImgPullSecrets )
-		{
-			ipsList.add ( new LocalObjectReference ( ips ) );
-			log.info ( "Registering image pull secret {}...", ips );
-		}
-		ps.setImagePullSecrets ( ipsList );
-
-		// add env, secrets, and limits to the containers
-		for ( Container c : ps.getContainers () )
-		{
-			pushEnvMapToContainer ( env, c );
-			addSecretsToContainer ( secretsName, secrets, c );
-			setLimitsOnContainer ( ds, c );
-		}
-		for ( Container c : ps.getInitContainers () )
-		{
-			pushEnvMapToContainer ( env, c );
-			addSecretsToContainer ( secretsName, secrets, c );
-			setLimitsOnContainer ( ds, c );
-		}
-
-		// apply tolerations
-		final LinkedList<io.fabric8.kubernetes.api.model.Toleration> tols = new LinkedList<> ();
-		for ( Toleration t : ds.getResourceSpecs ().tolerations () )
-		{
-			tols.add ( new io.fabric8.kubernetes.api.model.Toleration ( t.effect (), t.key (), t.operator (), t.seconds (), t.value () ) );
-		}
-		if ( tols.size () > 0 )
-		{
-			ps.setTolerations ( tols );
-		}
-	}
-
-	private void addSecretsToContainer ( String secretName, Map<String, String> secrets, Container c )
-	{
-		List<EnvVar> list = c.getEnv ();
-
-		for ( Map.Entry<String,String> e : secrets.entrySet () )
-		{
-			if ( e.getValue () != null )
-			{
-				list.add ( new EnvVar ( e.getKey (), null, new EnvVarSource ( null, null, null, new SecretKeySelector ( e.getKey (), secretName, true ) ) ) );
-			}
-		}
-	}
-
-	private void pushEnvMapToContainer ( Map<String,String> env, Container c )
-	{
-		List<EnvVar> list = c.getEnv ();
-		for ( Map.Entry<String,String> e : env.entrySet () )
-		{
-			list.add ( new EnvVar ( e.getKey (), e.getValue (), null ) );
-		}
-	}
-
-	private void setLimitsOnContainer ( FlowControlDeploymentSpec ds, Container c )
-	{
-		final FlowControlResourceSpecs rs = ds.getResourceSpecs ();
-		final String cpuReq = rs.cpuRequest ();
-		final String cpuLimit = rs.cpuLimit ();
-		final String mem = rs.memLimit ();
-
-		HashMap<String, Quantity> map = new HashMap<> ();
-		if ( mem != null )
-		{
-			map.put ( "memory", new Quantity ( mem ) );
-		}
-		if ( cpuReq != null )
-		{
-			map.put ( "cpu", new Quantity ( cpuReq ) );
-		}
-		if ( map.size () > 0 )
-		{
-			ResourceRequirements rr = c.getResources ();
-			if ( rr == null )
-			{
-				rr = new ResourceRequirements ();
-				c.setResources ( rr );
-			}
-			rr.setRequests ( map );
-		}
-
-		map = new HashMap<> ();
-		if ( mem != null )
-		{
-			map.put ( "memory", new Quantity ( mem ) );
-		}
-		if ( cpuLimit != null )
-		{
-			map.put ( "cpu", new Quantity ( cpuLimit ) );
-		}
-		if ( map.size () > 0 )
-		{
-			ResourceRequirements rr = c.getResources ();
-			if ( rr == null )
-			{
-				rr = new ResourceRequirements ();
-				c.setResources ( rr );
-			}
-			rr.setLimits ( map );
-		}
-	}
-
-	private static void mapException ( KubernetesClientException x ) throws RequestException, ServiceException
-	{
-		// relay this exception...
-		final int status = x.getStatus ().getCode ();
-		if ( HttpStatusCodes.isClientFailure ( status ) )
-		{
-			switch ( status )
-			{
-				case HttpStatusCodes.k404_notFound:
-					throw new FlowControlDeploymentService.RequestException ( "Object not found." );
-				case HttpStatusCodes.k400_badRequest:
-					throw new FlowControlDeploymentService.RequestException ( "Bad request." );
-				default:
-					throw new FlowControlDeploymentService.RequestException ( x );
-			}
-		}
-		else
-		{
-			throw new FlowControlDeploymentService.ServiceException ( x );
-		}
-	}
-
-	private static void mapExceptionSvcOnly ( KubernetesClientException x ) throws ServiceException
-	{
-		throw new FlowControlDeploymentService.ServiceException ( x );
-	}
-
+/*
 	private class K8sDeployWrapper
 	{
 		public K8sDeployWrapper ( Deployment d ) { fDeployment = d; fStatefulSet = null; }
@@ -732,14 +417,13 @@ public class K8sController extends BaseDeployer
 		private final Deployment fDeployment;
 		private final StatefulSet fStatefulSet;
 	}
-	
+*/
 	private class IntDeployment implements FlowControlDeployment
 	{
-		public IntDeployment ( String tag, String jobId, FlowControlDeploymentSpec ds, Identity deployer, String configKey )
+		public IntDeployment ( String tag, FlowControlDeploymentSpec ds, Identity deployer, String configKey )
 		{
 			fTag = tag;
 			fDeployer = deployer;
-			fJobId = jobId;
 			fDeploymentSpec = ds;
 			fConfigKey = configKey;
 		}
@@ -757,12 +441,11 @@ public class K8sController extends BaseDeployer
 		public String getConfigToken () { return fConfigKey; }
 
 		private final String fTag;
-		private final String fJobId;
 		private final Identity fDeployer;
 		private final FlowControlDeploymentSpec fDeploymentSpec;
 		private final String fConfigKey;
 	}
-
+/*
 	private List<String> getLogFor ( PodResource pod, String sinceRfc3339Time )
 	{
 		final LinkedList<String> result = new LinkedList<> ();
@@ -859,8 +542,6 @@ public class K8sController extends BaseDeployer
 		return pl.getItems ();
 	}
 
-	private static final Logger log = LoggerFactory.getLogger ( K8sController.class );
-
 	private static int safeInt ( Integer i )
 	{
 		return i == null ? 0 : i;
@@ -886,5 +567,88 @@ public class K8sController extends BaseDeployer
 			}
 		}
 		return defval;
+	}
+*/
+	private void setupK8sConfig ( JSONObject config, String namespace ) throws BuildFailure
+	{
+		// We can run in-cluster or via kube config file. Adapted from https://github.com/kubernetes-client/java/wiki/3.-Code-Examples, Oct 2024 
+		try
+		{
+			final ApiClient client;
+
+			final boolean useKubeConfig = config.optBoolean ( kSetting_UseKubeConfig, kDefault_UseKubeConfig );
+			final String kubeConfigFile = config.optString ( kSetting_KubeConfigFile, kDefault_KubeConfigFile );
+
+			if ( useKubeConfig || ( config.has ( kSetting_KubeConfigFile ) && StringUtils.isNotEmpty ( kubeConfigFile ) ) )
+			{
+				log.info ( "Building k8s API config from kube config [" + kubeConfigFile + "]" );
+
+				// user has asked for kube config read either via use-kube-config boolean or by setting a
+				// non-empty filename
+				final KubeConfig kc = KubeConfig.loadKubeConfig ( new FileReader ( kubeConfigFile ) );
+				
+				// get the k8s context name
+				final String contextName = config.optString ( kSetting_k8sContext, null );
+				if ( StringUtils.isNotEmpty ( contextName ) )
+				{
+					log.info ( "Using kubectl context [{}]", contextName );
+					kc.setContext ( contextName );
+				}
+				else
+				{
+					log.warn ( "🤔 Using kubectl's current context. (It's a good idea to explicitly configure '{}'.)", kSetting_k8sContext );
+				}
+
+				// build
+				client = ClientBuilder
+					.kubeconfig ( kc )
+					.build ()
+				;
+			}
+			else
+			{
+				log.info ( "Building k8s API config from in-cluster service account data" );
+
+				// use service account setup
+				client = ClientBuilder.cluster ().build ();
+
+			    // if you prefer not to refresh service account token, please use:
+			    // ApiClient client = ClientBuilder.oldCluster().build();
+			}
+
+		    // set the global default api-client to the in-cluster one from above
+			Configuration.setDefaultApiClient ( client );
+
+			// test connectivity by checking for the assigned namespace
+			final CoreV1Api api = new CoreV1Api ();
+			if ( 0 == api
+				.listNamespace ()
+				.labelSelector ( "kubernetes.io/metadata.name=" + namespace )
+				.execute ()
+				.getItems ()
+				.size () 
+			)
+			{
+				throw new BuildFailure ( "Namespace [" + namespace + "] is not available." );
+			}
+			log.info ( "Connected to Kubernetes and found namespace [" + namespace + "]." );
+		}
+		catch ( IOException x )
+		{
+			throw new BuildFailure ( x );
+		}
+		catch ( ApiException x )
+		{
+			throw new BuildFailure ( x );
+		}
+	}
+
+	// see https://github.com/kubernetes-client/java/issues/2741 (this doesn't seem to be helping any)
+	static
+	{
+		java.util.logging.Logger snakeLog = java.util.logging.Logger.getLogger ( PropertySubstitute.class.getPackage().getName() );
+		snakeLog.setLevel ( java.util.logging.Level.SEVERE );
+		snakeLog = java.util.logging.Logger.getLogger ( "org.yaml.snakeyaml.introspector" );
+		snakeLog.setLevel ( java.util.logging.Level.SEVERE );
 	}
 }
