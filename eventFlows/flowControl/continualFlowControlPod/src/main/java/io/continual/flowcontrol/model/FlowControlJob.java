@@ -58,6 +58,21 @@ public interface FlowControlJob extends ProtectedResource
 	 */
 	interface FlowControlRuntimeSpec
 	{
+		static FlowControlRuntimeSpec from ( String name, String version )
+		{
+			return new FlowControlRuntimeSpec ()
+			{
+				@Override
+				public String toString () { return getName() + ":" + getVersion(); }
+
+				@Override
+				public String getName () { return name; }
+
+				@Override
+				public String getVersion () { return version; }
+			};
+		}
+
 		/**
 		 * The name of the runtime
 		 * @return a name

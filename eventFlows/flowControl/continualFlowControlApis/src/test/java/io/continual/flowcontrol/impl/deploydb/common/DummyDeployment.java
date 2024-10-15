@@ -89,14 +89,7 @@ public class DummyDeployment implements FlowControlDeployment
 					public InputStream readConfiguration () { return new ByteArrayInputStream ( new JSONObject().put ( "foo", "bar" ).toString().getBytes ( StandardCharsets.UTF_8 ) ); }
 				} )
 	
-				.setRuntimeSpec ( new FlowControlRuntimeSpec ()
-				{
-					@Override
-					public String getName () { return "myEngine"; }
-	
-					@Override
-					public String getVersion () { return "1.0"; }
-				} )
+				.setRuntimeSpec ( FlowControlRuntimeSpec.from ( "myEngine", "1.0" ) )
 	
 				.registerSecret ( "topSecret", "shh" )
 	

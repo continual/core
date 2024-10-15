@@ -374,14 +374,7 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 		final JSONObject runtime = payload.optJSONObject ( "runtime" );
 		if ( runtime != null )
 		{
-			job.setRuntimeSpec ( new FlowControlRuntimeSpec ()
-			{
-				@Override
-				public String getName () { return runtime.getString ( "name" ); }
-
-				@Override
-				public String getVersion () { return runtime.getString ( "version" ); }
-			} );
+			job.setRuntimeSpec ( FlowControlRuntimeSpec.from ( runtime.getString ( "name" ), runtime.getString ( "version" ) ) );
 			changesMade = true;
 		}
 

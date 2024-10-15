@@ -102,13 +102,9 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 			{
 				final String type = getDataType ();
 				
-				// we know about certain types specifically....
-				if ( type.equalsIgnoreCase ( MimeTypes.kAppJson  ) )
-				{
-					final JSONObject data = config.getJSONObject ( kConfigData );
-					return new ByteArrayInputStream ( data.toString ().getBytes ( StandardCharsets.UTF_8 ) );
-				}
-				else if ( type.equalsIgnoreCase ( MimeTypes.kPlainText  ) )
+				// we know about certain types specifically.... note that JSON is stored as plain text so that
+				// we preserve user structure and comments, etc.
+				if ( type.equalsIgnoreCase ( MimeTypes.kAppJson  ) || type.equalsIgnoreCase ( MimeTypes.kPlainText  ) )
 				{
 					final String data = config.getString ( kConfigData );
 					return new ByteArrayInputStream ( data.getBytes ( StandardCharsets.UTF_8 ) );
@@ -132,14 +128,7 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 		final JSONObject runtime = fData.optJSONObject ( kRuntime );
 		if ( runtime == null ) return null;
 
-		return new FlowControlRuntimeSpec () 
-		{
-			@Override
-			public String getName () { return runtime.getString ( kName ); }
-
-			@Override
-			public String getVersion () { return runtime.getString ( kVersion ); }
-		};
+		return FlowControlRuntimeSpec.from ( runtime.getString ( kName ), runtime.getString ( kVersion ) );
 	}
 
 	@Override
@@ -274,7 +263,7 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 				// these are simple UTF-8 character streams; read them and write to a plain text value in our new job
 				final byte[] bytes = StreamTools.readBytes ( config.readConfiguration () );
 				configCopy
-					.put ( kConfigType, MimeTypes.kPlainText )
+					.put ( kConfigType, type )
 					.put ( kConfigData, new String ( bytes, StandardCharsets.UTF_8 ) )
 				;
 			}

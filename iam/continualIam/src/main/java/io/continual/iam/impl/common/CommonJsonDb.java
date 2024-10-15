@@ -107,6 +107,7 @@ public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends Common
 		{
 			return instantiateIdentity ( userId, user );
 		}
+		log.info ( "User {} does not exist in identity database", userId );
 		return null;
 	}
 

@@ -20,6 +20,7 @@ import io.continual.builder.sources.BuilderJsonDataSource;
 import io.continual.flowcontrol.impl.controller.k8s.K8sElement.ElementDeployException;
 import io.continual.flowcontrol.impl.controller.k8s.K8sElement.K8sDeployContext;
 import io.continual.flowcontrol.impl.controller.k8s.elements.SecretDeployer;
+import io.continual.flowcontrol.impl.controller.k8s.impl.NoMapImageMapper;
 import io.continual.flowcontrol.impl.deployer.BaseDeployer;
 import io.continual.flowcontrol.model.FlowControlCallContext;
 import io.continual.flowcontrol.model.FlowControlDeployment;
@@ -96,7 +97,7 @@ public class K8sController extends BaseDeployer
 		else
 		{
 			log.info ( "Using default (name:version) image mapper" );
-			fImageMapper = new SimpleImageMapper ();
+			fImageMapper = new NoMapImageMapper ();
 		}
 
 		// an encryption service
@@ -172,6 +173,9 @@ public class K8sController extends BaseDeployer
 			env.put ( "FC_PERSISTENCE_MOUNT", fPersistMountLoc );
 			env.put ( "FC_LOGS_MOUNT", fLogsMountLoc );
 			env.put ( "FC_RUNTIME_IMAGE", runtimeImage );
+
+			// FIXME: temporarily while balancing container setup reqs for flowcontrol vs. general use container images
+			env.put ( "EP_CMDLINE_ARGS", fConfigMountLoc + "/jobConfig.json"  );
 			
 			// builder workspace
 			final JSONObject workspace = new JSONObject ();
@@ -321,15 +325,6 @@ public class K8sController extends BaseDeployer
 	private static String makeK8sName ( String from )
 	{
 		return from.toLowerCase ();
-	}
-	
-	private static class SimpleImageMapper implements ContainerImageMapper
-	{
-		@Override
-		public String getImageName ( FlowControlRuntimeSpec rs )
-		{
-			return rs.getName () + ":" + rs.getVersion ();
-		}
 	}
 
 /*

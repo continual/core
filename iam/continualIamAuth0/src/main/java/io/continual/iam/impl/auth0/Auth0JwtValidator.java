@@ -71,11 +71,8 @@ public class Auth0JwtValidator implements JwtValidator
 	public String getSubject ( JwtCredential jwt ) throws IamSvcException
 	{
 		log.info ( "auth0: {}", jwt );
-		final DecodedJWT token = validate ( jwt.toBearerString () );
-		if ( token == null )
-		{
-			throw new IamSvcException ( "Problem extracting email claim from token; unable to validate jwt string." );
-		}
+
+		final DecodedJWT token = JWT.decode ( jwt.toBearerString () );
 
 		// we expect a rule in Auth0 to add an email claim to the JWT
 		final Claim userEmailClaim = token.getClaim ( fEmailClaim );
@@ -94,13 +91,14 @@ public class Auth0JwtValidator implements JwtValidator
 
 	private DecodedJWT validate ( String token ) throws IamSvcException
     {
-		final JwkProvider provider = new UrlJwkProvider ( fDomain );
 		try
 		{
-			final DecodedJWT jwt = JWT.decode(token);
-			final Jwk jwk = provider.get(jwt.getKeyId());
+			final DecodedJWT jwt = JWT.decode ( token );
 
-			final Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null);
+			final JwkProvider provider = new UrlJwkProvider ( fDomain );
+			final Jwk jwk = provider.get ( jwt.getKeyId () );
+
+			final Algorithm algorithm = Algorithm.RSA256 ( (RSAPublicKey) jwk.getPublicKey (), null );
 
 			final JWTVerifier verifier = JWT.require(algorithm)
 				.withIssuer ( fDomain )
