@@ -13,7 +13,7 @@
 		// Metrics service
 		{
 			"name": "metrics",
-			"class": "io.continual.metrics.MetricsService"
+			"class": "io.continual.metrics.DropWizardMetricsService"
 		},
 
 		//
@@ -23,8 +23,8 @@
 			"name": "accounts",
 			"class": "io.continual.iam.impl.s3.S3IamServiceManager",
 
-			"bucketId": "${CONTINUAL_S3_BUCKET}",
-			"pathPrefix": "${CONTINUAL_S3_PATHPREFIX}",
+			"bucketId": "${CONTINUAL_S3_BUCKET|io.continual.auth}",
+			"pathPrefix": "${CONTINUAL_S3_PATHPREFIX|iamdb}",
 
 			"jwt":
 			{
@@ -38,8 +38,8 @@
 		//
 		{
 			"name": "HttpService",
-			"class":"io.continual.restHttp.HttpService",
-			"port": "6060"
+			"class":"io.continual.http.service.framework.TomcatHttpService",
+			"port": "8080"
 		},
 
 		//

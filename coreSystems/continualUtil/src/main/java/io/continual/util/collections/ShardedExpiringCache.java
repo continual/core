@@ -88,14 +88,17 @@ public class ShardedExpiringCache<K,V>
 
 		public Builder<K,V> withShardCount ( int shardCount ) { fShardCount = shardCount; return this; }
 
+		public Builder<K,V> withShardMaxSize ( int shardMaxSize ) { fShardMaxSize = shardMaxSize; return this; }
+
 		public Builder<K,V> notificationsTo ( Monitor m ) { fMonitor = m; return this; }
-		
+
 		public ShardedExpiringCache<K,V> build ()
 		{
 			return new ShardedExpiringCache<K,V> ( this );
 		}
 
 		private int fShardCount = kDefaultShardCount;
+		private int fShardMaxSize = kDefaultShardMaxSize;
 		private Monitor fMonitor = new Monitor () {};
 		private String fName = "(unnamed)";
 		private long fDurMs = 15*60*1000L;
@@ -217,9 +220,24 @@ public class ShardedExpiringCache<K,V>
 		}
 	}
 
+	/**
+	 * Get the (approximate) size of the cache
+	 * @return the cache size
+	 */
+	public int size ()
+	{
+		int size = 0;
+		for ( int i=0; i<fShardCount; i++ )
+		{
+			size += fShards.get ( i ).size ();
+		}
+		return size;
+	}
+
 	private final String fName;
 	private final long fDurMs;
 	private final int fShardCount;
+	private final int fShardMaxSize;
 	private final ArrayList<Shard> fShards;
 	private final Monitor fMonitor;
 
@@ -296,6 +314,13 @@ public class ShardedExpiringCache<K,V>
 			// ignore if duration is zero
 			if ( cacheDurationMs <= 0L ) return;
 
+			// trim old entries as needed
+			while ( fShardMaxSize > 0 && size() >= fShardMaxSize )
+			{
+				// remove the oldest item
+				cleanupCacheItem ( fItemCleanups.remove () );
+			}
+
 			// wrap the value in our cache entry and insert it
 			final CacheEntry ce = new CacheEntry ( key, val, now() + cacheDurationMs );
 			fItemCache.put ( key, ce );
@@ -315,6 +340,11 @@ public class ShardedExpiringCache<K,V>
 			fItemCleanups.clear ();
 		}
 
+		public synchronized int size ()
+		{
+			return fItemCache.size ();
+		}
+
 		private synchronized void $testGc ( K key )
 		{
 			final CacheEntry ce = fItemCache.get ( key );
@@ -323,28 +353,32 @@ public class ShardedExpiringCache<K,V>
 				ce.$testGc ();
 			}
 		}
-		
+
 		private final int fId;
 		private final HashMap<K, CacheEntry> fItemCache;
 		private final LinkedList<CacheEntry> fItemCleanups;	// time-ordered list of entries created
+
+		private void cleanupCacheItem ( CacheEntry cleanupEntry )
+		{
+			final CacheEntry cacheEntry = fItemCache.get ( cleanupEntry.getKey () );
+			if ( cacheEntry != null && cacheEntry == cleanupEntry )
+			{
+				// the cache entry is still the same entry as the cleanup task entry, so remove from cache
+				fItemCache.remove ( cleanupEntry.getKey() );
+				log.info ( "Removed cache entry for \"{}\" in cache {}.", cleanupEntry.toString (), fName );
+			}
+			else
+			{
+				log.debug ( "Removed cleanup entry for \"{}\" in cache {}, but no match in item cache.", cleanupEntry.toString (), fName );
+			}
+		}
 
 		private void cleanupCache ()
 		{
 			final long now = now ();
 			while ( fItemCleanups.size () > 0 && fItemCleanups.get ( 0 ).getExpiresAtMs() < now )
 			{
-				final CacheEntry cleanupEntry = fItemCleanups.remove ();
-				final CacheEntry cacheEntry = fItemCache.get ( cleanupEntry.getKey () );
-				if ( cacheEntry != null && cacheEntry == cleanupEntry )
-				{
-					// the cache entry is still the same entry as the cleanup task entry, so remove from cache
-					fItemCache.remove ( cleanupEntry.getKey() );
-					log.info ( "Removed cache entry for \"{}\" in cache {}.", cleanupEntry.toString (), fName );
-				}
-				else
-				{
-					log.debug ( "Removed cleanup entry for \"{}\" in cache {}, but no match in item cache.", cleanupEntry.toString (), fName );
-				}
+				cleanupCacheItem ( fItemCleanups.remove () );
 			}
 		}
 	}
@@ -379,6 +413,7 @@ public class ShardedExpiringCache<K,V>
 		fName = b.fName;
 		fDurMs = b.fDurMs;
 		fShardCount = b.fShardCount;
+		fShardMaxSize = b.fShardMaxSize;
 		fShards = new ArrayList<Shard> ( fShardCount );
 		for ( int i=0; i<fShardCount; i++ )
 		{
@@ -418,6 +453,7 @@ public class ShardedExpiringCache<K,V>
 	}
 
 	private static final int kDefaultShardCount = 1024;
+	private static final int kDefaultShardMaxSize = 4 * 1024;
 	private static final long skWarnOnLockDurationMs = 10 * 1000L;
 
 	private static final Logger log = LoggerFactory.getLogger ( ShardedExpiringCache.class );

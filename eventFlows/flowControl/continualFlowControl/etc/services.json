@@ -1,0 +1,140 @@
+{
+	"services":
+	[
+		// Metrics service
+		{
+			"name": "metrics",
+			"class": "io.continual.metrics.DropWizardMetricsService"
+		},
+
+		//
+		//	Account service
+		//
+		{
+			"name": "accounts",
+			"class": "io.continual.iam.impl.file.IamFileDbServiceManager",
+			"file": "./etc/userdb"
+		},
+
+		//
+		//	encryption service
+		//
+		{
+			"name": "encryptor",
+			"class": "io.continual.flowcontrol.impl.enc.Enc",
+			"key": "fuga.key.123"
+		},
+
+		//
+		//	model service
+		//
+		{
+			"name": "db",
+			"class": "io.continual.services.model.impl.files.FileSystemModel",
+			"acctId": "none",
+			"modelId": "jobDb",
+			"baseDir": "${TESTDBDIR|/tmp}/flowControlDb"
+		},
+
+		//
+		//	job db
+		//
+		{
+			"name": "jobDb",
+			"class": "io.continual.flowcontrol.impl.jobdb.model.ModelJobDb",
+			"model": "db"
+		},
+
+		//
+		//	deployment db
+		//
+		{
+			"name": "deployDb",
+			"class": "io.continual.flowcontrol.impl.deploydb.model.ModelBackedDeployDb",
+			"model": "db"
+		},
+
+		//
+		//	controller
+		//
+		{
+			"name": "controller",
+			"class": "io.continual.flowcontrol.impl.controller.k8s.K8sController",
+
+			"installationName": "${INSTALLATION_NAME|testInstallationName}",
+
+			///////////////////////////////////////////////////////////////////////////////////////////////////////////
+			//
+			//	internal config URL for runtime pods
+			//
+			"internalConfigUrl": "${INTERNAL_CONFIG_BASE_URL}",
+
+
+			///////////////////////////////////////////////////////////////////////////////////////////////////////////
+			//
+			//	Connecting to Kubernetes
+			//
+
+			// setting useKubeConfig to true, or explicitly setting the name of the config file
+			// as kubeConfig will have the controller use the appropriate kube config.
+			"useKubeConfig": true,
+			//"kubeConfig": "${HOME}/.kube/config",
+
+			// if using kube config, which context?
+			"kubeConfigContext": "minikube",
+
+			// the namespace assigned to flowcontrol
+			"namespace": "flowcontrol",
+
+			///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			"deploymentDb": "deployDb",
+			"signingKey": "fuga.key.456",
+
+			// k8s deployment elements
+			"elements":
+			[
+				{ "class": "SecretDeployer" },
+				{ "class": "ConfigPullScriptDeployer", "scriptResource": "configPullScript.sh" },
+				{
+					"class": "StatefulSetDeployer",
+
+					//
+					//	additional environment vars in the pods
+					//
+					"applyEnv":
+					{
+						"FC_TEST": "123"
+					}
+				}
+			]
+		},
+
+		//
+		//	An HTTP server for API network presence
+		//
+		{
+			"name": "HttpService",
+			"class":"io.continual.http.service.framework.TomcatHttpService",
+			"port": "8080"
+		},
+
+		//
+		//	Flow Control API
+		//
+		{
+			"name": "flowcontrol",
+			"class": "io.continual.flowcontrol.services.httpapi.BaseHttpService",
+			"namespace": "api-test-namespace",
+
+			"accounts": "accounts",
+			"httpService": "HttpService",
+			"jobDb": "jobDb",
+			"deployApi": "controller"
+		}
+	],
+
+	"profiles":
+	{
+	}
+}

@@ -15,11 +15,12 @@
  */
 package io.continual.util.collections;
 
-import junit.framework.TestCase;
-
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.continual.util.collections.LruCache.ExpulsionListener;
+import junit.framework.TestCase;
 
 public class LruCacheTest extends TestCase
 {
@@ -124,4 +125,32 @@ public class LruCacheTest extends TestCase
 			// Empty Implementation
 		}
 	}
+
+	//@Test
+	public void _testLongRunPerf ()
+	{
+		final LruCache<String,String> cache = new LruCache<String,String> ( 4096 );
+		final int useCount = 1000*1000*10;
+
+		final Runtime rt = Runtime.getRuntime ();
+
+		final int reportInterval = 10000;
+		long internalStartMs = System.currentTimeMillis ();
+
+		for ( int i=0; i<useCount; i++ )
+		{
+			cache.put ( "key_" + i, "data" );
+			if ( i % reportInterval == 0 )
+			{
+				final long intervalEndMs = System.currentTimeMillis ();
+				final long durationMs = intervalEndMs - internalStartMs;
+				final long totalMem = rt.totalMemory () - rt.freeMemory ();
+				log.info ( "index {}, last interval {} ms, cache size {}, memory {} MB", i, durationMs, cache.size (), ( totalMem / (1024*1024) ) );
+
+				internalStartMs = System.currentTimeMillis ();
+			}
+		}
+	}
+
+	private static final Logger log = LoggerFactory.getLogger ( LruCacheTest.class );
 }

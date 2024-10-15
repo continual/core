@@ -349,6 +349,11 @@ public class AccessControlList
 		return deserialize ( o, listener );
 	}
 
+	public static AccessControlList deserialize ( JSONObject o )
+	{
+		return deserialize ( o, null );
+	}
+
 	/**
 	 * Deserialize a JSON object created by serialize() or asJson()
 	 * @param o a JSON object serialized ACL

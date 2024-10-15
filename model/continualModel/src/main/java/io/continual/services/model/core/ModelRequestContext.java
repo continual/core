@@ -27,6 +27,11 @@ import io.continual.util.naming.Path;
 public interface ModelRequestContext extends AutoCloseable
 {
 	/**
+	 * Close without exception
+	 */
+    default void close () {}
+
+	/**
 	 * Get the operator for this context.
 	 * @return the operator
 	 */

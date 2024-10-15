@@ -2,6 +2,7 @@ package io.continual.util.data.exprEval;
 
 import java.util.UUID;
 
+import io.continual.util.data.UniqueStringGenerator;
 import io.continual.util.time.Clock;
 
 public class SpecialFnsDataSource implements ExprDataSource
@@ -20,6 +21,10 @@ public class SpecialFnsDataSource implements ExprDataSource
 		else if ( label.equals ( "uuid") )
 		{
 			return UUID.randomUUID ().toString ();
+		}
+		else if ( label.equals ( "ulid") )
+		{
+			return UniqueStringGenerator.createUlid ();
 		}
 		return null;
 	}

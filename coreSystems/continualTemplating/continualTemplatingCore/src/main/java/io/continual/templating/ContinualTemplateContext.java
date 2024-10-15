@@ -2,6 +2,9 @@ package io.continual.templating;
 
 import java.util.Map;
 
+/**
+ * A context used to supply data into a template engine
+ */
 public interface ContinualTemplateContext
 {
 	/**

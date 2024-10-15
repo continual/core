@@ -59,7 +59,7 @@
 		</dependency>
 		<dependency>
 			<groupId>io.continual</groupId>
-			<artifactId>continualMetrics</artifactId>
+			<artifactId>continualMetricsDropWiz</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 

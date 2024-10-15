@@ -348,7 +348,7 @@ public class OnapMsgRouterPublisher
 			final String host = hostsLeft.remove ( 0 );
 			final String path = buildPath ( host );
 
-			final RequestBody body = RequestBody.create ( kCambriaZip, msgBody );
+			final RequestBody body = RequestBody.create ( msgBody, kCambriaZip );
 			final Request.Builder reqBuilder = new Request.Builder ()
 				.url ( path )
 				.post ( body )

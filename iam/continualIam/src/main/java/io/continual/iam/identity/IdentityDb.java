@@ -17,15 +17,12 @@ package io.continual.iam.identity;
 
 import java.util.concurrent.TimeUnit;
 
-import io.continual.iam.credentials.ApiKeyCredential;
-import io.continual.iam.credentials.JwtCredential;
-import io.continual.iam.credentials.UsernamePasswordCredential;
 import io.continual.iam.exceptions.IamSvcException;
 
 /**
  * An identity database, mainly for authenticating users.
  */
-public interface IdentityDb<I extends Identity>
+public interface IdentityDb<I extends Identity> extends AuthService<I>
 {
 	/**
 	 * Find out if a given user exists.
@@ -58,30 +55,6 @@ public interface IdentityDb<I extends Identity>
 	 * @throws IamSvcException when the call cannot be completed due to a service error
 	 */
 	I loadUserOrAlias ( String userIdOrAlias ) throws IamSvcException;
-
-	/**
-	 * Authenticate with a username and password
-	 * @param upc the username/password credential
-	 * @return an authenticated identity or null
-	 * @throws IamSvcException when the call cannot be completed due to a service error
-	 */
-	I authenticate ( UsernamePasswordCredential upc ) throws IamSvcException;
-
-	/**
-	 * Authenticate with an API key and signature
-	 * @param akc the API key credential
-	 * @return an authenticated identity or null
-	 * @throws IamSvcException when the call cannot be completed due to a service error
-	 */
-	I authenticate ( ApiKeyCredential akc ) throws IamSvcException;
-
-	/**
-	 * Authenticate with a JWT token
-	 * @param jwt the JWT credential
-	 * @return an authenticated identity or null
-	 * @throws IamSvcException when the call cannot be completed due to a service error
-	 */
-	I authenticate ( JwtCredential jwt ) throws IamSvcException;
 
 	/**
 	 * Create a JWT token for the given identity.

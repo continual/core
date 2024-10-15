@@ -134,6 +134,7 @@ public class ReceiverApi<I extends Identity> extends TypicalRestApiEndpoint<I>
 								.set ( kIntendedAccount, acctIdAndTopic[0] )
 								.set ( kIntendedTopic, acctIdAndTopic[1] )
 								.set ( kEventStreamName, eventStreamName )
+								.set ( kSource, context.request ().getBestRemoteAddress () )
 								.close ()
 							.build ()
 						;
@@ -165,6 +166,7 @@ public class ReceiverApi<I extends Identity> extends TypicalRestApiEndpoint<I>
 	private static final String kIntendedAccount = "account";
 	private static final String kIntendedTopic = "topic";
 	private static final String kEventStreamName = "eventStream";
+	private static final String kSource = "source";
 
 	private static class Counter
 	{

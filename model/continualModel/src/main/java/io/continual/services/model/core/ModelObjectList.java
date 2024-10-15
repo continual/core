@@ -28,8 +28,6 @@ import java.util.List;
  */
 public interface ModelObjectList<T> extends ModelItemList<ModelObjectAndPath<T>>
 {
-	
-	
 	/**
 	 * Construct an empty object list
 	 * @return an empty list

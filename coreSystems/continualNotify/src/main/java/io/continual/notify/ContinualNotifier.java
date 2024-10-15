@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -16,6 +17,8 @@ import org.slf4j.LoggerFactory;
 import io.continual.util.data.StreamTools;
 import io.continual.util.data.exprEval.EnvDataSource;
 import io.continual.util.data.exprEval.ExpressionEvaluator;
+import io.continual.util.data.json.JsonUtil;
+import io.continual.util.naming.Path;
 import io.continual.util.standards.HttpStatusCodes;
 import io.continual.util.time.Clock;
 
@@ -40,7 +43,7 @@ public class ContinualNotifier
 
 	/**
 	 * Construct a notifier instance based on the settings provided in the environment, including
-	 * CONTUNUAL_USER, CONTINUAL_PASSWORD, CONTINUAL_SYSTEM, CONTINUAL_RCVR_TOPIC, and CONTINUAL_RCVR_STREAM.
+	 * CONTINUAL_USER, CONTINUAL_PASSWORD, CONTINUAL_SYSTEM, CONTINUAL_RCVR_TOPIC, and CONTINUAL_RCVR_STREAM.
 	 */
 	public ContinualNotifier ()
 	{
@@ -64,6 +67,17 @@ public class ContinualNotifier
 	}
 
 	/**
+	 * Close the background send queue and wait for it to finish work. After this call, no further background
+	 * sends will be accepted and attempts to send in the background will fail with an illegal state exception.
+	 * @throws InterruptedException 
+	 */
+	public static void closeAndWaitForBackgroundSends ( long timeoutMs ) throws InterruptedException
+	{
+		skBackgroundSender.shutdown ();
+		skBackgroundSender.awaitTermination ( timeoutMs, TimeUnit.MILLISECONDS );
+	}
+	
+	/**
 	 * Specify the topic to which the notification will be sent.
 	 * @param topic
 	 * @return this notifier
@@ -77,7 +91,7 @@ public class ContinualNotifier
 	/**
 	 * Specify the stream within the topic to which the notification will be sent.
 	 * @param stream
-	 * @return this notififer
+	 * @return this notifier
 	 */
 	public ContinualNotifier onStream ( String stream )
 	{
@@ -132,7 +146,17 @@ public class ContinualNotifier
 		fMsg.put ( kSubject, subject );
 		return this;
 	}
-	
+
+	/**
+	 * Specify the subject of the notification.
+	 * @param subject
+	 * @return this notifier
+	 */
+	public ContinualNotifier onSubject ( Path subject )
+	{
+		return onSubject ( subject.toString () );
+	}
+
 	/**
 	 * Specify the condition that's occurred with respect to the subject.
 	 * @param condition
@@ -140,7 +164,7 @@ public class ContinualNotifier
 	 */
 	public ContinualNotifier withCondition ( String condition )
 	{
-		if ( condition == null ) throw new IllegalArgumentException ( "Provide a subject." );
+		if ( condition == null ) throw new IllegalArgumentException ( "Provide a condition." );
 		fMsg.put ( kCondition, condition );
 		return this;
 	}
@@ -197,9 +221,13 @@ public class ContinualNotifier
 	{
 		withAddlData ( kQueuedAt, Clock.now () );
 
-		final Sender mySender = new Sender ();
+		final Sender mySender = new Sender ( fMsg );
 		if ( fBackground )
 		{
+			if ( skBackgroundSender.isShutdown () )
+			{
+				throw new IllegalStateException ( "The ContinualNotifier background sender was shutdown." );
+			}
 			skBackgroundSender.submit ( mySender );
 		}
 		else
@@ -230,6 +258,11 @@ public class ContinualNotifier
 
 	private class Sender implements Runnable
 	{
+		public Sender ( JSONObject msg )
+		{
+			fSenderMsg = JsonUtil.clone ( msg );
+		}
+
 		@Override
 		public void run ()
 		{
@@ -253,7 +286,7 @@ public class ContinualNotifier
 				}
 
 				final URL url = new URL ( urlText );
-				final byte[] payload = fMsg
+				final byte[] payload = fSenderMsg
 					.put ( kSendAt, Clock.now () )
 					.toString ()
 					.getBytes ( StandardCharsets.UTF_8 )
@@ -301,6 +334,8 @@ public class ContinualNotifier
 				warn ( "failed with exception: " + e.getMessage () );
 			}
 		}
+
+		private final JSONObject fSenderMsg;
 	}
 	
 	private static final String skBaseUrlStr = "https://rcvr.continual.io/events";
@@ -308,7 +343,7 @@ public class ContinualNotifier
 
 	private static final Logger log = LoggerFactory.getLogger ( ContinualNotifier.class );
 
-	private static ExecutorService skBackgroundSender = Executors.newSingleThreadExecutor();
+	private static ExecutorService skBackgroundSender = Executors.newSingleThreadExecutor ();
 
 	private static String formatLog ( String msg )
 	{

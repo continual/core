@@ -19,6 +19,7 @@ import io.continual.jsonHttpClient.JsonOverHttpClient.HttpRequest;
 import io.continual.jsonHttpClient.JsonOverHttpClient.HttpResponse;
 import io.continual.jsonHttpClient.JsonOverHttpClient.HttpServiceException;
 import io.continual.util.data.TypeConvertor;
+import io.continual.util.standards.MimeTypes;
 import okhttp3.Credentials;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -186,8 +187,8 @@ class OkRequest implements HttpRequest
 	public HttpResponse put ( JSONObject body ) throws HttpServiceException
 	{
 		final RequestBody rb = RequestBody.create (
-			MediaType.parse("application/json"),
-			body.toString ()
+			body.toString (),
+			MediaType.parse ( MimeTypes.kAppJson )
 		);
 		return run ( "PUT", basicReq ().put(rb).build () );
 	}
@@ -196,8 +197,8 @@ class OkRequest implements HttpRequest
 	public HttpResponse patch ( JSONObject body ) throws HttpServiceException
 	{
 		final RequestBody rb = RequestBody.create (
-			MediaType.parse("application/json"),
-			body.toString ()
+			body.toString (),
+			MediaType.parse ( MimeTypes.kAppJson )
 		);
 		return run ( "PAT", basicReq ().patch( rb ).build () );
 	}
@@ -206,8 +207,8 @@ class OkRequest implements HttpRequest
 	public HttpResponse post ( JSONObject body ) throws HttpServiceException
 	{
 		final RequestBody rb = RequestBody.create (
-			MediaType.parse("application/json"),
-			body.toString ()
+			body.toString (),
+			MediaType.parse ( MimeTypes.kAppJson )
 		);
 		return run ( "POS", basicReq ().post(rb).build () );
 	}
@@ -216,8 +217,8 @@ class OkRequest implements HttpRequest
 	public HttpResponse post ( JSONArray body ) throws HttpServiceException
 	{
 		final RequestBody rb = RequestBody.create (
-			MediaType.parse("application/json"),
-			body.toString ()
+			body.toString (),
+			MediaType.parse ( MimeTypes.kAppJson )
 		);
 		return run ( "POS", basicReq ().post(rb).build () );
 	}

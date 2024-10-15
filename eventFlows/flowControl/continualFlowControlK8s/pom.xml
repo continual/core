@@ -1,0 +1,42 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>io.continual</groupId>
+		<version>0.3.16</version>
+		<artifactId>continualFlowControlGroup</artifactId>
+		<relativePath>..</relativePath>
+	</parent>
+
+	<artifactId>continualFlowControlK8s</artifactId>
+	<packaging>jar</packaging>
+
+	<name>continual.io Flow Control for Kubernetes</name>
+	<description>Continual's flow control k8s controller.</description>
+	<url>https://continual.io</url>
+
+	<dependencies>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualFlowControlApis</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<!-- k8s client -->
+		<dependency>
+			<groupId>io.kubernetes</groupId>
+			<artifactId>client-java</artifactId>
+			<version>20.0.1</version>
+		</dependency>
+		<dependency>
+			<groupId>io.kubernetes</groupId>
+			<artifactId>client-java-api-fluent</artifactId>
+			<version>20.0.1</version>
+		</dependency>
+
+	</dependencies>
+
+</project>

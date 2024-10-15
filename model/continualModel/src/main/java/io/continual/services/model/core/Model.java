@@ -43,7 +43,14 @@ public interface Model extends ModelCapabilities, Closeable, Service
 	interface ModelRequestContextBuilder
 	{
 		/**
-		 * Associated an identity in this model request context
+		 * Associate a named user in this model request context
+		 * @param username
+		 * @return this context
+		 */
+		ModelRequestContextBuilder forSimpleIdentity ( String username );
+		
+		/**
+		 * Associate an identity in this model request context
 		 * @param user
 		 * @return this context
 		 */
@@ -200,6 +207,7 @@ public interface Model extends ModelCapabilities, Closeable, Service
 		 * object doesn't exist
 		 * @param withData
 		 * @return this updater
+		 * @deprecated use overwriteData
 		 */
 		@Deprecated
 		default ObjectUpdater overwrite ( ModelObject withData ) { return overwriteData ( withData ); }
@@ -217,6 +225,7 @@ public interface Model extends ModelCapabilities, Closeable, Service
 		 * object doesn't exist
 		 * @param withData
 		 * @return this updater
+		 * @deprecated use mergeData
 		 */
 		@Deprecated
 		default ObjectUpdater merge ( ModelObject withData ) { return mergeData ( withData ); }
@@ -253,7 +262,9 @@ public interface Model extends ModelCapabilities, Closeable, Service
 	};
 
 	/**
-	 * Begin an update
+	 * Begin an update. The object path is specified in this call. (FIXME: it's not clear what the expectation should
+	 * be when updating an object that 1. does not exist and 2. is not at a top-level path. Currently mem will throw on
+	 * write of /foo/bar if /foo is not created.)
 	 * @param context
 	 * @param objectPath
 	 * @return an object updater

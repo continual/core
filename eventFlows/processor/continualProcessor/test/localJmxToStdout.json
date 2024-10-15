@@ -1,0 +1,34 @@
+{
+	"sources":
+	{
+		"jmxsource":
+		{
+			"class": "JmxSource",
+			"pollEvery": "15s",
+			"host": "localhost",
+			"port": 7999,
+			"pipeline": "jmx",
+			"pollList": 
+			[
+				{ "objectName": "java.lang:type=Memory,*" },
+				{ "objectName": "java.lang:type=MemoryPool,*" },
+				{ "objectName": "java.lang:type=OperatingSystem,*" },
+				{ "objectName": "java.lang:type=GarbageCollector,*" },
+				{ "objectName": "java.lang:type=Runtime,*" },
+			]
+		}
+	},
+
+	"pipelines":
+	{
+		"jmx":
+		[
+			{ "always": [{ "class": "SendToSink", "to": "stdout" }] }
+		]
+	},
+
+	"sinks":
+	{
+		"stdout": { "class": "ConsoleSink" }
+	}
+}

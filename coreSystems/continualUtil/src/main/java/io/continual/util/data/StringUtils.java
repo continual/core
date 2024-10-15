@@ -410,7 +410,12 @@ public class StringUtils
 		}
 		return s;
 	}
-	
+
+	public static String appendIfMissing ( String base, String ending )
+	{
+		return ( base.endsWith ( ending ) ? base : base + ending );
+	}
+
 	private StringUtils() {
 	}
 }

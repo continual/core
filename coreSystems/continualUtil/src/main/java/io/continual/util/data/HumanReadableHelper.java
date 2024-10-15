@@ -310,6 +310,8 @@ public class HumanReadableHelper
 	 */
 	public static long parseDuration ( String duration )
 	{
+		if ( duration == null ) return 0;
+
 		if ( duration.endsWith ( "d" ) || duration.endsWith ( "days" ) )
 		{
 			final String valueStr = duration.substring ( 0, duration.indexOf ( "d" ) );
@@ -344,9 +346,29 @@ public class HumanReadableHelper
 			final double value = Double.parseDouble ( valueStr );
 			return Math.round ( value );
 		}
+		else if ( duration.endsWith ( "us" ) || duration.endsWith ( "μs" ) || duration.endsWith ( "micros" ) )
+		{
+			// select the shortest value string...
+			int pos = Integer.MAX_VALUE;
+			for ( String suffix : new String[] { "u", "μ", "m" } )
+			{
+				final int spos = duration.indexOf ( suffix );
+				if ( spos >= 0 && spos < pos )
+				{
+					pos = spos;
+				}
+			}
+
+			// parse it
+			final String valueStr = duration.substring ( 0, pos );
+			final double value = Double.parseDouble ( valueStr );
+			return Math.round ( value / 1000.0 );
+		}
 		else
 		{
-			throw new NumberFormatException ( "Can't parse duration [" + duration + "]" );
+			// try as simple milliseconds
+			final double value = Double.parseDouble ( duration );
+			return Math.round ( value );
 		}
 	}
 
