@@ -15,7 +15,7 @@
 	<packaging>pom</packaging>
 
 	<name>ContinualIO</name>
-	<description>ContinualIO&apos;s monitoring architecture.</description>
+	<description>ContinualIO's monitoring architecture.</description>
 	<url>https://continual.io</url>
 
 	<organization>
@@ -123,7 +123,7 @@
 			<dependency>
 				<groupId>com.amazonaws</groupId>
 				<artifactId>aws-java-sdk-s3</artifactId>
-				<version>1.12.573</version>
+				<version>1.12.777</version>
 			</dependency>
 
 			<!-- https://mvnrepository.com/artifact/javax.servlet/javax.servlet-api -->
