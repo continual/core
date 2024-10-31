@@ -21,4 +21,4 @@ default:
 # java build
 java:
 	@echo "Running maven..."
-	@mvn clean install
+	mvn clean install
