@@ -154,7 +154,6 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 					;
 
 					readJobPayloadInto ( payload, jobBuilder );
-
 					final FlowControlJob job = jobBuilder.build ();
 					jobDb.storeJob ( fccc, job.getId (), job );
 					sendJson ( context, render ( job ) );
@@ -654,6 +653,8 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 				.put ( "name", runtime.getName () )
 				.put ( "version", runtime.getVersion () ) )
 			.put ( "secrets", JsonVisitor.listToArray ( job.getSecretRefs () ) )
+			.put ( "createdAt", job.getCreateTimestampMs () )
+			.put ( "updatedAt", job.getUpdateTimestampMs () )
 		;
 	}
 

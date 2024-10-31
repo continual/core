@@ -27,6 +27,24 @@ public interface FlowControlJob extends ProtectedResource
 	String getName ();
 
 	/**
+	 * Get the version tag for this instance if the job.
+	 * @return a job version
+	 */
+	FlowControlJobVersion getVersion ();
+
+	/**
+	 * Get the epoch ms timestamp when this job was created
+	 * @return a timestamp
+	 */
+	long getCreateTimestampMs ();
+
+	/**
+	 * Get the epoch ms timestamp when this job was last updated
+	 * @return a timestamp
+	 */
+	long getUpdateTimestampMs ();
+	
+	/**
 	 * The job configuration is opaque to this service. It has a MIME type (e.g. application/json) and
 	 * a content stream.
 	 */

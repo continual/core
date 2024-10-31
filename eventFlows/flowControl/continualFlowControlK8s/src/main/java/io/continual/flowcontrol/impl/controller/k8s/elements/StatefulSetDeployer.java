@@ -85,9 +85,11 @@ public class StatefulSetDeployer implements K8sElement
 	{
 		try
 		{
+			final String containerImage = ctx.getRuntimeImage ();
+
 			final String ssName = tagToStatefulSetName ( ctx.getDeployId () );
 			final String secretConfigName = ctx.getWorkspace ().getString ( SecretDeployer.kWorkspaceKey_Secret );
-
+			
 			// build secrets
 			final LinkedList<V1EnvVar> secretRefs = new LinkedList<> ();
 			for ( String secretKey : JsonVisitor.arrayToList ( ctx.getWorkspace ().getJSONArray ( SecretDeployer.kWorkspaceKey_SecretKeys ) ) )
@@ -236,7 +238,10 @@ public class StatefulSetDeployer implements K8sElement
 								// runtime engine
 								new V1ContainerBuilder ()
 									.withName ( "processor" )
-									.withImage ( ctx.getRuntimeImage () )
+
+									.withImage ( containerImage )
+									.withImagePullPolicy ( ctx.getImagePullPolicy ().toString () )
+
 									.withVolumeMounts (
 	
 										// config disk

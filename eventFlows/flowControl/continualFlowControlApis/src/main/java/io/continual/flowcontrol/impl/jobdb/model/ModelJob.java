@@ -4,6 +4,7 @@ import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.flowcontrol.impl.common.JsonJob;
+import io.continual.flowcontrol.impl.common.JsonJobBuilder;
 import io.continual.flowcontrol.model.FlowControlCallContext;
 import io.continual.flowcontrol.services.encryption.Encryptor;
 import io.continual.services.model.core.ModelObjectFactory;
@@ -27,7 +28,7 @@ public class ModelJob extends JsonJob
 		return JsonUtil.clone ( super.directDataAccess () );
 	}
 
-	protected static class ModelJobBuilder extends JsonJob.JsonJobBuilder
+	protected static class ModelJobBuilder extends JsonJobBuilder
 	{
 		public ModelJobBuilder ( FlowControlCallContext fccc, Encryptor enc )
 		{

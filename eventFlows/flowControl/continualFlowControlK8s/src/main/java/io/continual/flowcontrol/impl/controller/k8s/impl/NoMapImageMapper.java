@@ -6,6 +6,10 @@ import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService.R
 
 public class NoMapImageMapper implements ContainerImageMapper
 {
+	public NoMapImageMapper ()
+	{
+	}
+
 	@Override
 	public String getImageName ( FlowControlRuntimeSpec rs ) throws RequestException
 	{

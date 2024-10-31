@@ -18,6 +18,7 @@ import io.continual.builder.Builder;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.builder.sources.BuilderJsonDataSource;
 import io.continual.flowcontrol.impl.controller.k8s.K8sElement.ElementDeployException;
+import io.continual.flowcontrol.impl.controller.k8s.K8sElement.ImagePullPolicy;
 import io.continual.flowcontrol.impl.controller.k8s.K8sElement.K8sDeployContext;
 import io.continual.flowcontrol.impl.controller.k8s.elements.SecretDeployer;
 import io.continual.flowcontrol.impl.controller.k8s.impl.NoMapImageMapper;
@@ -200,6 +201,19 @@ public class K8sController extends BaseDeployer
 				public Map<String, String> getEnvironment () { return env; }
 				@Override
 				public List<String> getImagePullSecrets () { return fImgPullSecrets; }
+
+				@Override
+				public ImagePullPolicy getImagePullPolicy ()
+				{
+					// decide on an image pull policy. Normally we'd use "if not present", but we'll automatically
+					// switch to "always" if we're using a snapshot image (FIXME: also shoudl allow user control here)
+					ImagePullPolicy ipp = ImagePullPolicy.IfNotPresent;
+//					if ( runtimeImage.endsWith ( "-SNAPSHOT" ) )
+//					{
+//						ipp = ImagePullPolicy.Always;
+//					}
+					return ipp;
+				}
 			};
 			
 			// build each element

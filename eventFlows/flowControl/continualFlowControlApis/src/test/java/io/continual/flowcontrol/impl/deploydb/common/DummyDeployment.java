@@ -12,6 +12,7 @@ import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.flowcontrol.impl.common.JsonJob;
+import io.continual.flowcontrol.impl.common.JsonJobBuilder;
 import io.continual.flowcontrol.model.FlowControlCallContext;
 import io.continual.flowcontrol.model.FlowControlDeployment;
 import io.continual.flowcontrol.model.FlowControlDeploymentSpec;
@@ -76,7 +77,7 @@ public class DummyDeployment implements FlowControlDeployment
 				public Identity getUser () { return new SimpleIdentityReference ( "user" ); }
 			};
 	
-			return new JsonJob.JsonJobBuilder ( fccc, enc )
+			return new JsonJobBuilder ( fccc, enc )
 	
 				.withId ( "id" )
 

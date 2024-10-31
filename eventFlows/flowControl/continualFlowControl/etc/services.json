@@ -63,12 +63,19 @@
 
 			"installationName": "${INSTALLATION_NAME|testInstallationName}",
 
+			"imageMapper":
+			{
+				"class": "io.continual.flowcontrol.impl.controller.k8s.impl.InlineImageMapper",
+				"rules": [
+					{ "match": ".*", "image": "continualeventproc:0.3.18-SNAPSHOT" }
+				]
+			},
+
 			///////////////////////////////////////////////////////////////////////////////////////////////////////////
 			//
 			//	internal config URL for runtime pods
 			//
 			"internalConfigUrl": "${INTERNAL_CONFIG_BASE_URL}",
-
 
 			///////////////////////////////////////////////////////////////////////////////////////////////////////////
 			//

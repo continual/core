@@ -42,6 +42,7 @@ public class DeploymentSerde
 	public static final String kField_Owner = "deployer";
 	public static final String kField_ConfigKey = "configKey";
 	public static final String kField_JobId = "jobId";
+	public static final String kField_JobVersion = "version";
 
 	private static JSONObject serialize ( FlowControlDeploymentSpec ds )
 	{
