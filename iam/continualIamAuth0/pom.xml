@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.3.18</version>
+		<version>0.3.19-SNAPSHOT</version>
 		<artifactId>continualIamSystems</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -48,5 +48,35 @@
 		</dependency>
 
 	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>3.6.0</version>
+				<configuration>
+					<relocations>
+						<relocation>
+							<pattern>okio</pattern>
+							<shadedPattern>io.continual.thirdparty.auth0.okio</shadedPattern>
+						</relocation>
+						<relocation>
+							<pattern>okhttp3</pattern>
+							<shadedPattern>io.continual.thirdparty.auth0.okhttp3</shadedPattern>
+						</relocation>
+					</relocations>
+				</configuration>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
 
 </project>
