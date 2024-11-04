@@ -50,6 +50,7 @@ public class CorsOptionsRouter implements CHttpRouteSource
 			.writeHeader ( "Access-Control-Allow-Methods", "DELETE, GET, OPTIONS, PATCH, POST, PUT")
 			.writeHeader ( "Access-Control-Max-Age", "3600")
 			.writeHeader ( "Access-Control-Allow-Headers", skAllowHeadersValue )
+			.writeHeader ( "Access-Control-Allow-Credentials", "true" )
 		;
 	}
 
