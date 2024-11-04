@@ -28,6 +28,12 @@ public class SecretDeployer implements K8sElement
 	}
 
 	@Override
+	public String toString ()
+	{
+		return "SecretDeployer";
+	}
+
+	@Override
 	public void deploy ( K8sDeployContext ctx ) throws ElementDeployException
 	{
 		try

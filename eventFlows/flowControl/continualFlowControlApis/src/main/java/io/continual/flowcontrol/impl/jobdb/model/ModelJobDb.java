@@ -47,10 +47,8 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 	@Override
 	public Collection<FlowControlJob> getJobsFor ( FlowControlCallContext fccc ) throws ServiceException
 	{
-		try
+		try ( final ModelRequestContext mrc = buildContext () )
 		{
-			final ModelRequestContext mrc = buildContext ();
-
 			final Path path = getBaseJobPath ();
 			final ModelPathListPage pathList = fModel.listChildrenOfPath ( mrc, path );	// FIXME: does this check READ rights already?
 
@@ -89,9 +87,8 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 	@Override
 	public FlowControlJob getJob ( FlowControlCallContext fccc, String name ) throws ServiceException, AccessException
 	{
-		try
+		try ( final ModelRequestContext mrc = buildContext () )
 		{
-			final ModelRequestContext mrc = buildContext ();
 			final FlowControlJob job = internalLoadJob ( mrc, name );
 			checkAccess ( job, fccc, AccessControlList.READ );
 			return job;
@@ -105,9 +102,8 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 	@Override
 	public FlowControlJob getJobAsAdmin ( String name ) throws ServiceException
 	{
-		try
+		try ( final ModelRequestContext mrc = buildContext () )
 		{
-			final ModelRequestContext mrc = buildContext ();
 			return internalLoadJob ( mrc, name );
 		}
 		catch ( BuildFailure e )
@@ -119,10 +115,8 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 	@Override
 	public void storeJob ( FlowControlCallContext fccc, String jobId, FlowControlJob job ) throws ServiceException, AccessException
 	{
-		try
+		try ( final ModelRequestContext mrc = buildContext () )
 		{
-			final ModelRequestContext mrc = buildContext ();
-
 			final FlowControlJob existing = internalLoadJob ( mrc, jobId );
 			checkAccess ( existing, fccc, AccessControlList.UPDATE );
 			internalStoreJob ( mrc, jobId, job );
@@ -136,9 +130,8 @@ public class ModelJobDb extends SimpleService implements FlowControlJobDb
 	@Override
 	public void removeJob ( FlowControlCallContext fccc, String name ) throws ServiceException, AccessException
 	{
-		try
+		try ( final ModelRequestContext mrc = buildContext () )
 		{
-			final ModelRequestContext mrc = buildContext ();
 			checkAccess ( internalLoadJob ( mrc, name ), fccc, AccessControlList.UPDATE );
 			final Path path = jobIdToPath ( name );
 			fModel.remove ( mrc, path );

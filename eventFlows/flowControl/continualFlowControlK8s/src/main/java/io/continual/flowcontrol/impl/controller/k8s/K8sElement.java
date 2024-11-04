@@ -41,7 +41,7 @@ public interface K8sElement
 		Map<String,String> getEnvironment ();
 		List<String> getImagePullSecrets ();
 	}
-	
+
 	void deploy ( K8sDeployContext ctx ) throws ElementDeployException;
 	void undeploy ( String namespace, String deploymentId ) throws ElementDeployException;
 }

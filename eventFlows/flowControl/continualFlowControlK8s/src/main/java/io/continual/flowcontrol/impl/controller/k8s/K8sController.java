@@ -28,15 +28,14 @@ import io.continual.flowcontrol.model.FlowControlDeployment;
 import io.continual.flowcontrol.model.FlowControlDeploymentSpec;
 import io.continual.flowcontrol.model.FlowControlJob.FlowControlRuntimeSpec;
 import io.continual.flowcontrol.services.encryption.Encryptor;
+import io.continual.iam.access.AccessControlList;
 import io.continual.iam.identity.Identity;
 import io.continual.services.ServiceContainer;
 import io.continual.util.data.StringUtils;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.data.json.JsonVisitor.ArrayVisitor;
 import io.kubernetes.client.openapi.ApiClient;
-import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.Configuration;
-import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.util.ClientBuilder;
 import io.kubernetes.client.util.KubeConfig;
 
@@ -215,14 +214,16 @@ public class K8sController extends BaseDeployer
 					return ipp;
 				}
 			};
-			
+
 			// build each element
 			for ( K8sElement element : fElements )
 			{
+				log.info ( "deploying k8s element {}", element );
 				element.deploy ( deployContext );
 			}
+			log.info ( "all k8s elements deployed" );
 
-			return new IntDeployment ( tag, ds, ctx.getUser (), configKey );
+			return new IntDeployment ( tag, AccessControlList.createOpenAcl (), ds, ctx.getUser (), configKey );
 		}
 		catch ( ElementDeployException x )
 		{
@@ -333,7 +334,7 @@ public class K8sController extends BaseDeployer
 
 	private String configKeyToUrl ( String configKey )
 	{
-		return StringUtils.appendIfMissing ( fInternalConfigBaseUrl, "/" )  + configKey;
+		return StringUtils.appendIfMissing ( fInternalConfigBaseUrl, "/" ) + "config/"  + configKey;
 	}
 
 	private static String makeK8sName ( String from )
@@ -429,9 +430,10 @@ public class K8sController extends BaseDeployer
 */
 	private class IntDeployment implements FlowControlDeployment
 	{
-		public IntDeployment ( String tag, FlowControlDeploymentSpec ds, Identity deployer, String configKey )
+		public IntDeployment ( String tag, AccessControlList acl, FlowControlDeploymentSpec ds, Identity deployer, String configKey )
 		{
 			fTag = tag;
+			fAcl = acl;
 			fDeployer = deployer;
 			fDeploymentSpec = ds;
 			fConfigKey = configKey;
@@ -439,6 +441,9 @@ public class K8sController extends BaseDeployer
 
 		@Override
 		public String getId () { return fTag; }
+
+		@Override
+		public AccessControlList getAccessControlList () { return fAcl; }
 
 		@Override
 		public FlowControlDeploymentSpec getDeploymentSpec () { return fDeploymentSpec; }
@@ -450,6 +455,7 @@ public class K8sController extends BaseDeployer
 		public String getConfigToken () { return fConfigKey; }
 
 		private final String fTag;
+		private final AccessControlList fAcl;
 		private final Identity fDeployer;
 		private final FlowControlDeploymentSpec fDeploymentSpec;
 		private final String fConfigKey;
@@ -629,27 +635,27 @@ public class K8sController extends BaseDeployer
 			Configuration.setDefaultApiClient ( client );
 
 			// test connectivity by checking for the assigned namespace
-			final CoreV1Api api = new CoreV1Api ();
-			if ( 0 == api
-				.listNamespace ()
-				.labelSelector ( "kubernetes.io/metadata.name=" + namespace )
-				.execute ()
-				.getItems ()
-				.size () 
-			)
-			{
-				throw new BuildFailure ( "Namespace [" + namespace + "] is not available." );
-			}
-			log.info ( "Connected to Kubernetes and found namespace [" + namespace + "]." );
+//			final CoreV1Api api = new CoreV1Api ();
+//			if ( 0 == api
+//				.listNamespace ()
+//				.labelSelector ( "kubernetes.io/metadata.name=" + namespace )
+//				.execute ()
+//				.getItems ()
+//				.size () 
+//			)
+//			{
+//				throw new BuildFailure ( "Namespace [" + namespace + "] is not available." );
+//			}
+//			log.info ( "Connected to Kubernetes and found namespace [" + namespace + "]." );
 		}
 		catch ( IOException x )
 		{
 			throw new BuildFailure ( x );
 		}
-		catch ( ApiException x )
-		{
-			throw new BuildFailure ( x );
-		}
+//		catch ( ApiException x )
+//		{
+//			throw new BuildFailure ( x );
+//		}
 	}
 
 	// see https://github.com/kubernetes-client/java/issues/2741 (this doesn't seem to be helping any)

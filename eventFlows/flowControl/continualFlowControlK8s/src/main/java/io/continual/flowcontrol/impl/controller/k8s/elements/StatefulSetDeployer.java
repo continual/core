@@ -81,6 +81,12 @@ public class StatefulSetDeployer implements K8sElement
 	}
 
 	@Override
+	public String toString ()
+	{
+		return "StatefulSetDeployer";
+	}
+
+	@Override
 	public void deploy ( K8sDeployContext ctx ) throws ElementDeployException
 	{
 		try

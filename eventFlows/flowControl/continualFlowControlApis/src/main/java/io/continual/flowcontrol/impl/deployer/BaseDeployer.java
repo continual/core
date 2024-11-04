@@ -121,7 +121,7 @@ public class BaseDeployer extends SimpleService implements FlowControlDeployment
 	{
 		try
 		{
-			return fDeployDb.getDeploymentsForUser ( ctx.getUser () );
+			return fDeployDb.getDeploymentsForUser ( ctx );
 		}
 		catch ( DeployDbException e )
 		{

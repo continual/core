@@ -21,6 +21,7 @@ import io.continual.flowcontrol.model.FlowControlJob.FlowControlJobConfig;
 import io.continual.flowcontrol.model.FlowControlJob.FlowControlRuntimeSpec;
 import io.continual.flowcontrol.model.FlowControlResourceSpecs;
 import io.continual.flowcontrol.services.encryption.Encryptor;
+import io.continual.iam.access.AccessControlList;
 import io.continual.iam.identity.Identity;
 import io.continual.iam.impl.common.SimpleIdentityReference;
 import io.continual.util.standards.MimeTypes;
@@ -39,6 +40,12 @@ public class DummyDeployment implements FlowControlDeployment
 
 	@Override
 	public String getId () { return "id"; }
+
+	@Override
+	public AccessControlList getAccessControlList ()
+	{
+		return AccessControlList.createOpenAcl ();
+	}
 
 	@Override
 	public Identity getDeployer () { return new SimpleIdentityReference ( "user" ); }

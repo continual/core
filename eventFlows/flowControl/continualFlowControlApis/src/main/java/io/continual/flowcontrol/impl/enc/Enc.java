@@ -33,7 +33,7 @@ public class Enc extends SimpleService implements Encryptor
 		final ExpressionEvaluator ee = sc.getExprEval ();
 		try
 		{
-			fEncKey = ee.evaluateText ( config.getString ( "key" ) );
+			fEncKey = ee.evaluateText ( ee.evaluateText ( config.getString ( "key" ) ) );
 			fCipher = Cipher.getInstance ( ee.evaluateText ( config.optString ( "cipher", "AES/CBC/PKCS5Padding" ) ) );
 		}
 		catch ( JSONException | NoSuchAlgorithmException | NoSuchPaddingException x )
