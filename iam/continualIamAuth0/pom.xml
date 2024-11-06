@@ -49,4 +49,34 @@
 
 	</dependencies>
 
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>3.6.0</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<relocations>
+								<relocation>
+									<pattern>okio</pattern>
+									<shadedPattern>io.continual.shaded.auth0.okio</shadedPattern>
+								</relocation>
+								<relocation>
+									<pattern>okhttp3</pattern>
+									<shadedPattern>io.continual.shaded.auth0.okhttp3</shadedPattern>
+								</relocation>
+							</relocations>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
 </project>
