@@ -6,7 +6,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.3.19-SNAPSHOT</version>
+		<version>0.3.20</version>
 		<artifactId>continualIamSystems</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
