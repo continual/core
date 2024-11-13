@@ -167,4 +167,13 @@ public class JsonIoEndpoint
 	{
 		sendStatusCodeAndMessage ( context, HttpStatusCodes.k401_unauthorized, "Unauthorized. Check your API credentials." );
 	}
+
+	/**
+	 * Send 403 Not Authorized
+	 * @param context
+	 */
+	protected static void senForbidden ( CHttpRequestContext context )
+	{
+		sendStatusCodeAndMessage ( context, HttpStatusCodes.k403_forbidden, "Forbidden." );
+	}
 }
