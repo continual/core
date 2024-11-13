@@ -205,12 +205,12 @@ public class K8sController extends BaseDeployer
 				public ImagePullPolicy getImagePullPolicy ()
 				{
 					// decide on an image pull policy. Normally we'd use "if not present", but we'll automatically
-					// switch to "always" if we're using a snapshot image (FIXME: also shoudl allow user control here)
+					// switch to "always" if we're using a snapshot image (FIXME: also should allow user control here)
 					ImagePullPolicy ipp = ImagePullPolicy.IfNotPresent;
-//					if ( runtimeImage.endsWith ( "-SNAPSHOT" ) )
-//					{
-//						ipp = ImagePullPolicy.Always;
-//					}
+					if ( runtimeImage.endsWith ( "-SNAPSHOT" ) )
+					{
+						ipp = ImagePullPolicy.Always;
+					}
 					return ipp;
 				}
 			};

@@ -87,6 +87,11 @@ public class ModelDeployDb extends SimpleService implements DeploymentDb
 				return null;
 			}
 		}
+		catch ( ModelItemDoesNotExistException x )
+		{
+			log.info ( "Deployment " + deployId + " does not exist." );
+			return null;
+		}
 		catch ( BuildFailure | ModelRequestException | ModelServiceException e )
 		{
 			throw new DeployDbException ( e );
@@ -99,6 +104,10 @@ public class ModelDeployDb extends SimpleService implements DeploymentDb
 		try ( final ModelRequestContext mrc = buildContext () )
 		{
 			return deploymentFrom ( fModel.load ( mrc, makeDeployIdPath ( deployId ) ) );
+		}
+		catch ( ModelItemDoesNotExistException x )
+		{
+			return null;
 		}
 		catch ( BuildFailure | ModelRequestException | ModelServiceException e )
 		{
@@ -168,6 +177,7 @@ public class ModelDeployDb extends SimpleService implements DeploymentDb
 		try ( final ModelRequestContext mrc = buildContext () )
 		{
 			final ModelObjectList<BasicModelObject> resultSet = fModel.startQuery ()
+				.withPathPrefix ( getBaseDeploymentPath() )
 				.withFieldValue ( DeploymentSerde.kField_ConfigKey, configKey )
 				.execute ( mrc )
 			;

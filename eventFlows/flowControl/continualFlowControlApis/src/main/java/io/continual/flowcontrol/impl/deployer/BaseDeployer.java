@@ -83,19 +83,25 @@ public class BaseDeployer extends SimpleService implements FlowControlDeployment
 	@Override
 	public void undeploy ( FlowControlCallContext ctx, String deploymentId ) throws ServiceException
 	{
-		// remove from the deploy db...
-		final FlowControlDeployment deployment;
 		try
 		{
-			deployment = fDeployDb.removeDeployment ( deploymentId );
+			// look up the deployment
+			final FlowControlDeployment deployment = getDeployment ( ctx, deploymentId );
+			if ( deployment == null )
+            {
+                return;
+            }
+
+			// undeploy it...
+			internalUndeploy ( ctx, deploymentId, deployment );
+
+			// remove it from our db...
+			fDeployDb.removeDeployment ( deploymentId );
 		}
 		catch ( DeployDbException e )
 		{
 			throw new ServiceException ( e );
 		}
-
-		// then from the platform
-		internalUndeploy ( ctx, deploymentId, deployment );
 	}
 
 	@Override
