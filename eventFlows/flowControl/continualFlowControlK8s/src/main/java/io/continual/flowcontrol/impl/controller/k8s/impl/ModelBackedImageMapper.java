@@ -6,7 +6,8 @@ import java.util.List;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.flowcontrol.impl.controller.k8s.ContainerImageMapper;
+import io.continual.flowcontrol.impl.controller.JsonDataImageMapper;
+import io.continual.flowcontrol.services.controller.ContainerImageMapper;
 import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService.ServiceException;
 import io.continual.services.ServiceContainer;
 import io.continual.services.model.core.Model;

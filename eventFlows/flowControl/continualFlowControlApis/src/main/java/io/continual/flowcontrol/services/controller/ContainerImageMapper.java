@@ -1,4 +1,4 @@
-package io.continual.flowcontrol.impl.controller.k8s;
+package io.continual.flowcontrol.services.controller;
 
 import io.continual.flowcontrol.model.FlowControlJob.FlowControlRuntimeSpec;
 import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService.RequestException;

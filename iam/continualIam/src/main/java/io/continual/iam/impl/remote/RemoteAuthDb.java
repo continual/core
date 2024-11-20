@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import io.continual.builder.Builder.BuildFailure;
 import io.continual.iam.IamDb;
 import io.continual.iam.access.AccessControlList;
 import io.continual.iam.access.Resource;
@@ -43,6 +44,7 @@ import io.continual.iam.identity.ApiKey;
 import io.continual.iam.identity.Group;
 import io.continual.iam.identity.Identity;
 import io.continual.iam.identity.JwtValidator;
+import io.continual.jsonHttpClient.HttpUsernamePasswordCredentials;
 import io.continual.jsonHttpClient.JsonOverHttpClient;
 import io.continual.jsonHttpClient.JsonOverHttpClient.BodyFormatException;
 import io.continual.jsonHttpClient.JsonOverHttpClient.HttpResponse;
@@ -60,7 +62,7 @@ import io.continual.util.standards.HttpStatusCodes;
  */
 public class RemoteAuthDb implements IamDb<Identity,Group>
 {
-	public RemoteAuthDb ( JSONObject config )
+	public RemoteAuthDb ( JSONObject config ) throws BuildFailure
 	{
 		fIamClient = new JsonOverHttpClientBuilder()
 			.readJsonConfig ( config )
@@ -72,6 +74,13 @@ public class RemoteAuthDb implements IamDb<Identity,Group>
 			baseUrl = baseUrl.substring ( 0, baseUrl.length () - 1 );
 		}
 		fBaseUrl = baseUrl;
+
+		fAuthUser = config.optString ( "authUser", null );
+		fAuthPassword = config.optString ( "authPassword", null );
+		if ( fAuthUser == null || fAuthPassword == null )
+		{
+			throw new BuildFailure ( "Missing authUser or authPassword" );
+		}
 
 		fKnownAuths = new ShardedExpiringCache.Builder<String,CacheEntry> ()
 			.named ( "RemoteAuths" )
@@ -359,6 +368,9 @@ public class RemoteAuthDb implements IamDb<Identity,Group>
 	private final JsonOverHttpClient fIamClient;
 	private final String fBaseUrl;
 
+	private final String fAuthUser;
+	private final String fAuthPassword;
+
 	private final ShardedExpiringCache<String,CacheEntry> fKnownAuths;
 
 	private String makePath ( String... parts )
@@ -395,6 +407,7 @@ public class RemoteAuthDb implements IamDb<Identity,Group>
 		{
 			try ( final HttpResponse resp = fIamClient.newRequest ()
 				.onPath ( makePath ( "users", fUsername ) )
+				.asUser ( new HttpUsernamePasswordCredentials ( fAuthUser, fAuthPassword ) )
 				.get ()
 			)
 			{
@@ -566,7 +579,7 @@ public class RemoteAuthDb implements IamDb<Identity,Group>
 		 */
 		public boolean usedPassword ( String password )
 		{
-			return fPassword == hash ( password );
+			return ( fPassword == null && password == null ) || fPassword.equals ( hash ( password ) );
 		}
 
 		private final Integer fPassword;

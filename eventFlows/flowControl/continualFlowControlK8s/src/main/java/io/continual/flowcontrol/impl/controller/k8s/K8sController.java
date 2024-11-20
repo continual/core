@@ -27,6 +27,7 @@ import io.continual.flowcontrol.model.FlowControlCallContext;
 import io.continual.flowcontrol.model.FlowControlDeployment;
 import io.continual.flowcontrol.model.FlowControlDeploymentSpec;
 import io.continual.flowcontrol.model.FlowControlJob.FlowControlRuntimeSpec;
+import io.continual.flowcontrol.services.controller.ContainerImageMapper;
 import io.continual.flowcontrol.services.encryption.Encryptor;
 import io.continual.iam.access.AccessControlList;
 import io.continual.iam.identity.Identity;
