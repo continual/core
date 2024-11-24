@@ -65,9 +65,9 @@
 
 			"imageMapper":
 			{
-				"class": "io.continual.flowcontrol.impl.controller.k8s.impl.InlineImageMapper",
+				"class": "io.continual.flowcontrol.impl.controller.InlineImageMapper",
 				"rules": [
-					{ "match": ".*", "image": "continualeventproc:0.3.18-SNAPSHOT" }
+					{ "match": ".*", "image": "${CONTAINER_REGISTRY|docker.io/library}/continualeventproc:0.3.21-SNAPSHOT" }
 				]
 			},
 
