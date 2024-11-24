@@ -21,6 +21,8 @@ public class BaseHttpService extends SimpleService implements FlowControlService
 {
 	public BaseHttpService ( ServiceContainer sc, JSONObject config ) throws BuildFailure
 	{
+		// FIXME: these dbs need account-level scoping
+		
 		fJobDb = sc.getReqd ( config.optString ( "jobDb", "jobDb" ), FlowControlJobDb.class );
 		fDeployApi = sc.getReqd ( config.optString ( "deployApi", "deployApi" ), FlowControlDeploymentService.class );
 

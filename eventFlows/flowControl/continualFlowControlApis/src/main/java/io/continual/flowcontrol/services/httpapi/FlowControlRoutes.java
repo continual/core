@@ -179,7 +179,52 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 		} );
 	}
 
-	public void patchJob ( CHttpRequestContext context, String name ) throws IamSvcException
+	public void overwriteJob ( CHttpRequestContext context, String id ) throws IamSvcException
+	{
+		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
+		{
+			@Override
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
+			{
+				try
+				{
+					final JSONObject payload = new JSONObject ( new CommentedJsonTokener ( context.request ().getBodyStream () ) );
+
+					final String name = payload.getString ( "name" );
+
+					final FlowControlCallContext fccc = fFlowControl.createtContextBuilder ().asUser ( uc.getUser () ).build ();
+
+					final FlowControlJobDb jobDb = fFlowControl.getJobDb ( fccc );
+					final FlowControlJobBuilder jobBuilder = jobDb.createJobBuilder ( fccc )
+						.withId ( id )
+						.withName ( name )
+						.withOwner ( uc.getUser ().getId () )
+						.withAccess ( AccessControlEntry.kOwner, AccessControlList.READ, AccessControlList.UPDATE, AccessControlList.DELETE )
+					;
+
+					readJobPayloadInto ( payload, jobBuilder );
+					final FlowControlJob job = jobBuilder.build ();
+					jobDb.storeJob ( fccc, job.getId (), job );
+					sendJson ( context, render ( job ) );
+				}
+				catch ( FlowControlJobDb.ServiceException e )
+				{
+					log.warn ( e.getMessage (), e );
+					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the flow control job database." );
+				}
+				catch ( FlowControlJobDb.RequestException | BuildFailure | JSONException e )
+				{
+					sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, "There was a problem with your request: " + e.getMessage () );
+				}
+				catch ( AccessException x )
+				{
+					sendStatusCodeAndMessage ( context, HttpStatusCodes.k401_unauthorized, x.getMessage () );
+				}
+			}
+		} );
+	}
+
+	public void patchJob ( CHttpRequestContext context, String id ) throws IamSvcException
 	{
 		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
@@ -193,11 +238,21 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 					final FlowControlCallContext fccc = fFlowControl.createtContextBuilder ().asUser ( uc.getUser () ).build ();
 
 					final FlowControlJobDb jobDb = fFlowControl.getJobDb ( fccc );
-					final FlowControlJob job = jobDb.getJob ( fccc, name );
+					FlowControlJob job = jobDb.getJob ( fccc, id );
 
 					if ( job == null )
 					{
-						sendStatusCodeAndMessage ( context, HttpStatusCodes.k404_notFound, "no such job" );
+						final FlowControlJobBuilder jobBuilder = jobDb.createJobBuilder ( fccc )
+							.withId ( id )
+							.withName ( id )
+							.withOwner ( uc.getUser ().getId () )
+							.withAccess ( AccessControlEntry.kOwner, AccessControlList.READ, AccessControlList.UPDATE, AccessControlList.DELETE )
+						;
+
+						readJobPayloadInto ( payload, jobBuilder );
+						job = jobBuilder.build ();
+						jobDb.storeJob ( fccc, job.getId (), job );
+						sendJson ( context, render ( job ) );
 					}
 					else
 					{
@@ -209,7 +264,7 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 
 						if ( changesMade )
 						{
-							jobDb.storeJob ( fccc, name, updatedJob );
+							jobDb.storeJob ( fccc, id, updatedJob );
 						}
 
 						sendJson ( context, render ( updatedJob ) );
