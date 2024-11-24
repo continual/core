@@ -12,6 +12,7 @@ import io.continual.flowcontrol.services.controller.ContainerImageMapper;
 import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService.RequestException;
 import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService.ServiceException;
 import io.continual.services.ServiceContainer;
+import io.continual.util.data.exprEval.ExpressionEvaluator;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.data.json.JsonVisitor.ArrayVisitor;
 
@@ -62,7 +63,9 @@ public abstract class JsonDataImageMapper implements ContainerImageMapper
 				public boolean visit ( JSONObject ruleData ) throws JSONException, ServiceException
 				{
 					final String match = ruleData.getString ( "match" );
-					final String image = ruleData.getString ( "image" );
+					final String image = ExpressionEvaluator.getStandardEvaluator ()
+						.evaluateText ( ruleData.getString ( "image" ) )
+					;
 					map.add ( new Rule ( match, image ) );
 					return true;
 				}
