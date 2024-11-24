@@ -70,8 +70,14 @@ public class AttachmentDataLoader implements DataLoader
 	{
 		if ( contentType.equalsIgnoreCase ( "text/csv" ) )
 		{
-			final CsvSource src = new CsvSource ( new JSONObject () );
-			src.setResource ( is );
+			try ( final CsvSource src = new CsvSource ( new JSONObject () ) )
+			{
+				src.setResource ( is );
+			}
+			catch ( IOException x )
+			{
+				throw new BuildFailure ( x );
+			}
 		}
 		else if ( contentType.equalsIgnoreCase ( "application/vnd.ms-excel" ) )
 		{

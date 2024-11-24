@@ -45,6 +45,11 @@ public class Pipeline
 		return this;
 	}
 
+	public int size ()
+	{
+		return fRules.size ();
+	}
+
 	public void process ( MessageProcessingContext context )
 	{
 		final MetricsCatalog mc = context.getMetrics ();

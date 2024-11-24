@@ -42,7 +42,7 @@ public class ImapMailboxMonitor extends BasicSource
 
 	public ImapMailboxMonitor ( ServiceContainer sc, JSONObject config ) throws JSONException, BuildFailure
 	{
-		super ();
+		super ( config );
 
 		final ExpressionEvaluator ee = sc.getExprEval ( config );
 		
