@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import io.continual.util.data.UniqueStringGenerator;
 import io.continual.util.time.Clock;
+import io.continual.util.version.CVersionInfo;
 
 public class SpecialFnsDataSource implements ExprDataSource
 {
@@ -25,6 +26,14 @@ public class SpecialFnsDataSource implements ExprDataSource
 		else if ( label.equals ( "ulid") )
 		{
 			return UniqueStringGenerator.createUlid ();
+		}
+		else if ( label.equals ( "continualVersion") )
+		{
+			return CVersionInfo.getVersion ();
+		}
+		else if ( label.equals ( "continualBuildYear") )
+		{
+			return CVersionInfo.getBuildYear ();
 		}
 		return null;
 	}
