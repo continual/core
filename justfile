@@ -18,6 +18,11 @@ BUILD_VERSION := shell("
 default:
 	@just --list
 
+# version update
+version:
+	mvn versions:set -DgenerateBackupPoms=false
+	mvn versions:update-child-modules -DgenerateBackupPoms=false
+
 # java build
 java:
 	@echo "Running maven..."
