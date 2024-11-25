@@ -206,9 +206,10 @@ public class BlockFile implements Closeable
 	public long create ( InputStream is ) throws IOException
 	{
 		long result = allocateBlock ();
-		final OutputStream os = writeStream ( result );
-		copyStream ( is, os );
-		os.close ();
+		try ( final OutputStream os = writeStream ( result ) )
+		{
+			copyStream ( is, os );
+		}
 		return result;
 	}
 
@@ -220,11 +221,12 @@ public class BlockFile implements Closeable
 	 */
 	public byte[] read ( long address ) throws IOException
 	{
-		final InputStream in = readToStream ( address );
-		final ByteArrayOutputStream baos = new ByteArrayOutputStream ();
-		copyStream ( in, baos );
-		baos.close ();
-		return baos.toByteArray ();
+		try ( final InputStream in = readToStream ( address ) )
+		{
+			final ByteArrayOutputStream baos = new ByteArrayOutputStream ();
+			copyStream ( in, baos );
+			return baos.toByteArray ();
+		}
 	}
 
 	/**
@@ -239,12 +241,10 @@ public class BlockFile implements Closeable
 	 */
 	public InputStream readToStream ( long address ) throws IOException
 	{
-		InputStream result = new blockReadStream ( address );
-		if ( fKey != null )
-		{
-			result = new CipherInputStream ( result, getCipher ( false ) );
-		}
-		return result;
+		return fKey != null ?
+			new CipherInputStream ( new blockReadStream ( address ), getCipher ( false ) ) :
+			new blockReadStream ( address )
+		;
 	}
 
 	/**
@@ -448,12 +448,10 @@ public class BlockFile implements Closeable
 
 	private OutputStream writeStream ( long address ) throws IOException
 	{
-		OutputStream result = new blockOutputStream ( address );
-		if ( fKey != null )
-		{
-			result = new CipherOutputStream ( result, getCipher ( true ) );
-		}
-		return result;
+		return ( fKey != null ) ?
+			new CipherOutputStream ( new BlockOutputStream ( address ), getCipher ( true ) ) :
+			new BlockOutputStream ( address )
+		;
 	}
 
 	private void storeBlock ( long thisBlock, long nextBlock, byte[] bytes ) throws IOException
@@ -618,9 +616,9 @@ public class BlockFile implements Closeable
 		private int fOffset;
 	}
 
-	private class blockOutputStream extends OutputStream
+	private class BlockOutputStream extends OutputStream
 	{
-		public blockOutputStream ( long address ) throws IOException
+		public BlockOutputStream ( long address ) throws IOException
 		{
 			if ( !fCanWrite )
 			{
