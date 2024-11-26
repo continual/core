@@ -24,7 +24,9 @@ import io.continual.messaging.ContinualMessage;
 import io.continual.messaging.ContinualMessagePublisher;
 import io.continual.messaging.ContinualMessagePublisher.TopicUnavailableException;
 import io.continual.messaging.ContinualMessageSink;
+import io.continual.messaging.ContinualMessageSink.AckType;
 import io.continual.messaging.ContinualMessageStream;
+import io.continual.messaging.MessagePublishException;
 import io.continual.services.ServiceContainer;
 import io.continual.util.data.StreamTools;
 import io.continual.util.data.csv.CsvCallbackReader;
@@ -45,6 +47,8 @@ public class ReceiverApi<I extends Identity> extends TypicalRestApiEndpoint<I>
 	public static final String DEFAULT_TOPIC = "";
 	public static final String DEFAULT_PARTITION = "";
 
+	public static final String kAcksParam = "acks";
+	
 	public ReceiverApi ( ServiceContainer sc, JSONObject prefs ) throws BuildFailure
 	{
 		super ( sc, prefs );
@@ -94,8 +98,6 @@ public class ReceiverApi<I extends Identity> extends TypicalRestApiEndpoint<I>
 			@Override
 			public void handle ( CHttpRequestContext context, final UserContext<I> user )
 			{
-				final Counter count = new Counter ();
-
 				try
 				{
 					// process the inbound payload into a JSON array of messages
@@ -121,12 +123,13 @@ public class ReceiverApi<I extends Identity> extends TypicalRestApiEndpoint<I>
 					final String internalMsgStreamName = acctIdAndTopic[0] + "/" + acctIdAndTopic[1] + "/" + eventStreamName;
 					final ContinualMessageStream stream = ContinualMessageStream.fromName ( internalMsgStreamName );
 
-					// for each message, run the user's processing and send it along to the output channel 
+					// for each message, run the user's processing and send it along to the output channel
+					LinkedList<ContinualMessage> messages = new LinkedList<> ();
 					for ( JSONObject msgData : incoming )
 					{
 						final String id = makeId ();
 
-						final ContinualMessage msg = ContinualMessage.builder ()
+						messages.add ( ContinualMessage.builder ()
 							.createdBy ( user.getUser () )
 							.withMessageData ( msgData )
 							.withMetaDataSection ( kMetadataGroup )
@@ -137,25 +140,32 @@ public class ReceiverApi<I extends Identity> extends TypicalRestApiEndpoint<I>
 								.set ( kSource, context.request ().getBestRemoteAddress () )
 								.close ()
 							.build ()
-						;
-
-						fSink.send ( stream, msg );
-
-						count.bump ();
+						);
 					}
 
-					sendStatusOk ( context,
+					final AckType ackType = AckType.fromUserValue ( context.request ().getParameter ( kAcksParam, AckType.MINIMAL.toString () ) );
+
+					fSink.send ( stream, messages, ackType );
+
+					int responseCode = HttpStatusCodes.k202_accepted;
+					if ( ackType == AckType.ALL )
+					{
+						responseCode = HttpStatusCodes.k200_ok;
+					}
+
+					sendJson ( context, responseCode,
 						new JSONObject ()
-							.put ( "received", count.getCount () )
+							.put ( kStatusCode, responseCode )
+							.put ( "received", messages.size () )
 					);
 				}
-				catch ( IOException e )
+				catch ( MessagePublishException x )
 				{
-					sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, e.getMessage() );
+					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, x.getMessage () );
 				}
-				catch ( JSONException e )
+				catch ( IOException | IllegalArgumentException | JSONException x )
 				{
-					sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, e.getMessage() );
+					sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, x.getMessage() );
 				}
 			}
 		} );
@@ -167,14 +177,6 @@ public class ReceiverApi<I extends Identity> extends TypicalRestApiEndpoint<I>
 	private static final String kIntendedTopic = "topic";
 	private static final String kEventStreamName = "eventStream";
 	private static final String kSource = "source";
-
-	private static class Counter
-	{
-		Counter () { fCount = 0; }
-		long getCount () { return fCount; }
-		void bump () { fCount++; }
-		private long fCount;
-	}
 
 	private String makeId ()
 	{

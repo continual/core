@@ -30,11 +30,10 @@ public class DevNullPublisher implements ContinualMessagePublisher
 		return new ContinualMessageSink ()
 		{
 			@Override
-			public void send ( ContinualMessageStream stream, Collection<ContinualMessage> msgs )
+			public void send ( ContinualMessageStream stream, Collection<ContinualMessage> msgs, AckType acks )
 			{
 				// no-op
 			}
-			
 		};
 	}
 

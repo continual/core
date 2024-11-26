@@ -108,7 +108,7 @@ public class JsonIoEndpoint
 		sendJson ( context, HttpStatusCodes.k200_ok, payload );
 	}
 
-	private static final String kStatusCode = "statusCode";
+	protected static final String kStatusCode = "statusCode";
 	
 	/**
 	 * Send a status code and message in the response. The response body includes the status code and message.
