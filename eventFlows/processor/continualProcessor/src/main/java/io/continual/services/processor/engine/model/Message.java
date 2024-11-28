@@ -29,11 +29,24 @@ import io.continual.util.data.json.JsonUtil;
 
 public class Message implements JsonSerialized
 {
+	/**
+	 * Clone the given data into a message. The original data is not
+	 * used after this call and the caller can continue to update it.
+	 * @param data
+	 * @return a message
+	 */
 	public static Message copyJsonToMessage ( JSONObject data )
 	{
 		return new Message ( data, true );
 	}
-	
+
+	/**
+	 * Adopt the given data into a message. The original data should
+	 * not be updated again outside of the message class. That is, the 
+	 * JSON is now owned by the message, not the caller.
+	 * @param data
+	 * @return a message
+	 */
 	public static Message adoptJsonAsMessage ( JSONObject data )
 	{
 		return new Message ( data, false );
