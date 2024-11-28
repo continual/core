@@ -34,7 +34,7 @@ public class KafkaPublisher extends SimpleService implements ContinualMessagePub
 		final JSONObject config = sc.getExprEval ().evaluateJsonObject ( rawConfig );
 
 		// read properties
-		final Properties props = new Properties ( skDefaultProps );
+		final Properties props = getBaseProps ();
 		JsonVisitor.forEachElement ( config.optJSONObject ( "kafka" ), new ObjectVisitor<Object,BuildFailure> ()
 		{
 			@Override
@@ -47,23 +47,14 @@ public class KafkaPublisher extends SimpleService implements ContinualMessagePub
 
 		fProducers = new HashMap<> ();
 
-		{
-			final Properties localProps = new Properties ( props );
-			localProps.put ( "acks", -1 );
-			fProducers.put ( AckType.ALL, new KafkaProducer<> ( localProps ) );
-		}
+		props.put ( "acks", "all" );
+		fProducers.put ( AckType.ALL, new KafkaProducer<> ( props ) );
 
-		{
-			final Properties localProps = new Properties ( props );
-			localProps.put ( "acks", 1 );
-			fProducers.put ( AckType.MINIMAL, new KafkaProducer<> ( localProps ) );
-		}
+		props.put ( "acks", "1" );
+		fProducers.put ( AckType.MINIMAL, new KafkaProducer<> ( props ) );
 
-		{
-			final Properties localProps = new Properties ( props );
-			localProps.put ( "acks", 1 );
-			fProducers.put ( AckType.NONE, new KafkaProducer<> ( localProps ) );
-		}
+		props.put ( "acks", "0" );
+		fProducers.put ( AckType.NONE, new KafkaProducer<> ( props ) );
 	}
 
 	@Override
@@ -110,14 +101,15 @@ public class KafkaPublisher extends SimpleService implements ContinualMessagePub
 
 	private static final Logger log = LoggerFactory.getLogger ( KafkaPublisher.class );
 
-	private static final Properties skDefaultProps = new Properties ();
-	static
+	private static Properties getBaseProps ()
 	{
+		final Properties skDefaultProps = new Properties ();
 		skDefaultProps.put ( "acks", "all" );
 		skDefaultProps.put ( "batch.size", 16384 );
 		skDefaultProps.put ( "linger.ms", 1 );
 		skDefaultProps.put ( "buffer.memory", 33554432 );
-		skDefaultProps.put ( "key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-		skDefaultProps.put ( "value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+		skDefaultProps.put ( "key.serializer", "org.apache.kafka.common.serialization.StringSerializer" );
+		skDefaultProps.put ( "value.serializer", "org.apache.kafka.common.serialization.StringSerializer" );
+		return skDefaultProps;
 	}
 }
