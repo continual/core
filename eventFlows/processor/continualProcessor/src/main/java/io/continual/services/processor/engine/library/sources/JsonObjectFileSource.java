@@ -74,8 +74,8 @@ public class JsonObjectFileSource extends BasicSource
 			fSrc = new BufferedReader ( new FileReader ( filename ) );
 		}
 
-		final MetricsCatalog metrics = spc.getMetrics ().getSubCatalog ( "JsonObjectFileSource" );
-		
+		final MetricsCatalog metrics = spc.getMetrics ().getSubCatalog ( getName () );
+
 		final String line;
 		try ( Timer.Context rltc = metrics.timer ( "readLine" ).time () )
 		{
