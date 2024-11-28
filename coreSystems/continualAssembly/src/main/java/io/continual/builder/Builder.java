@@ -309,18 +309,10 @@ public class Builder<T>
 			}
 			else
 			{
-				return findClass ( cn ).newInstance ();
+				return findClass ( cn ).getDeclaredConstructor().newInstance ();
 			}
 		}
-		catch ( ClassNotFoundException e )
-		{
-			throw new BuildFailure ( e );
-		}
-		catch ( InstantiationException e )
-		{
-			throw new BuildFailure ( e );
-		}
-		catch ( IllegalAccessException e )
+		catch ( ClassNotFoundException | NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException | SecurityException e )
 		{
 			throw new BuildFailure ( e );
 		}
@@ -415,7 +407,7 @@ public class Builder<T>
 						}
 						else
 						{
-							T t = c.newInstance ();
+							T t = c.getDeclaredConstructor().newInstance ();
 							m.invoke ( t, fData.getInitData () );
 							return t;
 						}
@@ -432,7 +424,7 @@ public class Builder<T>
 						}
 						else
 						{
-							T t = c.newInstance ();
+							T t = c.getDeclaredConstructor().newInstance ();
 							m.invoke ( t, fData.getInitData (), fContext );
 							return t;
 						}
@@ -516,19 +508,7 @@ public class Builder<T>
 			}
 			throw new BuildFailure ( target );
 		}
-		catch ( ClassNotFoundException e )
-		{
-			throw new BuildFailure ( e );
-		}
-		catch ( InstantiationException e )
-		{
-			throw new BuildFailure ( e );
-		}
-		catch ( IllegalAccessException e )
-		{
-			throw new BuildFailure ( e );
-		}
-		catch ( SecurityException e )
+		catch ( ClassNotFoundException | NoSuchMethodException | InstantiationException | IllegalAccessException | SecurityException e )
 		{
 			throw new BuildFailure ( e );
 		}
