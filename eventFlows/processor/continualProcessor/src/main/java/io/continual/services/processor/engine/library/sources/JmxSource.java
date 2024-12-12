@@ -1,11 +1,13 @@
 package io.continual.services.processor.engine.library.sources;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -14,6 +16,7 @@ import javax.management.MBeanInfo;
 import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
+import javax.management.RuntimeMBeanException;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.remote.JMXConnector;
@@ -73,6 +76,9 @@ public class JmxSource extends BasicSource
 			// if key hierarchy is set, data is built into an object hierarchy based on the jmx key
 			fKeyHierarchy = config.optBoolean ( "jmxKeyHierarchy", true );
 
+			// mbeans can contain a lot of data. optionally generate separate messages per mbean
+			fSeparateMsgsPerMBean = config.optBoolean ( "separateMsgsPerPollItem", true );
+			
 			// read a list of fetch specifications...
 			fFetchSpecs = new LinkedList<> ();
 			final JSONArray specificQueries = config.optJSONArray ( "pollList" );
@@ -93,6 +99,8 @@ public class JmxSource extends BasicSource
 				// nothing specified = query everything
 				fFetchSpecs.add ( new JmxFetchSpec ( null ) );
 			}
+
+			fPending = new LinkedList<> ();
 		}
 		catch ( MalformedURLException | JSONException e )
 		{
@@ -104,24 +112,37 @@ public class JmxSource extends BasicSource
 	protected MessageAndRouting internalGetNextMessage ( StreamProcessingContext spc )
 		throws IOException, InterruptedException
 	{
-		// is it time yet?
+		// any pending msgs left?
+		if ( fPending.size () > 0 )
+		{
+			return fPending.removeFirst ();
+		}
+
+		// have we already polled on a run-once setup and set the next poll time to -1?
+		if ( fNextPollAtMs < 0 )
+		{
+			noteEndOfStream ();
+			return null;
+		}
+
+		// is it time to poll?
 		if ( Clock.now () < fNextPollAtMs )
 		{
 			return null;
 		}
-		fNextPollAtMs = Clock.now () + fPollFreqMs;
-		
-		// if this source was configured to run once only, signal the end of stream
-		// so that we're not called again
-		if ( fRunOnce )
+
+		// generate next message(s)
+		for ( JSONObject msgData : populateMsgData () )
 		{
-			noteEndOfStream ();
+			fPending.add ( makeDefRoutingMessage ( Message.adoptJsonAsMessage ( msgData ) ) );
+
 		}
 
-		// generate the message
-		final JSONObject msgData = new JSONObject ();
-		populateMsgData ( msgData );
-		return makeDefRoutingMessage ( Message.adoptJsonAsMessage ( msgData ) );
+		// next poll?
+		fNextPollAtMs = fRunOnce ? -1L : Clock.now () + fPollFreqMs;
+
+		// return first next msg
+		return fPending.size () > 0 ? fPending.removeFirst () : null;
 	}
 
 	private final long fPollFreqMs;
@@ -129,7 +150,9 @@ public class JmxSource extends BasicSource
 	private final boolean fRunOnce;
 	private final JMXServiceURL fUrl;
 	private final boolean fKeyHierarchy;
+	private final boolean fSeparateMsgsPerMBean;
 	private final List<JmxFetchSpec> fFetchSpecs;
+	private final LinkedList<MessageAndRouting> fPending;
 
 	private static final Logger log = LoggerFactory.getLogger ( JmxSource.class );
 
@@ -188,12 +211,28 @@ public class JmxSource extends BasicSource
 			( val instanceof Short ) ||
 			( val instanceof Integer ) ||
 			( val instanceof Long ) || 
-			( val instanceof Float ) ||
-			( val instanceof Double ) ||
 			( val instanceof BigInteger ) ||
 			( val instanceof BigDecimal )
 		)
 		{
+			return val;
+		}
+		else if ( val instanceof Float )
+		{
+			final Float d = (Float) val;
+			if ( d.isInfinite () || d.isNaN () )
+			{
+				return "NaN";
+			}
+			return val;
+		}
+		else if ( val instanceof Double )
+		{
+			final Double d = (Double) val;
+			if ( d.isInfinite () || d.isNaN () )
+			{
+				return "NaN";
+			}
 			return val;
 		}
 		else if ( val instanceof ObjectName )
@@ -228,9 +267,9 @@ public class JmxSource extends BasicSource
 		else if ( val.getClass ().isArray () )
 		{
 			final JSONArray arr = new JSONArray ();
-			for ( Object o : (Object[]) val )
+			for ( int i=0; i<Array.getLength ( val ); i++ )
 			{
-				arr.put ( valToJson ( o ) );
+				arr.put ( valToJson ( Array.get ( val, i ) ) );
 			}
 			return arr;
 		}
@@ -252,13 +291,26 @@ public class JmxSource extends BasicSource
 			}
 			return arr;
 		}
+		else if ( val instanceof Map )
+		{
+			final JSONObject obj = new JSONObject ();
+			for ( Map.Entry<?, ?> entry : ( (Map<?, ?>) val ).entrySet () )
+			{
+				obj.put ( entry.getKey ().toString (),
+					valToJson ( entry.getValue () ) );
+			}
+			return obj;
+		}
 
 		log.info ( "Don't know how to convert {}", val.getClass ().getCanonicalName () );
 		return null;
 	}
 
-	private void populateMsgData ( JSONObject msgData ) throws IOException
+	private List<JSONObject> populateMsgData (  ) throws IOException
 	{
+		final LinkedList<JSONObject> result = new LinkedList<> ();
+		JSONObject current = null;
+
 		// connect to the JMX source and populate our data
 		log.debug ( "Connecting to JMX @ {}", fUrl );
 		try ( final JMXConnector jmxc = JMXConnectorFactory.connect ( fUrl, null ) )
@@ -267,6 +319,16 @@ public class JmxSource extends BasicSource
 
 			for ( JmxFetchSpec q : fFetchSpecs )
 			{
+				// maybe start a new msgs
+				if ( fSeparateMsgsPerMBean )
+				{
+					if ( current != null )
+					{
+						result.add ( current );
+					}
+					current = new JSONObject ();
+				}
+
 				// create an object name from the user's string
 				ObjectName objname = null;
 				final String onStr = q.getObjName ();
@@ -298,16 +360,16 @@ public class JmxSource extends BasicSource
 					final String domainStr = parts[0];
 					final String keyprops = ( parts.length == 1 || parts[1] == null ) ? "" : parts[1];
 
-					log.debug ( "Querying on object {}...", objName );
+					log.info ( "Querying on object {}...", objName );
 
-					JSONObject domain = msgData.optJSONObject ( domainStr );
+					JSONObject domain = current.optJSONObject ( domainStr );
 					if ( domain == null )
 					{
 						domain = new JSONObject ();
-						msgData.put ( domainStr, domain );
+						current.put ( domainStr, domain );
 					}
 
-					// determine the attribute location
+					// determine the attribute's location in our message
 					final JSONObject attrData = buildDataContainer ( domain, keyprops );
 
 					try
@@ -316,19 +378,48 @@ public class JmxSource extends BasicSource
 						final MBeanAttributeInfo[] attrInfo = info.getAttributes ();
 						for ( MBeanAttributeInfo attribute : attrInfo )
 						{
-							log.debug ( "Getting value for attr {} {}...", objName, attribute.getName () );
-
-							final Object val = mbsc.getAttribute ( mbean, attribute.getName () );
-							attrData.put ( attribute.getName (), valToJson ( val ) );
+							if ( !attribute.isReadable () )
+							{
+								continue;
+							}
+							
+							log.info ( "Getting value for attr {} {}...", objName, attribute.getName () );
+							try
+							{
+								final Object val = mbsc.getAttribute ( mbean, attribute.getName () );
+								attrData.put ( attribute.getName (), valToJson ( val ) );
+							}
+							catch ( RuntimeMBeanException x )
+							{
+								if ( x.getCause () instanceof UnsupportedOperationException )
+								{
+									log.info ( "{} attribute {} is not supported. {}", objName, attribute.getName (), x.getMessage () );
+								}
+								else
+								{
+									throw x;
+								}
+							}
 						}
+					}
+					catch ( RuntimeMBeanException x )
+					{
+						log.warn ( "RuntimeMBeanException on {} {}", objName, x.getMessage () );
 					}
 					catch ( Exception x )
 					{
 						// JMX is kind of insane; we're essentially forced to just catch anything 
-						log.warn ( "Unable to retrieve data for {} {}", objName, x.getMessage () );
+						log.warn ( "Unable to retrieve data for {} {}", objName, x.getMessage (), x );
 					}
 		        }
 			}
+
+			if ( current != null )
+			{
+				result.add ( current );
+			}
+			
+			return result;
 		}
 		catch ( MalformedObjectNameException x )
 		{
