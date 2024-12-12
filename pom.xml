@@ -11,7 +11,7 @@
 
 	<!-- When changing version, also change parent version number in sub-pom files -->
 	<!-- You can run versionUpdate.sh in this directory to do this. -->
-	<version>0.3.22</version> <!-- build_version -->
+	<version>0.3.23</version> <!-- build_version -->
 	<packaging>pom</packaging>
 
 	<name>ContinualIO</name>
@@ -57,6 +57,8 @@
 
 		<maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
 		<timestamp>${maven.build.timestamp}</timestamp>
+
+		<java.version>11</java.version>
 
 		<continual.io.okhttp.version>4.12.0</continual.io.okhttp.version>
 	</properties>
@@ -163,8 +165,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.11.0</version>
 				<configuration>
-					<source>17</source>
-					<target>17</target>
+					<source>${java.version}</source>
+					<target>${java.version}</target>
 				</configuration>
 			</plugin>
 
