@@ -27,6 +27,7 @@ public class ModelRequestException extends Exception
 {
 	public ModelRequestException ( String msg ) { super(msg); fDetails = null; }
 	public ModelRequestException ( String msg, JSONObject details ) { super(msg); fDetails = JsonUtil.clone ( details ); }
+	public ModelRequestException ( String msg, Throwable t ) { super(msg,t); fDetails = null; }
 	public ModelRequestException ( Throwable t ) { super(t); fDetails = null; }
 
 	public JSONObject getDetails () { return fDetails; }

@@ -2,6 +2,7 @@ package io.continual.services.messaging.impl.kafka;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Properties;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -15,6 +16,7 @@ import io.continual.builder.Builder.BuildFailure;
 import io.continual.messaging.ContinualMessage;
 import io.continual.messaging.ContinualMessagePublisher;
 import io.continual.messaging.ContinualMessageSink;
+import io.continual.messaging.ContinualMessageSink.AckType;
 import io.continual.messaging.ContinualMessageStream;
 import io.continual.messaging.MessagePublishException;
 import io.continual.services.ServiceContainer;
@@ -30,18 +32,9 @@ public class KafkaPublisher extends SimpleService implements ContinualMessagePub
 	public KafkaPublisher ( ServiceContainer sc, JSONObject rawConfig ) throws BuildFailure
 	{
 		final JSONObject config = sc.getExprEval ().evaluateJsonObject ( rawConfig );
-		
-		// setup props with some defaults
-		final Properties props = new Properties ();
-		props.put ( "acks", "all" );
-		props.put ( "retries", 0 );
-		props.put ( "batch.size", 16384);
-		props.put ( "linger.ms", 1);
-		props.put ( "buffer.memory", 33554432);
-		props.put ( "key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-		props.put ( "value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
 
-		// transfer into props
+		// read properties
+		final Properties props = getBaseProps ();
 		JsonVisitor.forEachElement ( config.optJSONObject ( "kafka" ), new ObjectVisitor<Object,BuildFailure> ()
 		{
 			@Override
@@ -52,7 +45,16 @@ public class KafkaPublisher extends SimpleService implements ContinualMessagePub
 			}
 		} );
 
-		fProducer = new KafkaProducer<> ( props );
+		fProducers = new HashMap<> ();
+
+		props.put ( "acks", "all" );
+		fProducers.put ( AckType.ALL, new KafkaProducer<> ( props ) );
+
+		props.put ( "acks", "1" );
+		fProducers.put ( AckType.MINIMAL, new KafkaProducer<> ( props ) );
+
+		props.put ( "acks", "0" );
+		fProducers.put ( AckType.NONE, new KafkaProducer<> ( props ) );
 	}
 
 	@Override
@@ -61,16 +63,18 @@ public class KafkaPublisher extends SimpleService implements ContinualMessagePub
 		return new ContinualMessageSink ()
 		{
 			@Override
-			public void send ( ContinualMessageStream stream, Collection<ContinualMessage> msgs ) throws MessagePublishException
+			public void send ( ContinualMessageStream stream, Collection<ContinualMessage> msgs, AckType acks ) throws MessagePublishException
 			{
+				final KafkaProducer<String, String> producer = fProducers.get ( acks );
 				for ( ContinualMessage msg : msgs )
 				{
 					final String partition = stream.getName ();
 					final String payload = msg.toJson ().toString ();
-					log.info  ( "To Kafka ("+ topic + " / " + partition + "): " + payload );
-					fProducer.send ( new ProducerRecord<String,String> ( topic.toString (), partition, payload ) );
+					log.info  ( "To Kafka [{}/{}] with {} acks: {}", topic, partition, acks, payload );
+
+					producer.send ( new ProducerRecord<String,String> ( topic.toString (), partition, payload ) );
 				}
-				fProducer.flush ();
+				producer.flush ();
 			}
 		};
 	}
@@ -78,14 +82,34 @@ public class KafkaPublisher extends SimpleService implements ContinualMessagePub
 	@Override
 	public void flush ()
 	{
+		for ( KafkaProducer<String, String> producer : fProducers.values () )
+		{
+			producer.flush ();
+		}
 	}
 
 	@Override
 	public void close () throws IOException
 	{
-		fProducer.close ();
+		for ( KafkaProducer<String, String> producer : fProducers.values () )
+		{
+			producer.close ();
+		}
 	}
 
-	private final KafkaProducer<String,String> fProducer;
+	private final HashMap<AckType,KafkaProducer<String,String>> fProducers;
+
 	private static final Logger log = LoggerFactory.getLogger ( KafkaPublisher.class );
+
+	private static Properties getBaseProps ()
+	{
+		final Properties skDefaultProps = new Properties ();
+		skDefaultProps.put ( "acks", "all" );
+		skDefaultProps.put ( "batch.size", 16384 );
+		skDefaultProps.put ( "linger.ms", 1 );
+		skDefaultProps.put ( "buffer.memory", 33554432 );
+		skDefaultProps.put ( "key.serializer", "org.apache.kafka.common.serialization.StringSerializer" );
+		skDefaultProps.put ( "value.serializer", "org.apache.kafka.common.serialization.StringSerializer" );
+		return skDefaultProps;
+	}
 }

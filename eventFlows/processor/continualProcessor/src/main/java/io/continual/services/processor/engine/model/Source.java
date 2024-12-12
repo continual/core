@@ -23,6 +23,13 @@ import java.util.concurrent.TimeUnit;
 public interface Source extends Closeable
 {
 	/**
+	 * Get the name of this source. This value is only valid within a processing thread.
+	 * During configuration load, use "name" provided in the config data.
+	 * @return the source name
+	 */
+	default String getName () { return Thread.currentThread ().getName (); }
+
+	/**
 	 * Called when source reader begins.
 	 */
 	default void open () throws IOException {};

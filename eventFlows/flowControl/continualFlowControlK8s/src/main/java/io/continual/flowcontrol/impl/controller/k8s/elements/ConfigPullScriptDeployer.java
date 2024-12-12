@@ -30,6 +30,12 @@ public class ConfigPullScriptDeployer implements K8sElement
 	}
 
 	@Override
+	public String toString ()
+	{
+		return "ConfigPullScriptDeployer";
+	}
+
+	@Override
 	public void deploy ( K8sDeployContext ctx ) throws ElementDeployException
 	{
 		try

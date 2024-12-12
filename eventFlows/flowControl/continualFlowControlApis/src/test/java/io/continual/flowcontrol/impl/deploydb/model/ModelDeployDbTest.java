@@ -7,6 +7,7 @@ import org.junit.Test;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.flowcontrol.impl.deploydb.common.DeploymentSerde;
+import io.continual.flowcontrol.impl.deploydb.common.DeploymentTestContext;
 import io.continual.flowcontrol.impl.deploydb.common.DummyDeployment;
 import io.continual.flowcontrol.impl.enc.Enc;
 import io.continual.flowcontrol.model.FlowControlDeployment;
@@ -46,7 +47,7 @@ public class ModelDeployDbTest extends TestCase
 			;
 		}
 
-		final ModelBackedDeployDb db = new ModelBackedDeployDb ( sc, new JSONObject () );
+		final ModelDeployDb db = new ModelDeployDb ( sc, new JSONObject () );
 
 		final FlowControlDeployment d1 = new DummyDeployment ( enc );
 		db.storeDeployment ( d1 );
@@ -65,7 +66,7 @@ public class ModelDeployDbTest extends TestCase
 		final FlowControlDeployment d4 = db.getDeploymentByConfigKey ( d1.getConfigToken () + "bogus" );
 		assertNull ( d4 );
 
-		final List<FlowControlDeployment> d5 = db.getDeploymentsForUser ( d1.getDeployer () );
+		final List<FlowControlDeployment> d5 = db.getDeploymentsForUser ( new DeploymentTestContext ( d1.getDeployer () ) );
 		assertNotNull ( d5 );
 		assertEquals ( 1, d5.size () );
 		final JSONObject d5ser = DeploymentSerde.serialize ( d5.get ( 0 ), enc );

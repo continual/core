@@ -16,5 +16,8 @@ public class SpecialFnsDataSourceTest extends TestCase
 		assertTrue ( ( Clock.now () / 1000L ) <= (long)sfds.eval ( "nowSec" ) );
 		assertNotNull ( sfds.eval ( "uuid" ) );
 		assertNull ( sfds.eval ( "key" ) );
+
+		assertNotNull ( sfds.eval ( "continualVersion" ) );
+		assertNotNull ( sfds.eval ( "continualBuildYear" ) );
 	}
 }

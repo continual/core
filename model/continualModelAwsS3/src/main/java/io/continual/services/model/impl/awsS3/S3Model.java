@@ -438,7 +438,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 							if ( !paths.hasNext () ) return false;
 
 							// paths has more
-							while ( pending.size () == 0 )
+							while ( pending.size () == 0 && paths.hasNext () )
 							{
 								final Path p = paths.next ();
 								try

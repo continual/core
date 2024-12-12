@@ -27,6 +27,31 @@ import io.continual.util.data.json.JsonVisitor.ObjectVisitor;
 
 public class ExpressionEvaluator
 {
+	/**
+	 * Get a standard expression evaluator that will access the environment and our internal
+	 * functions (e.g. uuid, now).
+	 * @return an expression evaluator
+	 */
+	public static ExpressionEvaluator getStandardEvaluator ()
+	{
+		return getStandardEvaluator ( (JSONObject)null );
+	}
+
+	/**
+	 * Get a standard expression evaluator that will access the given object,
+	 * the environment and our internal functions (e.g. uuid, now).
+	 * @param data a JSON object. Null is allowed; the evaluator will skip it.
+	 * @return an expression evaluator
+	 */
+	public static ExpressionEvaluator getStandardEvaluator ( JSONObject data )
+	{
+		return new ExpressionEvaluator (
+			new JsonDataSource ( data ),
+			new EnvDataSource (),
+			new SpecialFnsDataSource ()
+		);
+	}
+
 	public ExpressionEvaluator ( ExprDataSource... srcs )
 	{
 		fSources = srcs;

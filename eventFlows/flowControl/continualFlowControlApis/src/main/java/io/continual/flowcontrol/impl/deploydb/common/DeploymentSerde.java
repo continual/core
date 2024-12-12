@@ -15,6 +15,7 @@ import io.continual.flowcontrol.model.FlowControlJob;
 import io.continual.flowcontrol.model.FlowControlResourceSpecs;
 import io.continual.flowcontrol.model.FlowControlResourceSpecs.Toleration;
 import io.continual.flowcontrol.services.encryption.Encryptor;
+import io.continual.iam.access.AccessControlList;
 import io.continual.iam.identity.Identity;
 import io.continual.iam.impl.common.SimpleIdentityReference;
 import io.continual.util.data.json.JsonVisitor;
@@ -42,6 +43,7 @@ public class DeploymentSerde
 	public static final String kField_Owner = "deployer";
 	public static final String kField_ConfigKey = "configKey";
 	public static final String kField_JobId = "jobId";
+	public static final String kField_JobVersion = "version";
 
 	private static JSONObject serialize ( FlowControlDeploymentSpec ds )
 	{
@@ -95,6 +97,12 @@ public class DeploymentSerde
 		public String getId ()
 		{
 			return fJson.optString ( "id", null );
+		}
+
+		@Override
+		public AccessControlList getAccessControlList ()
+		{
+			return AccessControlList.deserialize ( fJson.optJSONObject ( "acl" ) );
 		}
 
 		@Override

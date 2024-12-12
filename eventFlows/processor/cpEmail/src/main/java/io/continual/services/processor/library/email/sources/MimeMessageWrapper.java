@@ -2,6 +2,7 @@ package io.continual.services.processor.library.email.sources;
 
 import javax.activation.DataSource;
 import javax.mail.Flags;
+import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
 import org.apache.commons.mail.util.MimeMessageParser;
@@ -18,7 +19,7 @@ public class MimeMessageWrapper extends Message
 		try
 		{
 			final Flags flags = msg.getFlags ();
-			
+
 			fMmp = new MimeMessageParser ( msg );
 			fMmp.parse ();
 
@@ -42,7 +43,20 @@ public class MimeMessageWrapper extends Message
 			final boolean hasHtml = fMmp.hasPlainContent ();
 			baseMsgJson.put ( "hasHtmlContent", hasHtml );
 			if ( hasHtml ) baseMsgJson.put ( "htmlContent", fMmp.getHtmlContent () );
-		}
+
+			// apache commons doesn't return personal name from address
+			final JSONObject fromDetails = new JSONObject ();
+			final javax.mail.Address[] addresses = msg.getFrom ();
+			if ( addresses != null && addresses.length > 0 )
+			{
+				final InternetAddress ia = ((InternetAddress) addresses[0]);
+				fromDetails
+					.put ( "address", ia.getAddress () )
+					.put ( "personal", ia.getPersonal () )
+				;
+			}
+			baseMsgJson.put ( "fromAddr", fromDetails );
+	    }
 		catch ( Exception e )
 		{
 			throw new BuildFailure ( e );

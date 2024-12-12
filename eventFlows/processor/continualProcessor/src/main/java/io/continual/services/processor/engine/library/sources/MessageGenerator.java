@@ -26,6 +26,8 @@ import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageAndRouting;
+import io.continual.util.data.exprEval.ExpressionEvaluator;
+import io.continual.util.data.json.JsonUtil;
 import io.continual.util.time.Clock;
 
 /**
@@ -44,11 +46,29 @@ public class MessageGenerator extends QueuingSource
 
 		try
 		{
+			// capture the expression evaluator for later use, unless explicitly asked not to
+			fExprEval =
+				config.optBoolean ( "skipEvals", false ) ?
+				null :
+				sc.getServiceContainer ().getExprEval ()
+			;
+
+			// what message?
 			final JSONObject given = config.optJSONObject ( "message" );
 			fMessage = given == null ? new JSONObject () : given;
+
+			// how many? Negative is continually.
+			fCount = config.optLong ( "count", -1 );
+
+			// how long between messages? default to 1 sec. 
 			fPauseMs = config.optLong ( "everyMs", 1000 );
-	
-			fNextMs = Clock.now () + fPauseMs;
+			if ( fPauseMs < 1 )
+			{
+				throw new BuildFailure ( "'everyMs' interval must be at least 1 ms" );
+			}
+
+			// initial pause - default to the given pause, unless the count is 1.
+			fNextMs = Clock.now () + config.optLong ( "initialPauseMs", fCount == 1 ? 0 : fPauseMs );
 		}
 		catch ( JSONException e )
 		{
@@ -62,12 +82,26 @@ public class MessageGenerator extends QueuingSource
 		final ArrayList<MessageAndRouting> result = new ArrayList<> ();
 		if ( Clock.now () >= fNextMs )
 		{
-			fNextMs += fPauseMs;
-			result.add ( makeDefRoutingMessage ( Message.copyJsonToMessage ( fMessage.put ( "serialNumber", ++fSerialNumber ) ) ) );
+			// generate a message
+			JSONObject msgData = JsonUtil.clone ( fMessage )
+				.put ( "serialNumber", ++fSerialNumber )
+			;
+
+			// eval any embedded expressions
+			if ( fExprEval != null )
+			{
+				msgData = fExprEval.evaluateJsonObject ( msgData );
+			}
+
+			// create a message from this JSON and add it to the result list
+			result.add ( makeDefRoutingMessage ( Message.adoptJsonAsMessage ( msgData ) ) );
+
+			// next message time...
+			fNextMs = fNextMs + fPauseMs;
 		}
 
 		// if we're not generating at a frequency, that was the only message.
-		if ( fPauseMs == 0 )
+		if ( fPauseMs <= 0 )
 		{
 			noteEndOfStream ();
 			fNextMs = Long.MAX_VALUE;
@@ -75,7 +109,10 @@ public class MessageGenerator extends QueuingSource
 		return result;
 	}
 
+	private final ExpressionEvaluator fExprEval;
+
 	private final JSONObject fMessage;
+	private long fCount;
 	private final long fPauseMs;
 
 	private long fNextMs;

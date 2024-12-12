@@ -139,13 +139,13 @@ public class JsonConfigReader implements ConfigReader
 		return pkgs;
 	}
 
-	public void readInto ( ServiceContainer sc, JSONObject obj, Program p ) throws ConfigReadException
+	public void readInto ( ServiceContainer sc, JSONObject programJson, Program p ) throws ConfigReadException
 	{		
 		final ArrayList<String> pkgs = new ArrayList<> ();
 		pkgs.addAll ( getStandardPackages() );
 
 		// read program packages
-		JsonVisitor.forEachElement ( obj.optJSONArray ( "packages" ), new ArrayVisitor<String,ConfigReadException> ()
+		JsonVisitor.forEachElement ( programJson.optJSONArray ( "packages" ), new ArrayVisitor<String,ConfigReadException> ()
 		{
 			@Override
 			public boolean visit ( String pkgName ) throws ConfigReadException
@@ -177,7 +177,7 @@ public class JsonConfigReader implements ConfigReader
 		};
 
 		// read sinks
-		JsonVisitor.forEachElement ( obj.optJSONObject ( "sinks" ), new ObjectVisitor<JSONObject,ConfigReadException> ()
+		JsonVisitor.forEachElement ( programJson.optJSONObject ( "sinks" ), new ObjectVisitor<JSONObject,ConfigReadException> ()
 		{
 			@Override
 			public boolean visit ( String sinkName, JSONObject sink ) throws ConfigReadException
@@ -191,7 +191,7 @@ public class JsonConfigReader implements ConfigReader
 							.searchingPath ( NullSink.class.getPackage ().getName () )
 							.searchingPaths ( pkgs )
 							.providingContext ( clc )
-							.usingData ( sink )
+							.usingData ( clc.getServiceContainer ().getExprEval ().evaluateJsonObject ( sink ) )
 							.build ()
 					);
 					log.info ( "\twith sink {}...", sinkName );
@@ -206,7 +206,7 @@ public class JsonConfigReader implements ConfigReader
 		} );
 
 		// read pipelines
-		JsonVisitor.forEachElement ( obj.optJSONObject ( "pipelines" ), new ObjectVisitor<JSONArray,ConfigReadException> ()
+		JsonVisitor.forEachElement ( programJson.optJSONObject ( "pipelines" ), new ObjectVisitor<JSONArray,ConfigReadException> ()
 		{
 			@Override
 			public boolean visit ( String pipelineName, JSONArray rules ) throws ConfigReadException
@@ -220,7 +220,7 @@ public class JsonConfigReader implements ConfigReader
 		} );
 
 		// read sources
-		JsonVisitor.forEachElement ( obj.optJSONObject ( "sources" ), new ObjectVisitor<JSONObject,ConfigReadException> ()
+		JsonVisitor.forEachElement ( programJson.optJSONObject ( "sources" ), new ObjectVisitor<JSONObject,ConfigReadException> ()
 		{
 			@Override
 			public boolean visit ( String srcName, JSONObject source ) throws ConfigReadException
@@ -246,7 +246,7 @@ public class JsonConfigReader implements ConfigReader
 			.searchingPath ( Any.class.getPackage ().getName () )
 			.searchingPaths ( pkgs )
 			.providingContext ( clc )	// FIXME: clc has search path for pkgs... why both?
-			.usingData ( fromJson )
+			.usingData ( clc.getServiceContainer ().getExprEval ().evaluateJsonObject ( fromJson ) )
 			.build ()
 		;
 	}
@@ -329,14 +329,13 @@ public class JsonConfigReader implements ConfigReader
 					.withClassNameInData ()
 					.searchingPaths ( pkgs )
 					.providingContext ( clc )
-					.usingData ( svcBlock )
+					.usingData ( clc.getServiceContainer ().getExprEval ().evaluateJsonObject ( svcBlock ) )
 					.build ()
 				;
 				p.addServiceToSource ( srcName, serviceName, ps );
 				log.info ( "\t\twith service {}...", serviceName );
 				return true;
 			}
-			
 		} );
 		
 		return src;
@@ -348,7 +347,7 @@ public class JsonConfigReader implements ConfigReader
 		JsonVisitor.forEachElement ( block, new ArrayVisitor<JSONObject,ConfigReadException> ()
 		{
 			@Override
-			public boolean visit ( JSONObject thenStep ) throws ConfigReadException
+			public boolean visit ( JSONObject processorBlock ) throws ConfigReadException
 			{
 				try
 				{
@@ -358,7 +357,7 @@ public class JsonConfigReader implements ConfigReader
 							.searchingPath ( Set.class.getPackage ().getName () )
 							.searchingPaths ( pkgs )
 							.providingContext ( clc )
-							.usingData ( thenStep )
+							.usingData ( clc.getServiceContainer ().getExprEval ().evaluateJsonObject ( processorBlock ) )
 							.build ()
 					);
 				}

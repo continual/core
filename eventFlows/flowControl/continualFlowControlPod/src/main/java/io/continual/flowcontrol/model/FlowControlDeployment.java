@@ -1,11 +1,12 @@
 package io.continual.flowcontrol.model;
 
+import io.continual.iam.access.ProtectedResource;
 import io.continual.iam.identity.Identity;
 
 /**
  * A deployment is a record of deploying a specific deployment specification.
  */
-public interface FlowControlDeployment
+public interface FlowControlDeployment extends ProtectedResource
 {
 	/**
 	 * Get the deployment ID

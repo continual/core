@@ -31,6 +31,7 @@ import io.continual.util.data.StreamTools;
 import io.continual.util.standards.HttpStatusCodes;
 import io.continual.util.standards.MimeTypes;
 
+@SuppressWarnings("deprecation")
 public class StaticDirHandler implements CHttpPlayishRouteHandler
 {
 	public static final String kSetting_CacheMaxAge = StaticFileHandler.kSetting_CacheMaxAge;

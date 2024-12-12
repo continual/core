@@ -7,6 +7,7 @@ import io.continual.http.app.servers.routeInstallers.TypicalApiServiceRouteInsta
 import io.continual.http.service.framework.CHttpService;
 import io.continual.http.service.framework.routing.playish.CHttpPlayishStaticEntryPointRoutingSource;
 import io.continual.iam.apiserver.endpoints.AuthApiHandler;
+import io.continual.iam.apiserver.endpoints.Health;
 import io.continual.iam.apiserver.endpoints.IamApiHandler;
 import io.continual.iam.identity.Identity;
 import io.continual.services.ServiceContainer;
@@ -22,6 +23,7 @@ public class IamHttpApiService<I extends Identity> extends SimpleService
 			new TypicalApiServiceRouteInstaller ()
 				.registerRoutes ( "authRoutes.conf", this.getClass (), new AuthApiHandler<I> ( sc, config ) )
 				.registerRoutes ( "iamRoutes.conf", this.getClass (), new IamApiHandler<I> ( sc, config ) )
+				.registerRoutes ( "health.conf", this.getClass (), new Health ( sc, config ) )
 				.registerRouteSource (
 					new CHttpPlayishStaticEntryPointRoutingSource ()
 						.addRoute ( "GET", "/guide", "staticDir:com/rathravane/labels/guide;index.html" )

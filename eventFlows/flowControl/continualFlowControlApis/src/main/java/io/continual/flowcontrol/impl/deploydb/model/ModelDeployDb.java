@@ -10,15 +10,20 @@ import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.flowcontrol.impl.deploydb.common.DeploymentSerde;
+import io.continual.flowcontrol.model.FlowControlCallContext;
 import io.continual.flowcontrol.model.FlowControlDeployment;
 import io.continual.flowcontrol.services.deploydb.DeploymentDb;
 import io.continual.flowcontrol.services.encryption.Encryptor;
+import io.continual.iam.access.AccessControlList;
+import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.Identity;
+import io.continual.iam.impl.common.CommonJsonIdentity;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.services.model.core.Model;
 import io.continual.services.model.core.ModelObjectAndPath;
 import io.continual.services.model.core.ModelObjectList;
+import io.continual.services.model.core.ModelPathListPage;
 import io.continual.services.model.core.ModelRequestContext;
 import io.continual.services.model.core.data.BasicModelObject;
 import io.continual.services.model.core.data.JsonModelObject;
@@ -28,12 +33,12 @@ import io.continual.services.model.core.exceptions.ModelServiceException;
 import io.continual.util.naming.Name;
 import io.continual.util.naming.Path;
 
-public class ModelBackedDeployDb extends SimpleService implements DeploymentDb
+public class ModelDeployDb extends SimpleService implements DeploymentDb
 {
-	public ModelBackedDeployDb ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public ModelDeployDb ( ServiceContainer sc, JSONObject config ) throws BuildFailure
 	{
 		fModel = sc.getReqd ( sc.getExprEval ().evaluateText ( config.optString ( kSetting_ModelName, kDefault_ModelName ) ), Model.class );
-		fModelUser = sc.getExprEval ().evaluateText ( config.optString ( kSetting_ModelUser ) );
+		fModelUser = new CommonJsonIdentity ( "flowControlUser", CommonJsonIdentity.initializeIdentity (), null );
 
 		// make sure we have the indexes we need
 		try
@@ -53,10 +58,7 @@ public class ModelBackedDeployDb extends SimpleService implements DeploymentDb
 	@Override
 	public void storeDeployment ( FlowControlDeployment deployment ) throws DeployDbException
 	{
-		try ( final ModelRequestContext mrc = fModel.getRequestContextBuilder ()
-			.forSimpleIdentity ( fModelUser )
-			.build ()
-		)
+		try ( final ModelRequestContext mrc = buildContext () )
 		{
 			fModel.createUpdate ( mrc, makeDeployIdPath ( deployment.getId () ) )
 				.overwriteData ( new JsonModelObject ( DeploymentSerde.serialize ( deployment, fEnc ) ) )
@@ -72,10 +74,7 @@ public class ModelBackedDeployDb extends SimpleService implements DeploymentDb
 	@Override
 	public FlowControlDeployment removeDeployment ( String deployId ) throws DeployDbException
 	{
-		try ( final ModelRequestContext mrc = fModel.getRequestContextBuilder ()
-			.forSimpleIdentity ( fModelUser )
-			.build ()
-		)
+		try ( final ModelRequestContext mrc = buildContext () )
 		{
 			final Path deployPath = makeDeployIdPath ( deployId );
 			final FlowControlDeployment d = deploymentFrom ( fModel.load ( mrc, deployPath ) );
@@ -88,6 +87,11 @@ public class ModelBackedDeployDb extends SimpleService implements DeploymentDb
 				return null;
 			}
 		}
+		catch ( ModelItemDoesNotExistException x )
+		{
+			log.info ( "Deployment " + deployId + " does not exist." );
+			return null;
+		}
 		catch ( BuildFailure | ModelRequestException | ModelServiceException e )
 		{
 			throw new DeployDbException ( e );
@@ -97,12 +101,13 @@ public class ModelBackedDeployDb extends SimpleService implements DeploymentDb
 	@Override
 	public FlowControlDeployment getDeploymentById ( String deployId ) throws DeployDbException
 	{
-		try ( final ModelRequestContext mrc = fModel.getRequestContextBuilder ()
-			.forSimpleIdentity ( fModelUser )
-			.build ()
-		)
+		try ( final ModelRequestContext mrc = buildContext () )
 		{
 			return deploymentFrom ( fModel.load ( mrc, makeDeployIdPath ( deployId ) ) );
+		}
+		catch ( ModelItemDoesNotExistException x )
+		{
+			return null;
 		}
 		catch ( BuildFailure | ModelRequestException | ModelServiceException e )
 		{
@@ -111,20 +116,31 @@ public class ModelBackedDeployDb extends SimpleService implements DeploymentDb
 	}
 
 	@Override
-	public List<FlowControlDeployment> getDeploymentsForUser ( Identity userId ) throws DeployDbException
+	public List<FlowControlDeployment> getDeploymentsForUser ( FlowControlCallContext fccc ) throws DeployDbException
 	{
-		try ( final ModelRequestContext mrc = fModel.getRequestContextBuilder ()
-			.forSimpleIdentity ( fModelUser )
-			.build ()
-		)
+		try ( final ModelRequestContext mrc = buildContext () )
 		{
+			final Path path = getBaseDeploymentPath ();
+			final ModelPathListPage pathList = fModel.listChildrenOfPath ( mrc, path );	// FIXME: does this check READ rights already?
+
 			final LinkedList<FlowControlDeployment> result = new LinkedList<> ();
-			for ( ModelObjectAndPath<BasicModelObject> o : fModel.startQuery ()
-				.withFieldValue ( DeploymentSerde.kField_Owner, userId.getId () )
-				.execute ( mrc )
-			)
+			if ( pathList != null )
 			{
-				result.add ( deploymentFrom ( o.getObject () ) );
+				for ( Path p : pathList )
+				{
+					try
+					{
+						final FlowControlDeployment deployment = internalLoadDeployment ( mrc, p.getItemName ().toString () );
+						if ( deployment != null && deployment.getAccessControlList ().canUser ( fccc.getUser (), AccessControlList.READ ) )
+						{
+							result.add ( deployment );
+						}
+					}
+					catch ( IamSvcException e )
+					{
+						throw new DeployDbException ( e );
+					}
+				}
 			}
 			return result;
 		}
@@ -137,10 +153,7 @@ public class ModelBackedDeployDb extends SimpleService implements DeploymentDb
 	@Override
 	public List<FlowControlDeployment> getDeploymentsOfJob ( String jobId ) throws DeployDbException
 	{
-		try ( final ModelRequestContext mrc = fModel.getRequestContextBuilder ()
-			.forSimpleIdentity ( fModelUser )
-			.build ()
-		)
+		try ( final ModelRequestContext mrc = buildContext () )
 		{
 			final LinkedList<FlowControlDeployment> result = new LinkedList<> ();
 			for ( ModelObjectAndPath<BasicModelObject> o : fModel.startQuery ()
@@ -161,12 +174,10 @@ public class ModelBackedDeployDb extends SimpleService implements DeploymentDb
 	@Override
 	public FlowControlDeployment getDeploymentByConfigKey ( String configKey ) throws DeployDbException
 	{
-		try ( final ModelRequestContext mrc = fModel.getRequestContextBuilder ()
-			.forSimpleIdentity ( fModelUser )
-			.build ()
-		)
+		try ( final ModelRequestContext mrc = buildContext () )
 		{
 			final ModelObjectList<BasicModelObject> resultSet = fModel.startQuery ()
+				.withPathPrefix ( getBaseDeploymentPath() )
 				.withFieldValue ( DeploymentSerde.kField_ConfigKey, configKey )
 				.execute ( mrc )
 			;
@@ -189,28 +200,51 @@ public class ModelBackedDeployDb extends SimpleService implements DeploymentDb
 	}
 
 	private final Model fModel;
-	private final String fModelUser;
+	private final Identity fModelUser;
 
 	private final Encryptor fEnc;
 
 	private static final String kSetting_ModelName = "model";
 	private static final String kDefault_ModelName = "deployDbModel";
 
-	private static final String kSetting_ModelUser = "modelUser";
-
-	private static final Logger log = LoggerFactory.getLogger ( ModelBackedDeployDb.class );
+	private static final Logger log = LoggerFactory.getLogger ( ModelDeployDb.class );
 	
+	private static Path getBaseDeploymentPath ( )
+	{
+		return Path.fromString ( "/deployments" );
+	}
+
 	private Path makeDeployIdPath ( String id )
 	{
-		return Path.getRootPath ()
-			.makeChildItem ( Name.fromString ( "deployments" ) )
+		return getBaseDeploymentPath ()
 			.makeChildItem ( Name.fromString ( id ) )
 		;
+	}
+
+	private FlowControlDeployment internalLoadDeployment ( ModelRequestContext mrc, String deployId ) throws DeployDbException
+	{
+		try
+		{
+			return fModel.load ( mrc, makeDeployIdPath ( deployId ), ModelDeployment.class );
+		}
+		catch ( ModelItemDoesNotExistException e )
+		{
+			return null;
+		}
+		catch ( ModelServiceException | ModelRequestException e )
+		{
+			throw new DeployDbException ( e );
+		}
 	}
 
 	private FlowControlDeployment deploymentFrom ( BasicModelObject bmo )
 	{
 		if ( bmo == null ) return null;
 		return DeploymentSerde.deserialize ( JsonModelObject.modelObjectToJson ( bmo.getData () ) );
+	}
+
+	private ModelRequestContext buildContext () throws BuildFailure
+	{
+		return fModel.getRequestContextBuilder ().forUser ( fModelUser ).build ();
 	}
 }

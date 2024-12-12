@@ -8,10 +8,10 @@ import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.flowcontrol.impl.deploydb.common.DeploymentSerde;
+import io.continual.flowcontrol.model.FlowControlCallContext;
 import io.continual.flowcontrol.model.FlowControlDeployment;
 import io.continual.flowcontrol.services.deploydb.DeploymentDb;
 import io.continual.flowcontrol.services.encryption.Encryptor;
-import io.continual.iam.identity.Identity;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 import io.continual.util.collections.MultiMap;
@@ -69,10 +69,10 @@ public class MemoryDeployDb extends SimpleService implements DeploymentDb
 	}
 
 	@Override
-	public synchronized List<FlowControlDeployment> getDeploymentsForUser ( Identity userId ) throws DeployDbException
+	public synchronized List<FlowControlDeployment> getDeploymentsForUser ( FlowControlCallContext fccc ) throws DeployDbException
 	{
 		final LinkedList<FlowControlDeployment> result = new LinkedList<> ();
-		for ( String did : fUserToDeploys.get ( userId.getId () ) )
+		for ( String did : fUserToDeploys.get ( fccc.getUser ().getId () ) )
 		{
 			result.add ( getDeploymentById ( did ) );
 		}

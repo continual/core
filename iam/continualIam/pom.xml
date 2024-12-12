@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.3.20</version>
+		<version>0.3.21</version>
 		<artifactId>continualIamSystems</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -40,6 +40,13 @@
 			<groupId>io.continual</groupId>
 			<artifactId>continualMetrics</artifactId>
 			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualJsonHttpClient</artifactId>
+			<version>${project.version}</version>
+			<scope>provided</scope>
 		</dependency>
 
 	</dependencies>

@@ -41,10 +41,25 @@ public class ForEachObject implements Processor
 		try
 		{
 			fSet = config.getString ( "set" );
-			fPipeline = JsonConfigReader
-				.readPipeline ( config.optJSONArray ( "processing" ), new ArrayList<String>(), clc )
-			;
 			fVarName = config.optString ( "varName", "_item" );
+			
+			final Object processing = config.opt ( "processing" );
+			if ( processing instanceof JSONArray )
+			{
+				fPipelineRef = null;
+				fPipeline = JsonConfigReader
+					.readPipeline ( (JSONArray) processing, new ArrayList<String>(), clc )
+				;
+			}
+			else if ( processing instanceof String )
+			{
+				fPipelineRef = processing.toString ();
+				fPipeline = null;
+			}
+			else
+			{
+				throw new BuildFailure ( "Invalid processing configuration" );
+			}
 		}
 		catch ( JSONException | ConfigReadException e )
 		{
@@ -70,7 +85,7 @@ public class ForEachObject implements Processor
 						.putRawValue ( fVarName, itemElement )
 					;
 
-					fPipeline.process ( context );
+					runProcessing ( context );
 
 					context.getMessage ()
 						.clearValue ( fVarName )
@@ -94,7 +109,7 @@ public class ForEachObject implements Processor
 							.putRawValue ( "_item", itemElement )
 						;
 	
-						fPipeline.process ( context );
+						runProcessing ( context );
 	
 						context.getMessage ()
 							.clearValue ( "_key" )
@@ -112,6 +127,37 @@ public class ForEachObject implements Processor
 	}
 
 	private final String fSet;
+	private final String fPipelineRef;
 	private final Pipeline fPipeline;
 	private final String fVarName;
+
+	private void runProcessing ( MessageProcessingContext context )
+	{
+		if ( fPipeline != null )
+		{
+			if ( fPipeline.size () == 0 )
+			{
+				context.warn ( "Pipeline is empty." );
+				return;
+			}
+			fPipeline.process ( context );
+		}
+		else
+		{
+			final String pipelineName = context.evalExpression ( fPipelineRef );
+			if ( pipelineName.isEmpty () )
+			{
+				context.warn ( "Empty pipeline reference after evaluating " + fPipelineRef + "." );
+				return;
+			}
+
+			final Pipeline pl = context.getStreamProcessingContext ().getProgram ().getPipeline ( pipelineName );
+			if ( pl == null )
+			{
+				context.warn ( "Unknown pipeline " + pipelineName + " (" + fPipelineRef + ")." );
+				return;
+			}
+			pl.process ( context );
+		}
+	}
 }

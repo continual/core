@@ -16,12 +16,14 @@
 
 package io.continual.services.processor.engine.runtime;
 
-import io.continual.services.Service.FailedToStart;
-import io.continual.util.console.ConsoleProgram;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import io.continual.services.Service.FailedToStart;
 import io.continual.services.processor.config.readers.ConfigReadException;
 import io.continual.services.processor.config.readers.JsonConfigReader;
 import io.continual.services.processor.engine.model.Program;
+import io.continual.util.console.ConsoleProgram;
 
 public class ProgramRunner extends ConsoleProgram
 {
@@ -42,10 +44,12 @@ public class ProgramRunner extends ConsoleProgram
 		}
 		catch ( ConfigReadException e )
 		{
+			log.error ( e.getMessage (), e );
 			System.err.println ( e.getMessage () );
 		}
 		catch ( FailedToStart e )
 		{
+			log.error ( e.getMessage (), e );
 			System.err.println ( e.getMessage () );
 		}
 	}
@@ -59,4 +63,6 @@ public class ProgramRunner extends ConsoleProgram
 		}
 		runProgram ( args );
 	}
+
+	private static final Logger log = LoggerFactory.getLogger ( ProgramRunner.class );
 }

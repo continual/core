@@ -12,6 +12,8 @@ import java.util.LinkedList;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.flowcontrol.FlowControlService;
@@ -88,6 +90,7 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 				}
 				catch ( FlowControlJobDb.ServiceException e )
 				{
+					log.warn ( e.getMessage (), e );
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the flow control job database." );
 				}
 			}
@@ -119,6 +122,7 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 				}
 				catch ( FlowControlJobDb.ServiceException e )
 				{
+					log.warn ( e.getMessage (), e );
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the flow control job database." );
 				}
 				catch ( AccessException x )
@@ -154,13 +158,13 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 					;
 
 					readJobPayloadInto ( payload, jobBuilder );
-
 					final FlowControlJob job = jobBuilder.build ();
 					jobDb.storeJob ( fccc, job.getId (), job );
 					sendJson ( context, render ( job ) );
 				}
 				catch ( FlowControlJobDb.ServiceException e )
 				{
+					log.warn ( e.getMessage (), e );
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the flow control job database." );
 				}
 				catch ( FlowControlJobDb.RequestException | BuildFailure | JSONException e )
@@ -175,7 +179,52 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 		} );
 	}
 
-	public void patchJob ( CHttpRequestContext context, String name ) throws IamSvcException
+	public void overwriteJob ( CHttpRequestContext context, String id ) throws IamSvcException
+	{
+		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
+		{
+			@Override
+			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
+			{
+				try
+				{
+					final JSONObject payload = new JSONObject ( new CommentedJsonTokener ( context.request ().getBodyStream () ) );
+
+					final String name = payload.getString ( "name" );
+
+					final FlowControlCallContext fccc = fFlowControl.createtContextBuilder ().asUser ( uc.getUser () ).build ();
+
+					final FlowControlJobDb jobDb = fFlowControl.getJobDb ( fccc );
+					final FlowControlJobBuilder jobBuilder = jobDb.createJobBuilder ( fccc )
+						.withId ( id )
+						.withName ( name )
+						.withOwner ( uc.getUser ().getId () )
+						.withAccess ( AccessControlEntry.kOwner, AccessControlList.READ, AccessControlList.UPDATE, AccessControlList.DELETE )
+					;
+
+					readJobPayloadInto ( payload, jobBuilder );
+					final FlowControlJob job = jobBuilder.build ();
+					jobDb.storeJob ( fccc, job.getId (), job );
+					sendJson ( context, render ( job ) );
+				}
+				catch ( FlowControlJobDb.ServiceException e )
+				{
+					log.warn ( e.getMessage (), e );
+					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the flow control job database." );
+				}
+				catch ( FlowControlJobDb.RequestException | BuildFailure | JSONException e )
+				{
+					sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, "There was a problem with your request: " + e.getMessage () );
+				}
+				catch ( AccessException x )
+				{
+					sendStatusCodeAndMessage ( context, HttpStatusCodes.k401_unauthorized, x.getMessage () );
+				}
+			}
+		} );
+	}
+
+	public void patchJob ( CHttpRequestContext context, String id ) throws IamSvcException
 	{
 		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
@@ -189,11 +238,21 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 					final FlowControlCallContext fccc = fFlowControl.createtContextBuilder ().asUser ( uc.getUser () ).build ();
 
 					final FlowControlJobDb jobDb = fFlowControl.getJobDb ( fccc );
-					final FlowControlJob job = jobDb.getJob ( fccc, name );
+					FlowControlJob job = jobDb.getJob ( fccc, id );
 
 					if ( job == null )
 					{
-						sendStatusCodeAndMessage ( context, HttpStatusCodes.k404_notFound, "no such job" );
+						final FlowControlJobBuilder jobBuilder = jobDb.createJobBuilder ( fccc )
+							.withId ( id )
+							.withName ( id )
+							.withOwner ( uc.getUser ().getId () )
+							.withAccess ( AccessControlEntry.kOwner, AccessControlList.READ, AccessControlList.UPDATE, AccessControlList.DELETE )
+						;
+
+						readJobPayloadInto ( payload, jobBuilder );
+						job = jobBuilder.build ();
+						jobDb.storeJob ( fccc, job.getId (), job );
+						sendJson ( context, render ( job ) );
 					}
 					else
 					{
@@ -205,7 +264,7 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 
 						if ( changesMade )
 						{
-							jobDb.storeJob ( fccc, name, updatedJob );
+							jobDb.storeJob ( fccc, id, updatedJob );
 						}
 
 						sendJson ( context, render ( updatedJob ) );
@@ -213,6 +272,7 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 				}
 				catch ( FlowControlJobDb.ServiceException | GeneralSecurityException e )
 				{
+					log.warn ( e.getMessage (), e );
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the flow control job database." );
 				}
 				catch ( FlowControlJobDb.RequestException | BuildFailure | JSONException e )
@@ -272,6 +332,7 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 				}
 				catch ( FlowControlJobDb.ServiceException | GeneralSecurityException e )
 				{
+					log.warn ( e.getMessage (), e );
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the flow control job database." );
 				}
 				catch ( FlowControlJobDb.RequestException | BuildFailure  e )
@@ -326,6 +387,7 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 				}
 				catch ( FlowControlJobDb.ServiceException | GeneralSecurityException e )
 				{
+					log.warn ( e.getMessage (), e );
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the flow control job database." );
 				}
 				catch ( FlowControlJobDb.RequestException | BuildFailure  e )
@@ -473,16 +535,19 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 				{
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, "There was a problem with your request: " + e.getMessage () );
 				}
-				catch ( FlowControlJobDb.ServiceException e )
-				{
-					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the flow control job database." );
-				}
 				catch ( FlowControlDeploymentService.RequestException e )
 				{
+					log.warn ( e.getMessage (), e );
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, "There was a problem with your request: " + e.getMessage () );
+				}
+				catch ( FlowControlJobDb.ServiceException e )
+				{
+					log.warn ( e.getMessage (), e );
+					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the flow control job database." );
 				}
 				catch ( FlowControlDeploymentService.ServiceException e )
 				{
+					log.warn ( e.getMessage (), e );
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't deploy the job." );
 				}
 				catch ( AccessException x )
@@ -522,6 +587,7 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 				}
 				catch ( FlowControlDeploymentService.ServiceException e )
 				{
+					log.warn ( e.getMessage (), e );
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the flow control controller." );
 				}
 				finally
@@ -556,6 +622,7 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 				}
 				catch ( FlowControlDeploymentService.ServiceException e )
 				{
+					log.warn ( e.getMessage (), e );
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't complete your request." );
 				}
 				finally
@@ -605,6 +672,7 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 //				}
 //				catch ( FlowControlDeploymentService.ServiceException e )
 //				{
+//				log.warn ( e.getMessage (), e );
 //					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't complete your request." );
 //				}
 				finally
@@ -634,6 +702,7 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 				}
 				catch ( FlowControlDeploymentService.ServiceException e )
 				{
+					log.warn ( e.getMessage (), e );
 					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't deploy the job." );
 				}
 				finally
@@ -654,6 +723,8 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 				.put ( "name", runtime.getName () )
 				.put ( "version", runtime.getVersion () ) )
 			.put ( "secrets", JsonVisitor.listToArray ( job.getSecretRefs () ) )
+			.put ( "createdAt", job.getCreateTimestampMs () )
+			.put ( "updatedAt", job.getUpdateTimestampMs () )
 		;
 	}
 
@@ -695,4 +766,6 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 	}
 
 	private final FlowControlService fFlowControl;
+
+	private static final Logger log = LoggerFactory.getLogger ( BaseHttpService.class );
 }

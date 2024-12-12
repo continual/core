@@ -1,7 +1,6 @@
 package io.continual.flowcontrol.impl.common;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -13,14 +12,10 @@ import java.util.TreeSet;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import io.continual.builder.Builder.BuildFailure;
-import io.continual.flowcontrol.model.FlowControlCallContext;
 import io.continual.flowcontrol.model.FlowControlJob;
-import io.continual.flowcontrol.model.FlowControlJobBuilder;
+import io.continual.flowcontrol.model.FlowControlJobVersion;
 import io.continual.flowcontrol.services.encryption.Encryptor;
-import io.continual.iam.access.AccessControlEntry;
 import io.continual.iam.access.AccessControlList;
-import io.continual.util.data.StreamTools;
 import io.continual.util.data.TypeConvertor;
 import io.continual.util.data.json.JsonSerialized;
 import io.continual.util.data.json.JsonUtil;
@@ -30,19 +25,22 @@ import io.continual.util.standards.MimeTypes;
 
 public class JsonJob implements FlowControlJob, JsonSerialized
 {
-	private static final String kId = "id";
-	private static final String kDisplayName = "name";
-	private static final String kAcl = "acl";
+	static final String kId = "id";
+	static final String kDisplayName = "name";
+	static final String kAcl = "acl";
 
-	private static final String kConfig = "config";
-	private static final String kConfigType = "type";
-	private static final String kConfigData = "data";
+	static final String kConfig = "config";
+	static final String kConfigType = "type";
+	static final String kConfigData = "data";
 
-	private static final String kRuntime = "runtime";
-	private static final String kName = "name";
-	private static final String kVersion = "version";
+	static final String kRuntime = "runtime";
+	static final String kName = "name";
+	static final String kVersion = "version";
 
-	private static final String kSecrets = "secrets";
+	static final String kSecrets = "secrets";
+
+	static final String kCreateTime = "createTimeMs";
+	static final String kUpdateTime = "updateTimeMs";
 
 	public JsonJob ( JSONObject data )
 	{
@@ -59,6 +57,24 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 	public String getName ()
 	{
 		return fData.optString ( kDisplayName, getId() );
+	}
+
+	@Override
+	public FlowControlJobVersion getVersion ()
+	{
+		return new JsonJobVersion ( fData.optJSONObject ( kVersion ) );
+	}
+
+	@Override
+	public long getCreateTimestampMs ()
+	{
+		return fData.optLong ( kCreateTime, 0L );
+	}
+
+	@Override
+	public long getUpdateTimestampMs ()
+	{
+		return fData.optLong ( kUpdateTime, 0L );
 	}
 
 	@Override
@@ -165,175 +181,7 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 		return JsonUtil.clone ( fData );
 	}
 
-	private final JSONObject fData;
+	final JSONObject fData;
 
 	protected JSONObject directDataAccess () { return fData; }
-
-	public static class JsonJobBuilder implements FlowControlJobBuilder
-	{
-		public JsonJobBuilder ( FlowControlCallContext fccc, Encryptor enc )
-		{
-			fEnc = enc;
-			
-			fBuildingData = new JSONObject ();
-			
-			withOwner ( fccc.getUser ().getId () );
-			withAccess ( AccessControlEntry.kOwner, AccessControlList.READ, AccessControlList.UPDATE, AccessControlList.DELETE );
-		}
-
-		@Override
-		public JsonJobBuilder withId ( String id )
-		{
-			fBuildingData.put ( kId, id );
-			return this;
-		}
-		
-		@Override
-		public JsonJobBuilder withName ( String name )
-		{
-			fBuildingData.put ( kDisplayName, name );
-			return this;
-		}
-
-		@Override
-		public JsonJobBuilder withOwner ( String owner )
-		{
-			fBuildingData.put ( kAcl,
-				AccessControlList.deserialize ( fBuildingData.optJSONObject ( kAcl ) )
-					.setOwner ( owner )
-					.asJson ()
-			);
-			return this;
-		}
-
-		@Override
-		public JsonJobBuilder withAccess ( String user, String... ops )
-		{
-			fBuildingData.put ( kAcl,
-				AccessControlList.deserialize ( fBuildingData.optJSONObject ( kAcl ) )
-					.permit ( user, ops )
-					.asJson ()
-			);
-			return this;
-		}
-
-		@Override
-		public JsonJobBuilder clone ( FlowControlJob existingJob ) throws GeneralSecurityException, IOException
-		{
-			// short cut if we're working with our own type
-			if ( existingJob instanceof JsonJob )
-			{
-				fBuildingData = JsonUtil.clone ( ((JsonJob)existingJob).fData );
-				return this;
-			}
-
-			// otherwise...
-			fBuildingData = new JSONObject ();
-
-			fBuildingData
-				.put ( kDisplayName, existingJob.getName () )
-				.put ( kAcl, existingJob.getAccessControlList ().asJson () )
-			;
-
-			// configuration
-			setConfiguration ( existingJob.getConfiguration () );
-
-			// runtime spec
-			setRuntimeSpec ( existingJob.getRuntimeSpec () );
-
-			// secrets
-			for ( Map.Entry<String,String> e : existingJob.getSecrets ( fEnc ).entrySet () )
-			{
-				registerSecret ( e.getKey (), e.getValue () );
-			}
-
-			return this;
-		}
-
-		@Override
-		public JsonJobBuilder setConfiguration ( FlowControlJobConfig config ) throws IOException
-		{
-			final JSONObject configCopy = new JSONObject ();
-
-			final String type = config.getDataType ();
-
-			// we know about certain types specifically....
-			if ( type.equalsIgnoreCase ( MimeTypes.kAppJson ) || type.equalsIgnoreCase ( MimeTypes.kPlainText ) )
-			{
-				// these are simple UTF-8 character streams; read them and write to a plain text value in our new job
-				final byte[] bytes = StreamTools.readBytes ( config.readConfiguration () );
-				configCopy
-					.put ( kConfigType, type )
-					.put ( kConfigData, new String ( bytes, StandardCharsets.UTF_8 ) )
-				;
-			}
-			else if ( type.equalsIgnoreCase ( MimeTypes.kAppGenericBinary ) )
-			{
-				final byte[] bytes = StreamTools.readBytes ( config.readConfiguration () );
-				configCopy
-					.put ( kConfigType, MimeTypes.kAppGenericBinary )
-					.put ( kConfigData, TypeConvertor.base64Encode ( bytes ) )
-				;
-			}
-			else
-			{
-				throw new IllegalArgumentException ( "Unrecognized config type: " + type );
-			}
-
-			fBuildingData.put ( kConfig, configCopy );
-
-			return this;
-		}
-
-		@Override
-		public JsonJobBuilder setRuntimeSpec ( FlowControlRuntimeSpec runtimeSpec )
-		{
-			fBuildingData.put ( kRuntime, new JSONObject ()
-				.put ( kName, runtimeSpec.getName () )
-				.put ( kVersion, runtimeSpec.getVersion () )
-			);
-			return this;
-		}
-
-		@Override
-		public JsonJobBuilder registerSecret ( String key, String value ) throws GeneralSecurityException
-		{
-			JSONObject secrets = fBuildingData.optJSONObject ( kSecrets );
-			if ( secrets == null )
-			{
-				secrets = new JSONObject ();
-				fBuildingData.put ( kSecrets, secrets );
-			}
-			secrets.put ( key, fEnc.encrypt ( value ) );
-
-			return this;
-		}
-
-		@Override
-		public JsonJobBuilder removeSecretRef ( String key )
-		{
-			JSONObject secrets = fBuildingData.optJSONObject ( kSecrets );
-			if ( secrets != null )
-			{
-				secrets.remove ( key );
-			}
-			return this;
-		}
-
-		@Override
-		public JsonJob build () throws BuildFailure
-		{
-			return new JsonJob ( getBuildingData () );
-		}
-
-		private final Encryptor fEnc;
-		
-		private JSONObject fBuildingData;
-
-		protected JSONObject getBuildingData ()
-		{
-			return fBuildingData;
-		}
-	}
-
 }

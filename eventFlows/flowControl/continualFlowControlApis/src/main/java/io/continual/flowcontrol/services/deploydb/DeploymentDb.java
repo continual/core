@@ -2,8 +2,8 @@ package io.continual.flowcontrol.services.deploydb;
 
 import java.util.List;
 
+import io.continual.flowcontrol.model.FlowControlCallContext;
 import io.continual.flowcontrol.model.FlowControlDeployment;
-import io.continual.iam.identity.Identity;
 import io.continual.services.Service;
 
 /**
@@ -41,10 +41,10 @@ public interface DeploymentDb extends Service
 
 	/**
 	 * Load all deployments for a given user
-	 * @param userId
+	 * @param fccc
 	 * @return a list of 0 or more deployments
 	 */
-	List<FlowControlDeployment> getDeploymentsForUser ( Identity userId ) throws DeployDbException;
+	List<FlowControlDeployment> getDeploymentsForUser ( FlowControlCallContext fccc ) throws DeployDbException;
 
 	/**
 	 * Load all deployments for a given job

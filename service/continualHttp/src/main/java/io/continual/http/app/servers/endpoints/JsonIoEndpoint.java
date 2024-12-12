@@ -108,7 +108,7 @@ public class JsonIoEndpoint
 		sendJson ( context, HttpStatusCodes.k200_ok, payload );
 	}
 
-	private static final String kStatusCode = "statusCode";
+	protected static final String kStatusCode = "statusCode";
 	
 	/**
 	 * Send a status code and message in the response. The response body includes the status code and message.
@@ -166,5 +166,14 @@ public class JsonIoEndpoint
 	protected static void sendNotAuth ( CHttpRequestContext context )
 	{
 		sendStatusCodeAndMessage ( context, HttpStatusCodes.k401_unauthorized, "Unauthorized. Check your API credentials." );
+	}
+
+	/**
+	 * Send 403 Not Authorized
+	 * @param context
+	 */
+	protected static void senForbidden ( CHttpRequestContext context )
+	{
+		sendStatusCodeAndMessage ( context, HttpStatusCodes.k403_forbidden, "Forbidden." );
 	}
 }

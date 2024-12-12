@@ -12,6 +12,7 @@ import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.flowcontrol.impl.common.JsonJob;
+import io.continual.flowcontrol.impl.common.JsonJobBuilder;
 import io.continual.flowcontrol.model.FlowControlCallContext;
 import io.continual.flowcontrol.model.FlowControlDeployment;
 import io.continual.flowcontrol.model.FlowControlDeploymentSpec;
@@ -20,6 +21,7 @@ import io.continual.flowcontrol.model.FlowControlJob.FlowControlJobConfig;
 import io.continual.flowcontrol.model.FlowControlJob.FlowControlRuntimeSpec;
 import io.continual.flowcontrol.model.FlowControlResourceSpecs;
 import io.continual.flowcontrol.services.encryption.Encryptor;
+import io.continual.iam.access.AccessControlList;
 import io.continual.iam.identity.Identity;
 import io.continual.iam.impl.common.SimpleIdentityReference;
 import io.continual.util.standards.MimeTypes;
@@ -38,6 +40,12 @@ public class DummyDeployment implements FlowControlDeployment
 
 	@Override
 	public String getId () { return "id"; }
+
+	@Override
+	public AccessControlList getAccessControlList ()
+	{
+		return AccessControlList.createOpenAcl ();
+	}
 
 	@Override
 	public Identity getDeployer () { return new SimpleIdentityReference ( "user" ); }
@@ -76,7 +84,7 @@ public class DummyDeployment implements FlowControlDeployment
 				public Identity getUser () { return new SimpleIdentityReference ( "user" ); }
 			};
 	
-			return new JsonJob.JsonJobBuilder ( fccc, enc )
+			return new JsonJobBuilder ( fccc, enc )
 	
 				.withId ( "id" )
 

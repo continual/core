@@ -103,18 +103,13 @@ public class JsonObjectFile implements Closeable
 	public JSONObject read ( long address ) throws IOException
 	{
 		JSONObject o = null;
-		final InputStream is = fFile.readToStream ( address );
-		try
+		try ( final InputStream is = fFile.readToStream ( address ) )
 		{
 			o = new JSONObject ( new CommentedJsonTokener ( new InputStreamReader ( is ) ) );
 		}
 		catch ( JSONException e )
 		{
 			throw new IOException ( e );
-		}
-		finally
-		{
-			is.close ();
 		}
 		return o;
 	}

@@ -43,7 +43,7 @@ public class LoggerPublisher extends SimpleService implements ContinualMessagePu
 		return new ContinualMessageSink ()
 		{
 			@Override
-			public void send ( ContinualMessageStream stream, Collection<ContinualMessage> msgs )
+			public void send ( ContinualMessageStream stream, Collection<ContinualMessage> msgs, AckType acks )
 			{
 				for ( ContinualMessage msg : msgs )
 				{

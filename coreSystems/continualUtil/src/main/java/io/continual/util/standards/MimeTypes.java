@@ -31,6 +31,7 @@ public class MimeTypes
 	public static final String kAppJson = "application/json";
 	public static final String kAppXml = "application/xml";
 	public static final String kAppZip = "application/zip";
+	public static final String kTarGz = "application/x-gtar";	// common, not standard (https://en.wikipedia.org/wiki/List_of_archive_formats, Oct 2024)
 	public static final String kAppPdf = "application/pdf";
 	public static final String kAppWwwForm = "application/x-www-form-urlencoded";
 
@@ -42,8 +43,11 @@ public class MimeTypes
 	public static final String kFontWoff = "application/x-font-woff";
 	public static final String kFontWoff2 = "application/x-font-woff2";
 	public static final String kFontTtf = "application/x-font-ttf";
-	public static final String kFontOtf = "application/font-otf";		// typical, but not standardized (2013-07-10)
 
+	@Deprecated
+	public static final String kFontOtf = "application/font-otf";		// typical, but not standardized (2013-07-10)
+	public static final String kFontOtf2 = "application/font-sfnt";		// added here oct 2024
+	
 	public static final String kSvg = "image/svg+xml";
 	public static final String kImagePng = "image/png";
 	public static final String kImageGif = "image/gif";

@@ -128,7 +128,7 @@ public class TypicalRestApiEndpoint<I extends Identity> extends JsonIoEndpoint
 			{
 				if ( !adb.canUser ( uid, ra.fResource, ra.fOp ) )
 				{
-					sendNotAuth ( context );
+					senForbidden ( context );
 					return;
 				}
 			}
@@ -234,7 +234,7 @@ public class TypicalRestApiEndpoint<I extends Identity> extends JsonIoEndpoint
 
 	private static final Logger log = LoggerFactory.getLogger ( TypicalRestApiEndpoint.class );
 
-	// configs have used different conventions before the lookup was centralized heres
+	// configs have used different conventions before the lookup was centralized here
 	public static String getAcctsSvcName ( JSONObject settings )
 	{
 		for ( String key : kAcctSvcKeys )

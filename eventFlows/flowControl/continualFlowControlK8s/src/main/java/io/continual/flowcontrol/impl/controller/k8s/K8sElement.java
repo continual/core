@@ -18,20 +18,30 @@ public interface K8sElement
 		public ElementDeployException ( Throwable t ) { super(t); }
 		private static final long serialVersionUID = 1L;
 	}
-	
+
+	enum ImagePullPolicy
+	{
+		Always,
+		IfNotPresent,
+		Never
+	}
+
 	interface K8sDeployContext
 	{
 		String getInstallationName ();
 		String getNamespace ();
 		String getDeployId ();
-		FlowControlDeploymentSpec getDeploymentSpec();
+		FlowControlDeploymentSpec getDeploymentSpec ();
+
 		String getRuntimeImage ();
+		ImagePullPolicy getImagePullPolicy ();
+
 		Encryptor getEncryptor ();
 		JSONObject getWorkspace ();
 		Map<String,String> getEnvironment ();
 		List<String> getImagePullSecrets ();
 	}
-	
+
 	void deploy ( K8sDeployContext ctx ) throws ElementDeployException;
 	void undeploy ( String namespace, String deploymentId ) throws ElementDeployException;
 }

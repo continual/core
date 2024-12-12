@@ -1,5 +1,8 @@
 package io.continual.flowcontrol.impl.controller.k8s.elements;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -32,6 +35,7 @@ import io.kubernetes.client.openapi.models.V1Toleration;
 import io.kubernetes.client.openapi.models.V1TolerationBuilder;
 import io.kubernetes.client.openapi.models.V1VolumeBuilder;
 import io.kubernetes.client.openapi.models.V1VolumeMountBuilder;
+import io.kubernetes.client.util.Yaml;
 
 public class StatefulSetDeployer implements K8sElement
 {
@@ -81,13 +85,21 @@ public class StatefulSetDeployer implements K8sElement
 	}
 
 	@Override
+	public String toString ()
+	{
+		return "StatefulSetDeployer";
+	}
+
+	@Override
 	public void deploy ( K8sDeployContext ctx ) throws ElementDeployException
 	{
 		try
 		{
+			final String containerImage = ctx.getRuntimeImage ();
+
 			final String ssName = tagToStatefulSetName ( ctx.getDeployId () );
 			final String secretConfigName = ctx.getWorkspace ().getString ( SecretDeployer.kWorkspaceKey_Secret );
-
+			
 			// build secrets
 			final LinkedList<V1EnvVar> secretRefs = new LinkedList<> ();
 			for ( String secretKey : JsonVisitor.arrayToList ( ctx.getWorkspace ().getJSONArray ( SecretDeployer.kWorkspaceKey_SecretKeys ) ) )
@@ -236,7 +248,10 @@ public class StatefulSetDeployer implements K8sElement
 								// runtime engine
 								new V1ContainerBuilder ()
 									.withName ( "processor" )
-									.withImage ( ctx.getRuntimeImage () )
+
+									.withImage ( containerImage )
+									.withImagePullPolicy ( ctx.getImagePullPolicy ().toString () )
+
 									.withVolumeMounts (
 	
 										// config disk
@@ -304,6 +319,16 @@ public class StatefulSetDeployer implements K8sElement
 				.build ()
 			;
 
+			final String yamlRepresentation = Yaml.dump ( ss );
+			try ( FileOutputStream fos = new FileOutputStream ( new File ( "/tmp/fc.yaml" ) ) )
+			{
+				fos.write ( yamlRepresentation.getBytes () );
+			}
+			catch ( IOException x )
+			{
+				log.warn ( "Couldn't dump YAML.", x );
+			}
+			
 			// deploy the stateful set
 			final AppsV1Api api = new AppsV1Api ();
 			try

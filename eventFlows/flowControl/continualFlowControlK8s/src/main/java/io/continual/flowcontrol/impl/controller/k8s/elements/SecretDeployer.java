@@ -2,7 +2,6 @@ package io.continual.flowcontrol.impl.controller.k8s.elements;
 
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,6 +27,12 @@ public class SecretDeployer implements K8sElement
 	}
 
 	@Override
+	public String toString ()
+	{
+		return "SecretDeployer";
+	}
+
+	@Override
 	public void deploy ( K8sDeployContext ctx ) throws ElementDeployException
 	{
 		try
@@ -50,7 +55,7 @@ public class SecretDeployer implements K8sElement
 				final String val = secret.getValue ();
 				if ( val != null )
 				{
-					secretsData.put ( secret.getKey (), Base64.getEncoder().encode ( secret.getValue ().getBytes ( StandardCharsets.UTF_8 ) ) );
+					secretsData.put ( secret.getKey (), secret.getValue ().getBytes ( StandardCharsets.UTF_8 ) );
 				}
 			}
 

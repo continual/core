@@ -7,7 +7,7 @@ import io.continual.services.model.core.exceptions.ModelRequestException;
 
 /**
  * A convenience class that locates a compliant constructor in the given class and uses it
- * to build model objects.
+ * to build model objects. The constructor must take a ModelObjectFactory.ObjectCreateContext argument.
  * 
  * @param <T>
  */
@@ -21,7 +21,9 @@ public class ModelObjectAutoFactory<T,K> implements ModelObjectFactory<T,K>
 		}
 		catch ( NoSuchMethodException | SecurityException e )
 		{
-			throw new ModelRequestException ( e );
+			throw new ModelRequestException ( "ModelObjectAutoFactory couldn't locate a constructor for " +
+				clazz.getCanonicalName () +
+				" with param " + ObjectCreateContext.class.getCanonicalName (), e );
 		}
 	}
 
