@@ -21,7 +21,7 @@
 				// cassandra metrics...
 				{ "objectName": "org.apache.cassandra.metrics:type=DroppedMessage,*" },
 				{ "objectName": "org.apache.cassandra.metrics:type=Streaming,*" },
-				{ "objectName": "org.apache.cassandra.metrics:type=Compation,*" },
+				{ "objectName": "org.apache.cassandra.metrics:type=Compaction,*" },
 				{ "objectName": "org.apache.cassandra.metrics:type=CommitLog,*" },
 				{ "objectName": "org.apache.cassandra.metrics:type=Storage,*" },
 				{ "objectName": "org.apache.cassandra.metrics:type=HintedHandOffManager,*" },
