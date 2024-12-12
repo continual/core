@@ -302,7 +302,7 @@ public class JmxSource extends BasicSource
 			return obj;
 		}
 
-		log.info ( "Don't know how to convert {}", val.getClass ().getCanonicalName () );
+		log.warn ( "Don't know how to convert {}", val.getClass ().getCanonicalName () );
 		return null;
 	}
 
@@ -360,7 +360,7 @@ public class JmxSource extends BasicSource
 					final String domainStr = parts[0];
 					final String keyprops = ( parts.length == 1 || parts[1] == null ) ? "" : parts[1];
 
-					log.info ( "Querying on object {}...", objName );
+					log.info ( "Querying object {}...", objName );
 
 					JSONObject domain = current.optJSONObject ( domainStr );
 					if ( domain == null )
@@ -383,7 +383,7 @@ public class JmxSource extends BasicSource
 								continue;
 							}
 							
-							log.info ( "Getting value for attr {} {}...", objName, attribute.getName () );
+							log.debug ( "Getting value for attr {} {}...", objName, attribute.getName () );
 							try
 							{
 								final Object val = mbsc.getAttribute ( mbean, attribute.getName () );
@@ -409,7 +409,7 @@ public class JmxSource extends BasicSource
 					catch ( Exception x )
 					{
 						// JMX is kind of insane; we're essentially forced to just catch anything 
-						log.warn ( "Unable to retrieve data for {} {}", objName, x.getMessage (), x );
+						log.warn ( "Unable to retrieve data for {} {}", objName, x.getMessage () );
 					}
 		        }
 			}

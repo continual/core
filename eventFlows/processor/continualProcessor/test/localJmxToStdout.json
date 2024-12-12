@@ -4,9 +4,10 @@
 		"jmxsource":
 		{
 			"class": "JmxSource",
-			"pollEvery": "15s",
+			"pollEvery": "30s",
+			//"runOnce": true,
 			"host": "localhost",
-			"port": 7999,
+			"port": 7199,
 			"pipeline": "jmx",
 			"pollList": 
 			[
@@ -15,6 +16,20 @@
 				{ "objectName": "java.lang:type=OperatingSystem,*" },
 				{ "objectName": "java.lang:type=GarbageCollector,*" },
 				{ "objectName": "java.lang:type=Runtime,*" },
+				{ "objectName": "java.nio:type=BufferPool,*" },
+
+				// cassandra metrics...
+				{ "objectName": "org.apache.cassandra.metrics:type=DroppedMessage,*" },
+				{ "objectName": "org.apache.cassandra.metrics:type=Streaming,*" },
+				{ "objectName": "org.apache.cassandra.metrics:type=Compation,*" },
+				{ "objectName": "org.apache.cassandra.metrics:type=CommitLog,*" },
+				{ "objectName": "org.apache.cassandra.metrics:type=Storage,*" },
+				{ "objectName": "org.apache.cassandra.metrics:type=HintedHandOffManager,*" },
+				{ "objectName": "org.apache.cassandra.metrics:type=HintsService,*" },
+				{ "objectName": "org.apache.cassandra.metrics:type=Index,*" },
+				{ "objectName": "org.apache.cassandra.metrics:type=BufferPool,*" },
+				{ "objectName": "org.apache.cassandra.metrics:type=Client,*" },
+				{ "objectName": "org.apache.cassandra.metrics:type=Batch,*" },
 			]
 		}
 	},
