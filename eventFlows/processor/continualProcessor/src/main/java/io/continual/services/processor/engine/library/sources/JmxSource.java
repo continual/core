@@ -49,6 +49,9 @@ public class JmxSource extends BasicSource
 		{
 			final JSONObject config = sc.getServiceContainer ().getExprEval ().evaluateJsonObject ( rawConfig );
 
+			//
+			//	How often to poll? Use duration values like "6h" or "10d"
+			//
 			final String pollEvery = config.optString ( "pollEvery", null );
 			fPollFreqMs = HumanReadableHelper.parseDuration ( pollEvery );
 			if ( fPollFreqMs <= 0 )
@@ -57,12 +60,20 @@ public class JmxSource extends BasicSource
 			}
 			fNextPollAtMs = Clock.now ();
 
+			// optionally configure this source to run once and signal the end of stream
+			fRunOnce = config.optBoolean ( "runOnce", false );
+
+			//
+			// connection info...
+			//
 			final String host = config.optString ( "host", "localhost" );
 			final int port = config.getInt ( "port" );
 			fUrl = new JMXServiceURL ( "service:jmx:rmi:///jndi/rmi://" + host + ":" + port + "/jmxrmi" );
 
+			// if key hierarchy is set, data is built into an object hierarchy based on the jmx key
 			fKeyHierarchy = config.optBoolean ( "jmxKeyHierarchy", true );
 
+			// read a list of fetch specifications...
 			fFetchSpecs = new LinkedList<> ();
 			final JSONArray specificQueries = config.optJSONArray ( "pollList" );
 			if ( specificQueries != null )
@@ -82,8 +93,6 @@ public class JmxSource extends BasicSource
 				// nothing specified = query everything
 				fFetchSpecs.add ( new JmxFetchSpec ( null ) );
 			}
-
-			fRunOnce = config.optBoolean ( "runOnce", false );
 		}
 		catch ( MalformedURLException | JSONException e )
 		{
@@ -259,22 +268,29 @@ public class JmxSource extends BasicSource
 			for ( JmxFetchSpec q : fFetchSpecs )
 			{
 				// create an object name from the user's string
-				ObjectName on = null;
+				ObjectName objname = null;
 				final String onStr = q.getObjName ();
 				if ( onStr != null )
 				{
-					on = new ObjectName ( q.getObjName () );
+					objname = new ObjectName ( q.getObjName () );
+				}
+				if ( objname == null )
+				{
+					continue;
 				}
 
+				// use the given object name, expanding it if it's a pattern
 				final Set<ObjectName> mbeans = new TreeSet<ObjectName> ();
-				if ( on.isPattern () )
+				if ( objname.isPattern () )
 				{
-					mbeans.addAll ( mbsc.queryNames ( null, on ) );
+					mbeans.addAll ( mbsc.queryNames ( null, objname ) );
 				}
 				else
 				{
-					mbeans.add ( on );
+					mbeans.add ( objname );
 				}
+
+				// iterate thru the bean list...
 				for ( ObjectName mbean : mbeans )
 		        {
 					final String objName = mbean.toString ();
@@ -309,7 +325,7 @@ public class JmxSource extends BasicSource
 					catch ( Exception x )
 					{
 						// JMX is kind of insane; we're essentially forced to just catch anything 
-						log.debug ( "Unable to retrieve data for {} {}", objName, x.getMessage () );
+						log.warn ( "Unable to retrieve data for {} {}", objName, x.getMessage () );
 					}
 		        }
 			}
