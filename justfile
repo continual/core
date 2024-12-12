@@ -27,3 +27,8 @@ version:
 java:
 	@echo "Running maven..."
 	mvn clean install
+
+# java release build
+release:
+	@echo "Running maven for release..."
+	mvn clean deploy -DperformRelease=true
