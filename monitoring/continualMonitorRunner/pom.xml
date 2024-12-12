@@ -4,7 +4,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.3.22-SNAPSHOT</version>
+		<version>0.3.22</version>
 		<artifactId>continualMonitoring</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
