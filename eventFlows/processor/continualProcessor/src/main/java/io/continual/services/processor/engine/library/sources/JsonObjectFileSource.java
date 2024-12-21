@@ -43,15 +43,22 @@ public class JsonObjectFileSource extends BasicSource
 		super ( config );
 
 		fFilename = config.getString ( "file" );
+		fTail = config.optBoolean ( "tail", false );
 		fEof = false;
 		fSrc = null;
 	}
 
 	public JsonObjectFileSource ( final String filename ) throws BuildFailure
 	{
+		this ( filename, false );
+	}
+
+	public JsonObjectFileSource ( final String filename, boolean tail ) throws BuildFailure
+	{
 		super ( );
 
 		fFilename = filename;
+		fTail = tail;
 		fEof = false;
 		fSrc = null;
 	}
@@ -102,6 +109,7 @@ public class JsonObjectFileSource extends BasicSource
 	}
 
 	private final String fFilename;
+	private final boolean fTail;
 	private BufferedReader fSrc;
 	private boolean fEof;
 
