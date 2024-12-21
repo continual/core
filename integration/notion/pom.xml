@@ -6,20 +6,17 @@
 	<parent>
 		<groupId>io.continual</groupId>
 		<version>0.3.23</version>
-		<artifactId>continual</artifactId>
+		<artifactId>continualIntegrations</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
 
-	<artifactId>continualIntegrations</artifactId>
+	<artifactId>continualNotionIntegration</artifactId>
 	<packaging>pom</packaging>
 
-	<name>INTEGRATIONS</name>
+	<name>Processor</name>
 
 	<modules>
-		<module>continualOnap</module>
-		<module>continualModelProcessor</module>
-		<module>telegram</module>
-		<module>notion</module>
+		<module>cpNotion</module>
 	</modules>
 
 </project>
