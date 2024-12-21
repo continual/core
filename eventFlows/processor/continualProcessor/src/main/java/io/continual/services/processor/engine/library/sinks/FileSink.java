@@ -73,7 +73,12 @@ public class FileSink implements Sink
 		{
 			try
 			{
-				fStream = new PrintStream ( new FileOutputStream ( new File ( to ) ) );
+				fStream = new PrintStream (
+					new FileOutputStream (
+						new File ( to ),
+						config.optBoolean ( "append", true )
+					)
+				);
 				fCloseStream = true;
 			}
 			catch ( FileNotFoundException e )
