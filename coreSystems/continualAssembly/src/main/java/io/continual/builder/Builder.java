@@ -35,6 +35,11 @@ import io.continual.builder.sources.BuilderReadableDataSource;
 import io.continual.builder.sources.BuilderStringDataSource;
 import io.continual.util.nv.NvReadable;
 
+/**
+ * Builder builds instances of a class given a class name and construction
+ * data.
+ * @param <T>
+ */
 public class Builder<T>
 {
 	public static class BuildFailure extends Exception
