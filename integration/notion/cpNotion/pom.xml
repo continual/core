@@ -5,15 +5,15 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.3.21-SNAPSHOT</version>
-		<artifactId>continualEventFlows</artifactId>
+		<version>0.3.23</version>
+		<artifactId>continualNotionIntegration</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
 
 	<artifactId>cpNotion</artifactId>
 	<packaging>jar</packaging>
 
-	<name>continual.io processor for html</name>
+	<name>continual.io processor for Notion</name>
 	<url>https://continual.io</url>
 
 	<dependencies>
