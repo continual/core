@@ -1,7 +1,10 @@
 package io.continual.util.legal;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
+import java.util.TimeZone;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -47,11 +50,12 @@ public class CopyrightGeneratorTest {
 	}
 	
 	@Test
-    public void getCopyrightNoticesStaticWithParam(){		
-		String copyright = CopyrightGenerator.getCopyrightNotice("hold", 1984);
-		Assert.assertNotNull(copyright);
-		Assert.assertFalse(copyright.isEmpty());
-		Assert.assertEquals("(c) 1984-" + thisYear() + ", hold", copyright);
+	public void getCopyrightNoticesStaticWithParam ()
+	{
+		final String copyright = CopyrightGenerator.getCopyrightNotice ( "hold", 1984 );
+		Assert.assertNotNull ( copyright );
+		Assert.assertFalse ( copyright.isEmpty () );
+		Assert.assertEquals ( "(c) 1984-" + thisYear () + ", hold", copyright );
 	}
 	
 	@Test
@@ -69,9 +73,12 @@ public class CopyrightGeneratorTest {
 		Assert.assertFalse(copyright.isEmpty());
 		Assert.assertEquals("1984", copyright);
 	}
-	
+
 	private static String thisYear ()
 	{
-		return new SimpleDateFormat ( "YYYY" ).format ( new Date () );
+		final LocalDate date = LocalDate.now();
+		final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern ( "yyyy" );
+		final String result = date.format ( dateFormatter );
+		return result;
 	}
 }

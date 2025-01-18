@@ -82,16 +82,46 @@ public class ShardedExpiringCache<K,V>
 	 */
 	public static class Builder<K,V>
 	{
+		/**
+		 * Give the cache a name
+		 * @param name
+		 * @return this builder
+		 */
 		public Builder<K,V> named ( String name ) { fName = name; return this; }
 
+		/**
+		 * Set the cache duration
+		 * @param duration
+		 * @param timeUnit
+		 * @return this builder
+		 */
 		public Builder<K,V> cachingFor ( long duration, TimeUnit timeUnit ) { fDurMs = TimeUnit.MILLISECONDS.convert ( duration, timeUnit ); return this; }
 
+		/**
+		 * Set the shard count. More shards should provide less contention, but more memory for data structures.
+		 * @param shardCount
+		 * @return this builder
+		 */
 		public Builder<K,V> withShardCount ( int shardCount ) { fShardCount = shardCount; return this; }
 
+		/**
+		 * Set the max size for a shard. If the size is exceeded, the oldest item is removed.
+		 * @param shardMaxSize
+		 * @return this builder
+		 */
 		public Builder<K,V> withShardMaxSize ( int shardMaxSize ) { fShardMaxSize = shardMaxSize; return this; }
 
+		/**
+		 * Set a monitor to receive metrics triggers
+		 * @param m
+		 * @return this builder
+		 */
 		public Builder<K,V> notificationsTo ( Monitor m ) { fMonitor = m; return this; }
 
+		/**
+		 * Build the cache
+		 * @return a cache instance
+		 */
 		public ShardedExpiringCache<K,V> build ()
 		{
 			return new ShardedExpiringCache<K,V> ( this );

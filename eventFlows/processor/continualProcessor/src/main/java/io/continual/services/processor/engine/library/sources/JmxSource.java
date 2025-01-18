@@ -52,19 +52,26 @@ public class JmxSource extends BasicSource
 		{
 			final JSONObject config = sc.getServiceContainer ().getExprEval ().evaluateJsonObject ( rawConfig );
 
-			//
-			//	How often to poll? Use duration values like "6h" or "10d"
-			//
-			final String pollEvery = config.optString ( "pollEvery", null );
-			fPollFreqMs = HumanReadableHelper.parseDuration ( pollEvery );
-			if ( fPollFreqMs <= 0 )
-			{
-				throw new BuildFailure ( "Set pollEvery to be a positive value." );
-			}
-			fNextPollAtMs = Clock.now ();
-
 			// optionally configure this source to run once and signal the end of stream
 			fRunOnce = config.optBoolean ( "runOnce", false );
+			if ( !fRunOnce )
+			{
+				//
+				//	How often to poll? Use duration values like "6h" or "10d"
+				//
+				final String pollEvery = config.optString ( "pollEvery", null );
+				fPollFreqMs = HumanReadableHelper.parseDuration ( pollEvery );
+				if ( fPollFreqMs <= 0 )
+				{
+					throw new BuildFailure ( "Set pollEvery to be a positive value in milliseconds, or expressed like '1h' for every hour." );
+				}
+			}
+			else
+			{
+				// irrelevant
+				fPollFreqMs = 0L;
+			}
+			fNextPollAtMs = Clock.now ();
 
 			//
 			// connection info...

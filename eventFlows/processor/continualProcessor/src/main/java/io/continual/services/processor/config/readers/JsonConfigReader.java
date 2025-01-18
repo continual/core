@@ -312,11 +312,12 @@ public class JsonConfigReader implements ConfigReader
 		final Source src = Builder.withBaseClass ( Source.class )
 			.withClassNameInData ()
 			.searchingPath ( NullSource.class.getPackage ().getName () )
-			.searchingPaths ( pkgs )
+			.searchingPaths ( clc.getSearchPathPackages () )
 			.providingContext ( clc )
 			.usingData ( source )
 			.build ()
 		;
+
 		p.addSource ( srcName, src );
 		log.info ( "\twith source {}...", srcName );
 

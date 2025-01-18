@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.3.23</version>
+		<version>0.3.24</version>
 		<artifactId>continual</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -18,6 +18,8 @@
 	<modules>
 		<module>continualOnap</module>
 		<module>continualModelProcessor</module>
+		<module>telegram</module>
+		<module>notion</module>
 	</modules>
 
 </project>
