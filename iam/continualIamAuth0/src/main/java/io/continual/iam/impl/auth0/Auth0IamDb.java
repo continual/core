@@ -92,6 +92,8 @@ public class Auth0IamDb implements IamDb<Auth0Identity,Auth0Group>
 		fMgmntApi = null;
 		fMgmtApiToken = null;
 
+		fValidator = new Auth0JwtValidator ( config );
+
 		fUserCache = new ShardedExpiringCache.Builder<String,Auth0Identity> ()
 			.named ( "group cache" )
 			.cachingFor ( 5, TimeUnit.MINUTES )
@@ -392,7 +394,11 @@ public class Auth0IamDb implements IamDb<Auth0Identity,Auth0Group>
 	@Override
 	public Auth0Identity authenticate ( JwtCredential jwt ) throws IamSvcException
 	{
-		// FIXME: wire in auth0 jwt validator
+		if ( fValidator.validate ( jwt ) )
+		{
+			final String email = fValidator.getSubject ( jwt );
+			return loadUser ( email );
+		}
 		return null;
 	}
 
@@ -477,6 +483,8 @@ public class Auth0IamDb implements IamDb<Auth0Identity,Auth0Group>
 	private final ShardedExpiringCache<String, Auth0Identity> fUserCache;
 	private final ShardedExpiringCache<String, Auth0Group> fGroupCache;
 
+	private final Auth0JwtValidator fValidator;
+	
 	private static final Logger log = LoggerFactory.getLogger ( Auth0IamDb.class );
 
 	private JSONObject readOnlyDbException () throws IamSvcException

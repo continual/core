@@ -76,11 +76,7 @@ class AuthList<I extends Identity> implements Authenticator<I>
 					final String authHeader = context.request ().getFirstHeader ( "Authorization" );
 					if ( authHeader != null && authHeader.startsWith ( "Bearer " ) )
 					{
-						final String[] parts = authHeader.split ( " " );
-						if ( parts.length == 2 )
-						{
-							cred = JwtCredential.fromHeader ( authHeader );
-						}
+						cred = JwtCredential.fromHeader ( authHeader );
 					}
 					
 					// ... but we also support the token as a parameter to support some REST API
