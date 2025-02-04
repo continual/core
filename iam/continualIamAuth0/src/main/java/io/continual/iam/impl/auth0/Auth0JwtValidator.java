@@ -101,7 +101,7 @@ public class Auth0JwtValidator implements JwtValidator
 			final Algorithm algorithm = Algorithm.RSA256 ( (RSAPublicKey) jwk.getPublicKey (), null );
 
 			final JWTVerifier verifier = JWT.require(algorithm)
-				.withIssuer ( fDomain )
+				.withIssuer ( "https://" + fDomain + "/" )
 				.build()
 			;
 
