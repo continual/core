@@ -1,7 +1,10 @@
 package io.continual.iam.impl.auth0;
 
 import java.security.interfaces.RSAPublicKey;
+import java.util.LinkedList;
+import java.util.List;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -25,6 +28,7 @@ import io.continual.iam.identity.JwtValidator;
 import io.continual.util.data.exprEval.EnvDataSource;
 import io.continual.util.data.exprEval.ExpressionEvaluator;
 import io.continual.util.data.exprEval.SpecialFnsDataSource;
+import io.continual.util.data.json.JsonVisitor;
 
 public class Auth0JwtValidator implements JwtValidator
 {
@@ -35,7 +39,22 @@ public class Auth0JwtValidator implements JwtValidator
 			final ExpressionEvaluator ee = new ExpressionEvaluator ( new EnvDataSource (), new SpecialFnsDataSource () );
 
 			fDomain = ee.evaluateText ( config.getString ( "domain" ) );
-			fEmailClaim = ee.evaluateText ( config.getString ( "emailClaim" ) );
+			fEmailClaimFields = new LinkedList<> ();
+
+			final JSONArray emailClaims = config.optJSONArray ( "emailClaims" );
+			if ( emailClaims != null )
+			{
+				fEmailClaimFields.addAll ( JsonVisitor.arrayToList ( ee.evaluateJsonArray ( emailClaims ) ) );
+			}
+			else
+			{
+				fEmailClaimFields.add ( ee.evaluateText ( config.optString ( "emailClaim" ) ) );
+			}
+
+			if ( fEmailClaimFields.size () == 0 )
+			{
+				throw new BuildFailure ( "No email claim fields registered." );
+			}
 		}
 		catch ( JSONException x )
 		{
@@ -55,12 +74,11 @@ public class Auth0JwtValidator implements JwtValidator
 		}
 
 		// we have a rule in Auth0 to add an email claim to the JWT
-		final Claim userEmailClaim = token.getClaim ( fEmailClaim );
-		final String userEmail = userEmailClaim == null ? null : userEmailClaim.asString ();
+		final String userEmail = getEmailClaim ( token );
 		if ( userEmail == null )
 		{
 			// not valid without our email
-			log.warn ( "User {} was authenticated but doesn't have claim {}.", token.getSubject(), fEmailClaim );
+			log.warn ( "User {} was authenticated but doesn't have a recognized email claim {}.", token.getSubject() );
 			return false;
 		}
 
@@ -75,20 +93,34 @@ public class Auth0JwtValidator implements JwtValidator
 		final DecodedJWT token = JWT.decode ( jwt.toBearerString () );
 
 		// we expect a rule in Auth0 to add an email claim to the JWT
-		final Claim userEmailClaim = token.getClaim ( fEmailClaim );
-		final String userEmail = userEmailClaim == null ? null : userEmailClaim.asString ();
+		final String userEmail = getEmailClaim ( token );
 		if ( userEmail == null )
 		{
 			// not valid without our email
-			throw new IamSvcException ( "Problem extracting email claim from token; no email claim [" + fEmailClaim + "] found." );
+			throw new IamSvcException ( "Problem extracting email claim from token." );
 		}
 
 		return userEmail;
 	}
 
 	private final String fDomain;
-	private final String fEmailClaim;
+	private final List<String> fEmailClaimFields;
 
+	private String getEmailClaim ( DecodedJWT token )
+	{
+		// we have a rule in Auth0 to add an email claim to the JWT
+		for ( String emailClaimField : fEmailClaimFields )
+		{
+			final Claim userEmailClaim = token.getClaim ( emailClaimField );
+			final String userEmail = userEmailClaim == null ? null : userEmailClaim.asString ();
+			if ( userEmail != null )
+			{
+				return userEmail;
+			}
+		}
+		return null;
+	}
+	
 	private DecodedJWT validate ( String token ) throws IamSvcException
     {
 		try

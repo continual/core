@@ -319,8 +319,19 @@ public class Auth0IamDb implements IamDb<Auth0Identity,Auth0Group>
 	@Override
 	public Auth0Identity createUser ( String userId ) throws IamIdentityExists, IamSvcException
 	{
-		readOnlyDbException ();
-		return null;
+		try
+		{
+			getMgmntApi ()
+				.users ()
+				.create ( new User ( userId ) )
+				.execute ()
+			;
+			return loadUser ( userId );
+		}
+		catch ( Auth0Exception e )
+		{
+			throw new IamSvcException ( e );
+		}
 	}
 
 	@Override
