@@ -23,7 +23,10 @@ public interface ScriptEvaluator<T> extends MetricsSupplier
 	 * @throws ScriptSyntaxError
 	 * @throws ScriptEvaluationException
 	 */
-	T evaluateExpr ( ScriptBindings<T> bindings ) throws ScriptSyntaxError, ScriptEvaluationException;
+	default T evaluateExpr ( ScriptBindings<T> bindings ) throws ScriptSyntaxError, ScriptEvaluationException
+	{
+		return evaluate ( bindings );
+	}
 
 	/**
 	 * Evaluate the script as an expression and return a boolean value
