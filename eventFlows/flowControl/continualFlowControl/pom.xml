@@ -20,8 +20,56 @@
 	<dependencies>
 
 		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- slf4j logger -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+		</dependency>
+
+		<dependency>
 			<groupId>io.continual</groupId>
-			<artifactId>continualFlowControlApis</artifactId>
+			<artifactId>continualAssembly</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualMetricsDropWiz</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualIam</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualIamFile</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualHttp</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualHttpTomcat</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualFlowControlCore</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
@@ -41,6 +89,15 @@
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 		    <artifactId>logback-classic</artifactId>
+		</dependency>
+
+
+
+
+		<dependency>
+			<groupId>io.continual</groupId>
+			<artifactId>continualTemplatingGolang</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 
 	</dependencies>

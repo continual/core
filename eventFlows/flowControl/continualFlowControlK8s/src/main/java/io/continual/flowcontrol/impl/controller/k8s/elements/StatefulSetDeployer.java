@@ -14,8 +14,8 @@ import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.flowcontrol.impl.controller.k8s.K8sElement;
-import io.continual.flowcontrol.model.FlowControlResourceSpecs;
-import io.continual.flowcontrol.model.FlowControlResourceSpecs.Toleration;
+import io.continual.flowcontrol.model.FlowControlDeploymentResourceSpec;
+import io.continual.flowcontrol.model.FlowControlDeploymentResourceSpec.Toleration;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.standards.HttpStatusCodes;
 import io.kubernetes.client.custom.Quantity;
@@ -149,7 +149,7 @@ public class StatefulSetDeployer implements K8sElement
 			);
 
 			// setup resource specs
-			final FlowControlResourceSpecs rs = ctx.getDeploymentSpec ().getResourceSpecs ();
+			final FlowControlDeploymentResourceSpec rs = ctx.getDeploymentSpec ().getResourceSpecs ();
 			final V1ResourceRequirements resourceReqs = buildResourceReqs ( rs );
 
 			// setup tolerations
@@ -381,7 +381,7 @@ public class StatefulSetDeployer implements K8sElement
 		return "s-" + deployId.trim ().toLowerCase ();
 	}
 
-	private V1ResourceRequirements buildResourceReqs ( FlowControlResourceSpecs rs )
+	private V1ResourceRequirements buildResourceReqs ( FlowControlDeploymentResourceSpec rs )
 	{
 		final V1ResourceRequirementsBuilder resourceReqsBuilder = new V1ResourceRequirementsBuilder ();
 

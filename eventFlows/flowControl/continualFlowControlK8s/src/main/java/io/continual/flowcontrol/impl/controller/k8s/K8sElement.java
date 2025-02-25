@@ -5,8 +5,8 @@ import java.util.Map;
 
 import org.json.JSONObject;
 
+import io.continual.flowcontrol.model.Encryptor;
 import io.continual.flowcontrol.model.FlowControlDeploymentSpec;
-import io.continual.flowcontrol.services.encryption.Encryptor;
 
 public interface K8sElement
 {

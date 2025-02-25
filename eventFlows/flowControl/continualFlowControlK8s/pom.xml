@@ -21,7 +21,7 @@
 
 		<dependency>
 			<groupId>io.continual</groupId>
-			<artifactId>continualFlowControlApis</artifactId>
+			<artifactId>continualFlowControlCore</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 

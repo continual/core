@@ -21,8 +21,8 @@
 		//
 		{
 			"name": "encryptor",
-			"class": "io.continual.flowcontrol.impl.enc.Enc",
-			"key": "fuga.key.123"
+			"class": "io.continual.flowcontrol.impl.common.Enc",
+			"key": "${FLOWCONTROL_ENCKEY}"
 		},
 
 		//
@@ -50,7 +50,7 @@
 		//
 		{
 			"name": "deployDb",
-			"class": "io.continual.flowcontrol.impl.deploydb.model.ModelBackedDeployDb",
+			"class": "io.continual.flowcontrol.impl.deploydb.model.ModelDeployDb",
 			"model": "db"
 		},
 
@@ -65,7 +65,7 @@
 
 			"imageMapper":
 			{
-				"class": "io.continual.flowcontrol.impl.controller.InlineImageMapper",
+				"class": "io.continual.flowcontrol.impl.controller.k8s.impl.InlineImageMapper",
 				"rules": [
 					{ "match": ".*", "image": "${CONTAINER_REGISTRY|docker.io/library}/continualeventproc:0.3.21-SNAPSHOT" }
 				]
@@ -88,10 +88,10 @@
 			//"kubeConfig": "${HOME}/.kube/config",
 
 			// if using kube config, which context?
-			"kubeConfigContext": "minikube",
+			"kubeConfigContext": "${FLOW_CONTROL_KUBE_CONFIG_CONTEXT|minikube}",
 
 			// the namespace assigned to flowcontrol
-			"namespace": "flowcontrol",
+			"namespace": "${FLOW_CONTROL_NAMESPACE|flowcontrol}",
 
 			///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -131,13 +131,15 @@
 		//
 		{
 			"name": "flowcontrol",
-			"class": "io.continual.flowcontrol.services.httpapi.BaseHttpService",
+			"class": "io.continual.flowcontrol.httpapi.BaseHttpService",
 			"namespace": "api-test-namespace",
 
 			"accounts": "accounts",
 			"httpService": "HttpService",
+
 			"jobDb": "jobDb",
-			"deployApi": "controller"
+			"deployApi": "controller",
+			"runtimeSystemApi": "controller"
 		}
 	],
 

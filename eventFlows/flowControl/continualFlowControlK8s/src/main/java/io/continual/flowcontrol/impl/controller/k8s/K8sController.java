@@ -1,3 +1,4 @@
+
 package io.continual.flowcontrol.impl.controller.k8s;
 
 import java.io.FileReader;
@@ -7,6 +8,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -21,14 +24,17 @@ import io.continual.flowcontrol.impl.controller.k8s.K8sElement.ElementDeployExce
 import io.continual.flowcontrol.impl.controller.k8s.K8sElement.ImagePullPolicy;
 import io.continual.flowcontrol.impl.controller.k8s.K8sElement.K8sDeployContext;
 import io.continual.flowcontrol.impl.controller.k8s.elements.SecretDeployer;
+import io.continual.flowcontrol.impl.controller.k8s.impl.ContainerImageMapper;
 import io.continual.flowcontrol.impl.controller.k8s.impl.NoMapImageMapper;
 import io.continual.flowcontrol.impl.deployer.BaseDeployer;
+import io.continual.flowcontrol.model.Encryptor;
 import io.continual.flowcontrol.model.FlowControlCallContext;
-import io.continual.flowcontrol.model.FlowControlDeployment;
+import io.continual.flowcontrol.model.FlowControlDeploymentRecord;
 import io.continual.flowcontrol.model.FlowControlDeploymentSpec;
 import io.continual.flowcontrol.model.FlowControlJob.FlowControlRuntimeSpec;
-import io.continual.flowcontrol.services.controller.ContainerImageMapper;
-import io.continual.flowcontrol.services.encryption.Encryptor;
+import io.continual.flowcontrol.model.FlowControlRuntimeSystem;
+import io.continual.flowcontrol.model.FlowControlRuntimeProcess;
+import io.continual.flowcontrol.model.FlowControlRuntimeState;
 import io.continual.iam.access.AccessControlList;
 import io.continual.iam.identity.Identity;
 import io.continual.services.ServiceContainer;
@@ -40,7 +46,10 @@ import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.util.ClientBuilder;
 import io.kubernetes.client.util.KubeConfig;
 
-public class K8sController extends BaseDeployer
+/**
+ * This kubernetes controller is both a "deployer" and a "runtime system".
+ */
+public class K8sController extends BaseDeployer implements FlowControlRuntimeSystem
 {
 	static final String kSetting_ConfigMountLoc = "configMountLoc";
 	static final String kDefault_ConfigMountLoc = "/var/flowcontrol/config";
@@ -144,7 +153,7 @@ public class K8sController extends BaseDeployer
 
 	
 	@Override
-	protected FlowControlDeployment internalDeploy ( FlowControlCallContext ctx, FlowControlDeploymentSpec ds, String configKey ) throws ServiceException, RequestException
+	protected FlowControlDeploymentRecord internalDeploy ( FlowControlCallContext ctx, FlowControlDeploymentSpec ds, String configKey ) throws ServiceException, RequestException
 	{
 		try
 		{
@@ -233,7 +242,7 @@ public class K8sController extends BaseDeployer
 	}
 
 	@Override
-	protected void internalUndeploy ( FlowControlCallContext ctx, String deploymentId, FlowControlDeployment deployment ) throws ServiceException
+	protected void internalUndeploy ( FlowControlCallContext ctx, String deploymentId, FlowControlDeploymentRecord deployment ) throws ServiceException
 	{
 		// build elements
 		try
@@ -250,7 +259,30 @@ public class K8sController extends BaseDeployer
 			throw new ServiceException ( x );
 		}
 	}
-/*
+
+	/**
+	 * Get the running process information
+	 * @param fccc the call context
+	 * @param deploymentId the ID of a deployment
+	 * @return a runtime state
+	 */
+	@Override
+	public FlowControlRuntimeState getRuntimeState ( FlowControlCallContext fccc, String deploymentId )
+	{
+		return new FlowControlRuntimeState ()
+		{
+			@Override
+			public DeploymentStatus getStatus () { return DeploymentStatus.UNKNOWN; }
+
+			@Override
+			public Set<String> getProcesses () { return new TreeSet<> (); }
+
+			@Override
+			public FlowControlRuntimeProcess getProcess ( String processId ) { return null; }
+		};
+	}
+
+	/*
 	@Override
 	public FlowControlDeployment getDeployment ( FlowControlCallContext ctx, String deploymentId ) throws ServiceException
 	{
@@ -429,7 +461,7 @@ public class K8sController extends BaseDeployer
 		private final StatefulSet fStatefulSet;
 	}
 */
-	private class IntDeployment implements FlowControlDeployment
+	private class IntDeployment implements FlowControlDeploymentRecord
 	{
 		public IntDeployment ( String tag, AccessControlList acl, FlowControlDeploymentSpec ds, Identity deployer, String configKey )
 		{
@@ -616,10 +648,17 @@ public class K8sController extends BaseDeployer
 				}
 
 				// build
-				client = ClientBuilder
-					.kubeconfig ( kc )
-					.build ()
-				;
+				try
+				{
+					client = ClientBuilder
+						.kubeconfig ( kc )
+						.build ()
+					;
+				}
+				catch ( IllegalArgumentException x )
+				{
+					throw new BuildFailure ( x );
+				}
 			}
 			else
 			{
