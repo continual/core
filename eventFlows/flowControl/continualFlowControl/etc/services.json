@@ -37,7 +37,7 @@
 		},
 
 		//
-		//	job db
+		//	job db layered over the model
 		//
 		{
 			"name": "jobDb",
@@ -46,7 +46,7 @@
 		},
 
 		//
-		//	deployment db
+		//	deployment db layered over the model
 		//
 		{
 			"name": "deployDb",
@@ -67,7 +67,7 @@
 			{
 				"class": "io.continual.flowcontrol.impl.controller.k8s.impl.InlineImageMapper",
 				"rules": [
-					{ "match": ".*", "image": "${CONTAINER_REGISTRY|docker.io/library}/continualeventproc:0.3.21-SNAPSHOT" }
+					{ "match": ".*", "image": "${FLOWCONTROL_CONTAINER_REGISTRY|docker.io/library}/continualeventproc:0.3.21-SNAPSHOT" }
 				]
 			},
 
@@ -75,7 +75,7 @@
 			//
 			//	internal config URL for runtime pods
 			//
-			"internalConfigUrl": "${INTERNAL_CONFIG_BASE_URL}",
+			"internalConfigUrl": "${FLOWCONTROL_CONFIG_BASE_URL}",
 
 			///////////////////////////////////////////////////////////////////////////////////////////////////////////
 			//
@@ -88,15 +88,15 @@
 			//"kubeConfig": "${HOME}/.kube/config",
 
 			// if using kube config, which context?
-			"kubeConfigContext": "${FLOW_CONTROL_KUBE_CONFIG_CONTEXT|minikube}",
+			"kubeConfigContext": "${FLOWCONTROL_KUBE_CONFIG_CONTEXT|minikube}",
 
 			// the namespace assigned to flowcontrol
-			"namespace": "${FLOW_CONTROL_NAMESPACE|flowcontrol}",
+			"namespace": "${FLOWCONTROL_NAMESPACE|flowcontrol}",
 
 			///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 			"deploymentDb": "deployDb",
-			"signingKey": "fuga.key.456",
+			"signingKey": "${FLOWCONTROL_SIGNING_KEY}",
 
 			// k8s deployment elements
 			"elements":
@@ -123,7 +123,7 @@
 		{
 			"name": "HttpService",
 			"class":"io.continual.http.service.framework.TomcatHttpService",
-			"port": "8080"
+			"port": "${FLOWCONTROL_SERVICE_PORT|8080}"
 		},
 
 		//

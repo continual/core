@@ -151,7 +151,6 @@ public class K8sController extends BaseDeployer implements FlowControlRuntimeSys
 		} );
 	}
 
-	
 	@Override
 	protected FlowControlDeploymentRecord internalDeploy ( FlowControlCallContext ctx, FlowControlDeploymentSpec ds, String configKey ) throws ServiceException, RequestException
 	{

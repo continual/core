@@ -43,10 +43,10 @@ public class BaseDeployer extends SimpleService implements FlowControlDeployment
 
 		fDeployDb = sc.getReqd ( config.optString ( kSetting_DeployDb, "deployDb" ), FlowControlDeploymentDb.class );
 
-		fSigningKey = config.getString ( "signingKey" );
-		if ( fSigningKey.length () == 0 )
+		fSigningKey = config.optString ( "signingKey", null );
+		if ( StringUtils.isEmpty ( fSigningKey ) )
 		{
-			throw new BuildFailure ( "Config signing key is an empty string." );
+			throw new BuildFailure ( "Deployer's config signing key is an empty string." );
 		}
 
 		fDefCpuRequest = config.optString ( kSetting_DefaultCpuRequest, null );
