@@ -3,6 +3,8 @@ package io.continual.flowcontrol.impl.controller.k8s.elements;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -27,6 +29,7 @@ import io.continual.metrics.MetricsCatalog;
 import io.continual.metrics.impl.noop.NoopMetricsCatalog;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.standards.HttpStatusCodes;
+import io.continual.util.time.Clock;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.custom.QuantityFormatException;
 import io.kubernetes.client.openapi.ApiException;
@@ -460,7 +463,6 @@ public class StatefulSetDeployer implements FlowControlK8sElement
 				{
 					return new FlowControlRuntimeProcess ()
 					{
-
 						@Override
 						public String getProcessId () { return processId; }
 
@@ -469,8 +471,23 @@ public class StatefulSetDeployer implements FlowControlK8sElement
 						{
 							try
 							{
+								long sinceSeconds = Integer.MAX_VALUE;
+								if ( sinceRfc3339Time != null )
+								{
+									try
+									{
+										final long requestedTimeSec = Instant.parse ( sinceRfc3339Time ).getEpochSecond ();
+										sinceSeconds = ( Clock.now () / 1000 ) - requestedTimeSec;
+									}
+									catch ( DateTimeParseException e )
+									{
+										throw new RequestException ( "Couldn't parse RFC3339 date string [" + sinceRfc3339Time + "]", e );
+									}
+								}
+
 								final String logResponse = new CoreV1Api ()
 									.readNamespacedPodLog ( processId, ctx.getNamespace () )
+									.sinceSeconds ( sinceSeconds > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) sinceSeconds )
 									// .container("container-name") // Optional
 									// .tailLines(100) // Optional
 									.execute ()
