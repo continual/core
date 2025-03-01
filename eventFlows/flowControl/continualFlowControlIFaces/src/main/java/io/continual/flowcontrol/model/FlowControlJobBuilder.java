@@ -20,18 +20,18 @@ public interface FlowControlJobBuilder
 	FlowControlJobBuilder clone ( FlowControlJob existingJob ) throws GeneralSecurityException, IOException;
 
 	/**
-	 * Update the job's ID
+	 * Update the job's name, which uniquely identifies the job
 	 * @param id
 	 * @return this builder
 	 */
 	FlowControlJobBuilder withId ( String id );
 
 	/**
-	 * Update the job's name
+	 * Update the job's display name
 	 * @param name
 	 * @return this builder
 	 */
-	FlowControlJobBuilder withName ( String name );
+	FlowControlJobBuilder withDisplayName ( String name );
 
 	/**
 	 * Use the given owner ID for this job

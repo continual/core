@@ -3,41 +3,54 @@ package io.continual.flowcontrol.impl.controller.k8s.elements;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.flowcontrol.impl.controller.k8s.K8sElement;
+import io.continual.flowcontrol.impl.controller.k8s.FlowControlK8sElement;
 import io.continual.flowcontrol.model.FlowControlDeploymentResourceSpec;
 import io.continual.flowcontrol.model.FlowControlDeploymentResourceSpec.Toleration;
+import io.continual.flowcontrol.model.FlowControlDeploymentService.RequestException;
+import io.continual.flowcontrol.model.FlowControlDeploymentService.ServiceException;
+import io.continual.flowcontrol.model.FlowControlRuntimeProcess;
+import io.continual.flowcontrol.model.FlowControlRuntimeState;
+import io.continual.metrics.MetricsCatalog;
+import io.continual.metrics.impl.noop.NoopMetricsCatalog;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.standards.HttpStatusCodes;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.custom.QuantityFormatException;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.V1ContainerBuilder;
 import io.kubernetes.client.openapi.models.V1EnvVar;
 import io.kubernetes.client.openapi.models.V1EnvVarBuilder;
 import io.kubernetes.client.openapi.models.V1LocalObjectReference;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeClaimBuilder;
+import io.kubernetes.client.openapi.models.V1Pod;
+import io.kubernetes.client.openapi.models.V1PodList;
 import io.kubernetes.client.openapi.models.V1ResourceRequirements;
 import io.kubernetes.client.openapi.models.V1ResourceRequirementsBuilder;
 import io.kubernetes.client.openapi.models.V1StatefulSet;
 import io.kubernetes.client.openapi.models.V1StatefulSetBuilder;
+import io.kubernetes.client.openapi.models.V1StatefulSetStatus;
 import io.kubernetes.client.openapi.models.V1Toleration;
 import io.kubernetes.client.openapi.models.V1TolerationBuilder;
 import io.kubernetes.client.openapi.models.V1VolumeBuilder;
 import io.kubernetes.client.openapi.models.V1VolumeMountBuilder;
 import io.kubernetes.client.util.Yaml;
 
-public class StatefulSetDeployer implements K8sElement
+public class StatefulSetDeployer implements FlowControlK8sElement
 {
 	public static final String kSetting_InitContainerImage = "initContainerImage";
 	public static final String kDefault_InitContainerImage = "curlimages/curl:7.87.0";
@@ -356,20 +369,152 @@ public class StatefulSetDeployer implements K8sElement
 	}
 
 	@Override
-	public void undeploy ( String namespace, String deployId ) throws ElementDeployException
+	public boolean isDeployed ( K8sInstallationContext ctx ) throws ElementDeployException
 	{
-		final String ssName = tagToStatefulSetName ( deployId );
-		final AppsV1Api api = new AppsV1Api ();
 		try
 		{
-			api.deleteNamespacedStatefulSet ( ssName, namespace ).execute ();
-			log.info ( "Removed {}/{}", namespace, ssName );
+			final String ssName = tagToStatefulSetName ( ctx.getDeployId () );
+			new AppsV1Api()
+				.readNamespacedStatefulSet ( ssName, ctx.getNamespace () )
+				.execute ()
+			;
+			return true;
 		}
 		catch ( ApiException x )
 		{
 			if ( x.getCode () == HttpStatusCodes.k404_notFound )
 			{
-				log.info ( "Element {} in {} did not exist.", ssName, namespace );
+				return false;
+			}
+			throw new ElementDeployException ( x );
+		}
+	}
+
+	@Override
+	public boolean isRuntimeProvider ()
+	{
+		return true;
+	}
+
+	@Override
+	public FlowControlRuntimeState getRuntimeState ( K8sInstallationContext ctx ) throws ElementDeployException
+	{
+		if ( !isDeployed ( ctx ) )
+		{
+			return FlowControlRuntimeState.notRunning ();
+		}
+
+		try
+		{
+			final String ssName = tagToStatefulSetName ( ctx.getDeployId () );
+			final V1StatefulSet ss = new AppsV1Api ()
+				.readNamespacedStatefulSet ( ssName, ctx.getNamespace () )
+				.execute ()
+			;
+
+			// get the pod counts
+			final V1StatefulSetStatus sss = ss.getStatus ();
+			final int availablePods = sss.getAvailableReplicas ();
+			final int desiredPods = sss.getReplicas ();
+
+			// get the pod list
+			final Map<String,String> matchLabels = ss.getSpec ().getSelector ().getMatchLabels ();
+			final String labelSelector = matchLabels.entrySet ().stream ()
+				.map ( entry -> entry.getKey () + "=" + entry.getValue () )
+				.collect ( Collectors.joining ( "," ) )
+			;
+			final V1PodList podList = new CoreV1Api ()
+				.listNamespacedPod ( ctx.getNamespace () )
+				.labelSelector ( labelSelector )
+				.execute ()
+			;
+			final HashMap<String,V1Pod> pods = new HashMap<> ();
+			podList.getItems ().stream ()
+				.forEach ( pod -> pods.put ( pod.getMetadata ().getName (), pod ) )
+			;
+
+			return new FlowControlRuntimeState ()
+			{
+				@Override
+				public DeploymentStatus getStatus ()
+				{
+					if ( availablePods < desiredPods )
+					{
+						return DeploymentStatus.PENDING;
+					}
+					else if ( availablePods >= desiredPods )
+					{
+						return DeploymentStatus.RUNNING;
+					}
+					return DeploymentStatus.UNKNOWN;
+				}
+
+				@Override
+				public Set<String> getProcesses ()
+				{
+					return Collections.unmodifiableSet ( pods.keySet () );
+				}
+
+				@Override
+				public FlowControlRuntimeProcess getProcess ( String processId )
+				{
+					return new FlowControlRuntimeProcess ()
+					{
+
+						@Override
+						public String getProcessId () { return processId; }
+
+						@Override
+						public List<String> getLog ( String sinceRfc3339Time ) throws ServiceException, RequestException
+						{
+							try
+							{
+								final String logResponse = new CoreV1Api ()
+									.readNamespacedPodLog ( processId, ctx.getNamespace () )
+									// .container("container-name") // Optional
+									// .tailLines(100) // Optional
+									.execute ()
+								;
+								final LinkedList<String> result = new LinkedList<> ();
+								result.add ( logResponse );
+								return result;
+							}
+							catch ( ApiException x )
+							{
+								throw new ServiceException ( x );
+							}
+						}
+
+						@Override
+						public MetricsCatalog getMetrics ()
+						{
+							return new NoopMetricsCatalog ();
+						}
+					};
+				}
+			};
+		}
+		catch ( ApiException x )
+		{
+			throw new ElementDeployException ( x );
+		}
+	}
+
+	@Override
+	public void undeploy ( K8sInstallationContext ctx ) throws ElementDeployException
+	{
+		final String ssName = tagToStatefulSetName ( ctx.getDeployId () );
+		final AppsV1Api api = new AppsV1Api ();
+		try
+		{
+			api.deleteNamespacedStatefulSet ( ssName, ctx.getNamespace () ).execute ();
+			log.info ( "Removed {}/{}", ctx.getNamespace (), ssName );
+		}
+		catch ( ApiException x )
+		{
+			if ( x.getCode () == HttpStatusCodes.k404_notFound )
+			{
+				log.info ( "Element {} in {} did not exist.", ssName, ctx.getNamespace () );
 				return;
 			}
 			throw new ElementDeployException ( x );

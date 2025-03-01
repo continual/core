@@ -40,12 +40,12 @@ public class JsonJobBuilder implements FlowControlJobBuilder
 	@Override
 	public JsonJobBuilder withId ( String id )
 	{
-		fBuildingData.put ( JsonJob.kId, id );
+		fBuildingData.put ( JsonJob.kJobName, id );
 		return this;
 	}
 	
 	@Override
-	public JsonJobBuilder withName ( String name )
+	public JsonJobBuilder withDisplayName ( String name )
 	{
 		fBuildingData.put ( JsonJob.kDisplayName, name );
 		return this;
@@ -87,7 +87,7 @@ public class JsonJobBuilder implements FlowControlJobBuilder
 		fBuildingData = new JSONObject ();
 
 		fBuildingData
-			.put ( JsonJob.kDisplayName, existingJob.getName () )
+			.put ( JsonJob.kDisplayName, existingJob.getDisplayName () )
 			.put ( JsonJob.kAcl, existingJob.getAccessControlList ().asJson () )
 			.put ( JsonJob.kCreateTime, existingJob.getCreateTimestampMs () )
 			.put ( JsonJob.kUpdateTime, existingJob.getUpdateTimestampMs () )
@@ -148,8 +148,8 @@ public class JsonJobBuilder implements FlowControlJobBuilder
 	public JsonJobBuilder setRuntimeSpec ( FlowControlRuntimeSpec runtimeSpec )
 	{
 		fBuildingData.put ( JsonJob.kRuntime, new JSONObject ()
-			.put ( JsonJob.kName, runtimeSpec.getName () )
-			.put ( JsonJob.kVersion, runtimeSpec.getVersion () )
+			.put ( JsonJob.kRuntimeName, runtimeSpec.getName () )
+			.put ( JsonJob.kRuntimeVersion, runtimeSpec.getVersion () )
 		);
 		timestampNow ();
 		return this;

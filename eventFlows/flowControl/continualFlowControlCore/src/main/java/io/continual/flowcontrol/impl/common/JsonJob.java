@@ -28,17 +28,18 @@ import io.continual.util.standards.MimeTypes;
  */
 public class JsonJob implements FlowControlJob, JsonSerialized
 {
-	static final String kId = "id";
+	static final String kJobName = "id";
 	static final String kDisplayName = "name";
 	static final String kAcl = "acl";
+	static final String kJobVersion = "version";
 
 	static final String kConfig = "config";
 	static final String kConfigType = "type";
 	static final String kConfigData = "data";
 
 	static final String kRuntime = "runtime";
-	static final String kName = "name";
-	static final String kVersion = "version";
+	static final String kRuntimeName = "name";
+	static final String kRuntimeVersion = "version";
 
 	static final String kSecrets = "secrets";
 
@@ -53,11 +54,11 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 	@Override
 	public String getId ()
 	{
-		return fData.getString ( kId );
+		return fData.getString ( kJobName );
 	}
 
 	@Override
-	public String getName ()
+	public String getDisplayName ()
 	{
 		return fData.optString ( kDisplayName, getId() );
 	}
@@ -65,7 +66,7 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 	@Override
 	public FlowControlJobVersion getVersion ()
 	{
-		return new JsonJobVersion ( fData.optJSONObject ( kVersion ) );
+		return new JsonJobVersion ( fData.optJSONObject ( kJobVersion ) );
 	}
 
 	@Override
@@ -147,7 +148,7 @@ public class JsonJob implements FlowControlJob, JsonSerialized
 		final JSONObject runtime = fData.optJSONObject ( kRuntime );
 		if ( runtime == null ) return null;
 
-		return FlowControlRuntimeSpec.from ( runtime.getString ( kName ), runtime.getString ( kVersion ) );
+		return FlowControlRuntimeSpec.from ( runtime.getString ( kRuntimeName ), runtime.getString ( kRuntimeVersion ) );
 	}
 
 	@Override

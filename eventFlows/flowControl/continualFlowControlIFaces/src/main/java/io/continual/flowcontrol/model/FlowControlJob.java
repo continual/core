@@ -23,7 +23,7 @@ public interface FlowControlJob extends ProtectedResource
 	 * Get this job's name, expected to be suitable for display.
 	 * @return the job's name
 	 */
-	String getName ();
+	String getDisplayName ();
 
 	/**
 	 * Get the version tag for this instance if the job.

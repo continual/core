@@ -9,7 +9,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.continual.flowcontrol.impl.controller.k8s.K8sElement;
+import io.continual.flowcontrol.impl.controller.k8s.FlowControlK8sElement;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.standards.HttpStatusCodes;
 import io.kubernetes.client.openapi.ApiException;
@@ -17,7 +17,7 @@ import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.V1Secret;
 import io.kubernetes.client.openapi.models.V1SecretBuilder;
 
-public class SecretDeployer implements K8sElement
+public class SecretDeployer implements FlowControlK8sElement
 {
 	public static final String kWorkspaceKey_Secret = "secret";
 	public static final String kWorkspaceKey_SecretKeys = "secretKeys";
@@ -96,20 +96,42 @@ public class SecretDeployer implements K8sElement
 	}
 
 	@Override
-	public void undeploy ( String namespace, String deployId ) throws ElementDeployException
+	public boolean isDeployed ( K8sInstallationContext ctx ) throws ElementDeployException
 	{
-		final String secretsName = tagToSecret ( deployId );
-		final CoreV1Api api = new CoreV1Api ();
 		try
 		{
-			api.deleteNamespacedSecret ( secretsName, namespace ).execute ();
-			log.info ( "Removed {}/{}", namespace, secretsName );
+			final String secretsName = tagToSecret ( ctx.getDeployId () );
+			new CoreV1Api()
+				.readNamespacedSecret ( secretsName, ctx.getNamespace () )
+				.execute ()
+			;
+			return true;
 		}
 		catch ( ApiException x )
 		{
 			if ( x.getCode () == HttpStatusCodes.k404_notFound )
 			{
-				log.info ( "Secret {} in {} did not exist.", deployId, namespace );
+				return false;
+			}
+			throw new ElementDeployException ( x );
+		}
+	}
+
+	@Override
+	public void undeploy ( K8sInstallationContext ctx ) throws ElementDeployException
+	{
+		final String secretsName = tagToSecret ( ctx.getDeployId () );
+		final CoreV1Api api = new CoreV1Api ();
+		try
+		{
+			api.deleteNamespacedSecret ( secretsName, ctx.getNamespace () ).execute ();
+			log.info ( "Removed {}/{}", ctx.getNamespace (), secretsName );
+		}
+		catch ( ApiException x )
+		{
+			if ( x.getCode () == HttpStatusCodes.k404_notFound )
+			{
+				log.info ( "Secret {} in {} did not exist.", ctx.getDeployId (), ctx.getNamespace () );
 				return;
 			}
 			throw new ElementDeployException ( x );

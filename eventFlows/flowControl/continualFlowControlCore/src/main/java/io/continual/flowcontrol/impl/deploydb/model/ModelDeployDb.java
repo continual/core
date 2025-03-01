@@ -144,6 +144,11 @@ public class ModelDeployDb extends SimpleService implements FlowControlDeploymen
 			}
 			return result;
 		}
+		catch ( ModelItemDoesNotExistException x )
+		{
+			// this is thrown when there are no deployments and the deployment container was cleaned up
+			return new LinkedList<>();
+		}
 		catch ( BuildFailure | ModelRequestException | ModelServiceException e )
 		{
 			throw new DeployDbException ( e );

@@ -28,9 +28,9 @@ import io.continual.flowcontrol.model.FlowControlJobBuilder;
 import io.continual.flowcontrol.model.FlowControlJobDb;
 import io.continual.flowcontrol.model.FlowControlJobDb.RequestException;
 import io.continual.flowcontrol.model.FlowControlJobDb.ServiceException;
-import io.continual.flowcontrol.model.FlowControlRuntimeSystem;
 import io.continual.flowcontrol.model.FlowControlRuntimeProcess;
 import io.continual.flowcontrol.model.FlowControlRuntimeState;
+import io.continual.flowcontrol.model.FlowControlRuntimeSystem;
 import io.continual.flowcontrol.model.FlowControlService;
 import io.continual.http.app.servers.endpoints.TypicalRestApiEndpoint;
 import io.continual.http.service.framework.context.CHttpRequestContext;
@@ -41,7 +41,6 @@ import io.continual.iam.exceptions.IamSvcException;
 import io.continual.iam.identity.Identity;
 import io.continual.iam.identity.UserContext;
 import io.continual.services.ServiceContainer;
-import io.continual.util.data.UniqueStringGenerator;
 import io.continual.util.data.json.CommentedJsonTokener;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.data.json.JsonVisitor.ItemRenderer;
@@ -78,7 +77,7 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 						@Override
 						public int compare ( FlowControlJob o1, FlowControlJob o2 )
 						{
-							return o1.getName ().compareTo ( o2.getName () );
+							return o1.getDisplayName ().compareTo ( o2.getDisplayName () );
 						}
 					} );
 					sendJson ( context, new JSONObject().put ( "jobs", JsonVisitor.listToArray ( jobList, new ItemRenderer<FlowControlJob,JSONObject> ()
@@ -88,7 +87,7 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 						{
 							return new JSONObject ()
 								.put ( "id", job.getId () )
-								.put ( "name", job.getName () )
+								.put ( "name", job.getDisplayName () )
 							;
 						}
 					} ) ) );
@@ -138,7 +137,13 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 		} );
 	}
 
-	public void createJob ( CHttpRequestContext context ) throws IamSvcException
+	/**
+	 * Create or update a job by ID. If the call has the "If-None-Match" header set to "*", then the call fails with 412 when a job already exists.
+	 * @param context
+	 * @param id
+	 * @throws IamSvcException
+	 */
+	public void writeJob ( CHttpRequestContext context, String id ) throws IamSvcException
 	{
 		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
 		{
@@ -147,69 +152,32 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 			{
 				try
 				{
-					final JSONObject payload = new JSONObject ( new CommentedJsonTokener ( context.request ().getBodyStream () ) );
-
-					final String id = UniqueStringGenerator.createUlid ();
-					final String name = payload.getString ( "name" );
-
 					final FlowControlCallContext fccc = fFlowControl.createtContextBuilder ().asUser ( uc.getUser () ).build ();
 
 					final FlowControlJobDb jobDb = fFlowControl.getJobDb ( fccc );
+
+					final String ifNoneMatch = context.request ().getFirstHeader ( "If-None-Match" );
+					final boolean callerWantsCleanCreate = ifNoneMatch != null && ifNoneMatch.equals ( "*" );
+
+					if ( callerWantsCleanCreate && jobDb.jobExists ( fccc, id ) )
+					{
+						sendStatusCodeAndMessage ( context, HttpStatusCodes.k412_preconditionFailed, "Job '" + id + "' exists." );
+						return;
+					}
+
 					final FlowControlJobBuilder jobBuilder = jobDb.createJobBuilder ( fccc )
 						.withId ( id )
-						.withName ( name )
 						.withOwner ( uc.getUser ().getId () )
 						.withAccess ( AccessControlEntry.kOwner, AccessControlList.READ, AccessControlList.UPDATE, AccessControlList.DELETE )
 					;
 
-					readJobPayloadInto ( payload, jobBuilder );
-					final FlowControlJob job = jobBuilder.build ();
-					jobDb.storeJob ( fccc, job.getId (), job );
-					sendJson ( context, render ( job ) );
-				}
-				catch ( FlowControlJobDb.ServiceException e )
-				{
-					log.warn ( e.getMessage (), e );
-					sendStatusCodeAndMessage ( context, HttpStatusCodes.k503_serviceUnavailable, "Couldn't access the flow control job database." );
-				}
-				catch ( FlowControlJobDb.RequestException | BuildFailure | JSONException e )
-				{
-					sendStatusCodeAndMessage ( context, HttpStatusCodes.k400_badRequest, "There was a problem with your request: " + e.getMessage () );
-				}
-				catch ( AccessException x )
-				{
-					sendStatusCodeAndMessage ( context, HttpStatusCodes.k401_unauthorized, x.getMessage () );
-				}
-			}
-		} );
-	}
-
-	public void overwriteJob ( CHttpRequestContext context, String id ) throws IamSvcException
-	{
-		handleWithApiAuthAndAccess ( context, new ApiHandler<I> ()
-		{
-			@Override
-			public void handle ( CHttpRequestContext context, UserContext<I> uc )  throws IOException
-			{
-				try
-				{
 					final JSONObject payload = new JSONObject ( new CommentedJsonTokener ( context.request ().getBodyStream () ) );
-
-					final String name = payload.getString ( "name" );
-
-					final FlowControlCallContext fccc = fFlowControl.createtContextBuilder ().asUser ( uc.getUser () ).build ();
-
-					final FlowControlJobDb jobDb = fFlowControl.getJobDb ( fccc );
-					final FlowControlJobBuilder jobBuilder = jobDb.createJobBuilder ( fccc )
-						.withId ( id )
-						.withName ( name )
-						.withOwner ( uc.getUser ().getId () )
-						.withAccess ( AccessControlEntry.kOwner, AccessControlList.READ, AccessControlList.UPDATE, AccessControlList.DELETE )
-					;
-
 					readJobPayloadInto ( payload, jobBuilder );
+
 					final FlowControlJob job = jobBuilder.build ();
+
 					jobDb.storeJob ( fccc, job.getId (), job );
+
 					sendJson ( context, render ( job ) );
 				}
 				catch ( FlowControlJobDb.ServiceException e )
@@ -247,33 +215,22 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 
 					if ( job == null )
 					{
-						final FlowControlJobBuilder jobBuilder = jobDb.createJobBuilder ( fccc )
-							.withId ( id )
-							.withName ( id )
-							.withOwner ( uc.getUser ().getId () )
-							.withAccess ( AccessControlEntry.kOwner, AccessControlList.READ, AccessControlList.UPDATE, AccessControlList.DELETE )
-						;
-
-						readJobPayloadInto ( payload, jobBuilder );
-						job = jobBuilder.build ();
-						jobDb.storeJob ( fccc, job.getId (), job );
-						sendJson ( context, render ( job ) );
+						sendStatusCodeAndMessage ( context, HttpStatusCodes.k404_notFound, "Job '" + id + "' does not exist." );
+						return;
 					}
-					else
+
+					final FlowControlJobBuilder jobBuilder = jobDb.createJobBuilder ( fccc )
+						.clone ( job )
+					;
+					final boolean patchesMade = readJobPayloadInto ( payload, jobBuilder );
+					final FlowControlJob updatedJob = jobBuilder.build ();
+
+					if ( patchesMade )
 					{
-						final FlowControlJobBuilder jobBuilder = jobDb.createJobBuilder ( fccc )
-							.clone ( job )
-						;
-						final boolean changesMade = readJobPayloadInto ( payload, jobBuilder );
-						final FlowControlJob updatedJob = jobBuilder.build ();
-
-						if ( changesMade )
-						{
-							jobDb.storeJob ( fccc, id, updatedJob );
-						}
-
-						sendJson ( context, render ( updatedJob ) );
+						jobDb.storeJob ( fccc, id, updatedJob );
 					}
+
+					sendJson ( context, render ( updatedJob ) );
 				}
 				catch ( FlowControlJobDb.ServiceException | GeneralSecurityException e )
 				{
@@ -467,6 +424,8 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 			changesMade = true;
 		}
 
+		// FIXME: resources?
+		
 		return changesMade;
 	}
 
@@ -726,7 +685,7 @@ public class FlowControlRoutes<I extends Identity> extends TypicalRestApiEndpoin
 		final FlowControlRuntimeSpec runtime = job.getRuntimeSpec ();
 		
 		return new JSONObject ()
-			.put ( "name", job.getName () )
+			.put ( "name", job.getDisplayName () )
 			.put ( "config", render ( job.getConfiguration () ) )
 			.put ( "runtime", runtime == null ? null : new JSONObject ()
 				.put ( "name", runtime.getName () )

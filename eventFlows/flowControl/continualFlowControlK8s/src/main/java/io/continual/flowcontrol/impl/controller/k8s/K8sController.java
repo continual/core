@@ -8,8 +8,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -20,9 +18,10 @@ import org.yaml.snakeyaml.introspector.PropertySubstitute;
 import io.continual.builder.Builder;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.builder.sources.BuilderJsonDataSource;
-import io.continual.flowcontrol.impl.controller.k8s.K8sElement.ElementDeployException;
-import io.continual.flowcontrol.impl.controller.k8s.K8sElement.ImagePullPolicy;
-import io.continual.flowcontrol.impl.controller.k8s.K8sElement.K8sDeployContext;
+import io.continual.flowcontrol.impl.controller.k8s.FlowControlK8sElement.ElementDeployException;
+import io.continual.flowcontrol.impl.controller.k8s.FlowControlK8sElement.ImagePullPolicy;
+import io.continual.flowcontrol.impl.controller.k8s.FlowControlK8sElement.K8sDeployContext;
+import io.continual.flowcontrol.impl.controller.k8s.FlowControlK8sElement.K8sInstallationContext;
 import io.continual.flowcontrol.impl.controller.k8s.elements.SecretDeployer;
 import io.continual.flowcontrol.impl.controller.k8s.impl.ContainerImageMapper;
 import io.continual.flowcontrol.impl.controller.k8s.impl.NoMapImageMapper;
@@ -32,9 +31,8 @@ import io.continual.flowcontrol.model.FlowControlCallContext;
 import io.continual.flowcontrol.model.FlowControlDeploymentRecord;
 import io.continual.flowcontrol.model.FlowControlDeploymentSpec;
 import io.continual.flowcontrol.model.FlowControlJob.FlowControlRuntimeSpec;
-import io.continual.flowcontrol.model.FlowControlRuntimeSystem;
-import io.continual.flowcontrol.model.FlowControlRuntimeProcess;
 import io.continual.flowcontrol.model.FlowControlRuntimeState;
+import io.continual.flowcontrol.model.FlowControlRuntimeSystem;
 import io.continual.iam.access.AccessControlList;
 import io.continual.iam.identity.Identity;
 import io.continual.services.ServiceContainer;
@@ -139,7 +137,7 @@ public class K8sController extends BaseDeployer implements FlowControlRuntimeSys
 			@Override
 			public boolean visit ( JSONObject element ) throws JSONException, BuildFailure
 			{
-				final K8sElement elementBuilder = Builder.withBaseClass ( K8sElement.class )
+				final FlowControlK8sElement elementBuilder = Builder.withBaseClass ( FlowControlK8sElement.class )
 					.withClassNameInData ()
 					.searchingPath ( SecretDeployer.class.getPackageName () )
 					.usingData ( new BuilderJsonDataSource ( element ) )
@@ -225,7 +223,7 @@ public class K8sController extends BaseDeployer implements FlowControlRuntimeSys
 			};
 
 			// build each element
-			for ( K8sElement element : fElements )
+			for ( FlowControlK8sElement element : fElements )
 			{
 				log.info ( "deploying k8s element {}", element );
 				element.deploy ( deployContext );
@@ -240,17 +238,31 @@ public class K8sController extends BaseDeployer implements FlowControlRuntimeSys
 		}
 	}
 
+	private K8sInstallationContext makeInstallContext ( String deploymentId )
+	{
+		return new K8sInstallationContext ()
+		{
+			@Override
+			public String getInstallationName () { return fInstallationName; }
+			@Override
+			public String getNamespace () { return fK8sNamespace; }
+			@Override
+			public String getDeployId () { return deploymentId; }
+		};
+	}
+	
 	@Override
 	protected void internalUndeploy ( FlowControlCallContext ctx, String deploymentId, FlowControlDeploymentRecord deployment ) throws ServiceException
 	{
 		// build elements
 		try
 		{
-			final LinkedList<K8sElement> reversed = new LinkedList<> ( fElements );
+			final K8sInstallationContext installationContext = makeInstallContext ( deploymentId );
+			final LinkedList<FlowControlK8sElement> reversed = new LinkedList<> ( fElements );
 			Collections.reverse ( reversed );
-			for ( K8sElement element : reversed )
+			for ( FlowControlK8sElement element : reversed )
 			{
-				element.undeploy ( fK8sNamespace, deploymentId );
+				element.undeploy ( installationContext );
 			}
 		}
 		catch ( ElementDeployException x )
@@ -266,24 +278,33 @@ public class K8sController extends BaseDeployer implements FlowControlRuntimeSys
 	 * @return a runtime state
 	 */
 	@Override
-	public FlowControlRuntimeState getRuntimeState ( FlowControlCallContext fccc, String deploymentId )
+	public FlowControlRuntimeState getRuntimeState ( FlowControlCallContext fccc, String deploymentId ) throws ServiceException
 	{
-		return new FlowControlRuntimeState ()
+		// find the runtime element and return its state
+		for ( FlowControlK8sElement e : fElements )
 		{
-			@Override
-			public DeploymentStatus getStatus () { return DeploymentStatus.UNKNOWN; }
+			if ( e.isRuntimeProvider () )
+			{
+				try
+				{
+					final K8sInstallationContext installationContext = makeInstallContext ( deploymentId );
+					if ( !e.isDeployed ( installationContext ) )
+					{
+						return null;
+					}
+					return e.getRuntimeState ( installationContext );
+				}
+				catch ( ElementDeployException x )
+				{
+					throw new ServiceException ( x );
+				}
+			}
+		}
 
-			@Override
-			public Set<String> getProcesses () { return new TreeSet<> (); }
-
-			@Override
-			public FlowControlRuntimeProcess getProcess ( String processId ) { return null; }
-		};
+		throw new ServiceException ( "No Kubernetes deployment elements identify as providing a runtime environment. (This is a service configuration error.)" );
 	}
-
-	/*
-	@Override
-	public FlowControlDeployment getDeployment ( FlowControlCallContext ctx, String deploymentId ) throws ServiceException
+/*
+	private FlowControlDeploymentRecord getDeployment ( FlowControlCallContext ctx, String deploymentId ) throws ServiceException
 	{
 		try
 		{
@@ -359,7 +380,7 @@ public class K8sController extends BaseDeployer implements FlowControlRuntimeSys
 	private final ContainerImageMapper fImageMapper;
 	private final String fInstallationName;
 	private final List<String> fImgPullSecrets;
-	private final LinkedList<K8sElement> fElements;
+	private final LinkedList<FlowControlK8sElement> fElements;
 	private final String fInternalConfigBaseUrl;
 
 	private static final Logger log = LoggerFactory.getLogger ( K8sController.class );

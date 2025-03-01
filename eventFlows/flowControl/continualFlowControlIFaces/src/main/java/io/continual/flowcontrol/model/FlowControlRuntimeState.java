@@ -1,6 +1,7 @@
 package io.continual.flowcontrol.model;
 
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * A report on the runtime state of a deployment.
@@ -35,4 +36,23 @@ public interface FlowControlRuntimeState
 	 * @return process info or null if not found
 	 */
 	FlowControlRuntimeProcess getProcess ( String processId );
+
+	/**
+	 * Create a simple "not deployed" runtime state
+	 * @return a runtime state
+	 */
+	public static FlowControlRuntimeState notRunning ()
+	{
+		return new FlowControlRuntimeState ()
+		{
+			@Override
+			public DeploymentStatus getStatus () { return DeploymentStatus.STOPPED; }
+
+			@Override
+			public Set<String> getProcesses () { return new TreeSet<> (); }
+
+			@Override
+			public FlowControlRuntimeProcess getProcess ( String processId ) { return null; }
+		};
+	}
 }
