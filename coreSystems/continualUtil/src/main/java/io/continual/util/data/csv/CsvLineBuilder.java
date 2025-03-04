@@ -22,7 +22,7 @@ public class CsvLineBuilder
 {
 	public CsvLineBuilder ()
 	{
-		this ( '"', ',', true );
+		this ( kStdQuoteChar, kStdSeparatorChar, true );
 	}
 
 	public CsvLineBuilder ( char quoteChar, char sepChar, boolean forceQuotes )
@@ -76,9 +76,12 @@ public class CsvLineBuilder
 	private final boolean fForceQuotes;
 	private boolean fDoneOne;
 
+	private static final char kStdQuoteChar = '"';
+	private static final char kStdSeparatorChar = ',';
+
 	public CsvLineBuilder appendLiteral ( String val )
 	{
-		if ( fDoneOne ) fBuilder.append ( ',' );
+		if ( fDoneOne ) fBuilder.append ( fSepChar );
 		fBuilder.append ( val );
 		fDoneOne = true;
 		return this;
