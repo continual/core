@@ -27,6 +27,7 @@
 		<module>cpModel</module>
 		<module>cpMsDocs</module>
 		<module>cpKafka</module>
+		<module>cpJsoup</module>
 	</modules>
 
 </project>

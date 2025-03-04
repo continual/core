@@ -51,7 +51,8 @@
 		{
 			"name": "deployDb",
 			"class": "io.continual.flowcontrol.impl.deploydb.model.ModelDeployDb",
-			"model": "db"
+			"model": "db",
+			"modelUser": "flowcontrol"
 		},
 
 		//

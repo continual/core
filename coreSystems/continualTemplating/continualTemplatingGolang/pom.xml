@@ -29,6 +29,10 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!--
+			Note this is a fork of https://github.com/proninyaroslav/java-template-engine that's available at
+			https://bitbucket.org/continualio/java-template-engine/src/master/
+		-->
 		<dependency>
 			<groupId>io.continual</groupId>
 			<artifactId>java-template-engine</artifactId>
