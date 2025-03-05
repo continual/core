@@ -8,7 +8,7 @@
 		},
 
 		//
-		//	Account service
+		// accounts
 		//
 		{
 			"name": "accounts",
@@ -62,13 +62,20 @@
 			"name": "controller",
 			"class": "io.continual.flowcontrol.impl.controller.k8s.K8sController",
 
-			"installationName": "${INSTALLATION_NAME|testInstallationName}",
+			"installationName": "${FC_INSTALLATION_NAME|testInstallationName}",
+
+			"imagePullSecrets": [ "regcred" ],
+
+			"defaultCpuRequest": "${FC_DEFAULT_CPU_REQUEST|100m}",
+			"defaultCpuLimit": "${FC_DEFAULT_CPU_LIMIT|250m}",
+			"defaultMemRequest":  "${FC_DEFAULT_MEM_REQUEST|500Mi}",
+			"defaultMemLimit":   "${FC_DEFAULT_MEM_LIMIT|500Mi}",
 
 			"imageMapper":
 			{
 				"class": "io.continual.flowcontrol.impl.controller.k8s.impl.InlineImageMapper",
 				"rules": [
-					{ "match": ".*", "image": "${FLOWCONTROL_CONTAINER_REGISTRY|docker.io/library}/continualeventproc:0.3.21-SNAPSHOT" }
+					{ "match": ".*", "image": "${FC_CONTAINER_REGISTRY|docker.io/library}/continualeventproc:0.3.21-SNAPSHOT" }
 				]
 			},
 
@@ -76,7 +83,7 @@
 			//
 			//	internal config URL for runtime pods
 			//
-			"internalConfigUrl": "${FLOWCONTROL_CONFIG_BASE_URL}",
+			"internalConfigUrl": "${FC_INTERNAL_CONFIG_BASE_URL}",
 
 			///////////////////////////////////////////////////////////////////////////////////////////////////////////
 			//
@@ -85,19 +92,19 @@
 
 			// setting useKubeConfig to true, or explicitly setting the name of the config file
 			// as kubeConfig will have the controller use the appropriate kube config.
-			"useKubeConfig": true,
+			"useKubeConfig": "${FC_USE_KUBECONFIG|true}",
 			//"kubeConfig": "${HOME}/.kube/config",
 
 			// if using kube config, which context?
-			"kubeConfigContext": "${FLOWCONTROL_KUBE_CONFIG_CONTEXT|minikube}",
+			"kubeConfigContext": "${FC_KUBECONFIG_CONTEXT|minikube}",
 
 			// the namespace assigned to flowcontrol
-			"namespace": "${FLOWCONTROL_NAMESPACE|flowcontrol}",
+			"namespace": "${FC_NAMESPACE|flowcontrol}",
 
 			///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 			"deploymentDb": "deployDb",
-			"signingKey": "${FLOWCONTROL_SIGNING_KEY}",
+			"signingKey": "${FC_DEPLOY_SIGNING_KEY}",
 
 			// k8s deployment elements
 			"elements":
@@ -107,8 +114,8 @@
 				{
 					"class": "StatefulSetDeployer",
 
-					"persistenceStorageClass": "${FC_K8S_PERSISTENCE_STORAGE_CLASS|standard}",
-					"loggingStorageClass": "${FC_K8S_LOGGING_STORAGE_CLASS|standard}",
+					"persistenceStorageClass": "${FC_PERSISTENCE_STORAGE_CLASS|standard}",
+					"loggingStorageClass": "${FC_LOGGING_STORAGE_CLASS|standard}",
 
 					//
 					//	additional environment vars in the pods
@@ -127,7 +134,7 @@
 		{
 			"name": "HttpService",
 			"class":"io.continual.http.service.framework.TomcatHttpService",
-			"port": "${FLOWCONTROL_SERVICE_PORT|8080}"
+			"port": "${FC_SERVICE_PORT|8080}"
 		},
 
 		//
@@ -149,5 +156,8 @@
 
 	"profiles":
 	{
+		"default":
+		{
+		}
 	}
 }
