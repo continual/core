@@ -4,7 +4,7 @@ package io.continual.notify;
 import java.io.PrintStream;
 import java.util.HashMap;
 
-import io.continual.notify.ContinualAlertAgent.Alert;
+import io.continual.notify.ContinualAlertTracker.Alert;
 import io.continual.util.console.CmdLineParser;
 import io.continual.util.console.CmdLinePrefs;
 import io.continual.util.console.ConsoleProgram;

@@ -6,6 +6,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -203,8 +204,8 @@ public class ContinualNotifier
 
 	/**
 	 * Provide additional data for the notification.
-	 * @param key
-	 * @param val
+	 * @param key the key for the additional data
+	 * @param val the value for the additional data
 	 * @return this notifier
 	 */
 	public ContinualNotifier withAddlData ( String key, Object val )
