@@ -66,7 +66,7 @@ public class ContinualAlertAgent
 
 	/**
 	 * Construct an alert agent that emits notifications via the given notifier.
-	 * @param out
+	 * @param out the notification emitter
 	 */
 	public ContinualAlertAgent ( ContinualNotifier out )
 	{
@@ -89,7 +89,7 @@ public class ContinualAlertAgent
 	 * Onset an alert for the given subject and condition at the current time with an exception as additional data.
 	 * @param subject the alert's subject
 	 * @param condition the alert's condition
-	 * @param x
+	 * @param x an throwable to include in the alert
 	 * @return an alert
 	 */
 	public Alert onset ( String subject, String condition, Throwable x )
@@ -103,7 +103,7 @@ public class ContinualAlertAgent
 	 * Onset an alert for the given subject and condition at the given time.
 	 * @param subject the alert's subject
 	 * @param condition the alert's condition
-	 * @param atMs
+	 * @param atMs the time at which the alert is raised
 	 * @return an alert
 	 */
 	public Alert onset ( String subject, String condition, long atMs )
@@ -115,7 +115,7 @@ public class ContinualAlertAgent
 	 * Onset an alert for the given subject and condition at the current time with additional JSON data.
 	 * @param subject the alert's subject
 	 * @param condition the alert's condition
-	 * @param addlData
+	 * @param addlData additional data for the alert
 	 * @return an alert
 	 */
 	public Alert onset ( String subject, String condition, JSONObject addlData )
@@ -125,8 +125,8 @@ public class ContinualAlertAgent
 
 	/**
 	 * Translate an exception into a JSON object that can be used for additional alert data.
-	 * @param addlData
-	 * @param t
+	 * @param addlData the target object to populate
+	 * @param t the throwable to translate into additional data
 	 */
 	public static void populateExceptionInto ( JSONObject addlData, Throwable t )
 	{
@@ -138,7 +138,7 @@ public class ContinualAlertAgent
 		{
 			t.printStackTrace ( ps );
 			ps.close ();
-			stack = new String ( baos.toByteArray () );
+			stack = baos.toString ();
 		}
 		catch ( IOException x )
 		{
@@ -156,8 +156,8 @@ public class ContinualAlertAgent
 	 * Onset an alert for the given subject and condition at the given time with additional JSON data.
 	 * @param subject the alert's subject
 	 * @param condition the alert's condition
-	 * @param atMs
-	 * @param addlData
+	 * @param atMs the time at which the alert is raised
+	 * @param addlData additional data for the alert
 	 * @return an alert
 	 */
 	public Alert onset ( String subject, String condition, long atMs, JSONObject addlData )
@@ -232,10 +232,7 @@ public class ContinualAlertAgent
 		final LinkedList<Alert> result = new LinkedList<> ();
 		for ( Entry<String, HashMap<String, Alert>> e : fAlertsBySubjectAndCondition.entrySet () )
 		{
-			for ( Alert a : e.getValue ().values () )
-			{
-				result.add ( a );
-			}
+			result.addAll ( e.getValue().values() );
 		}
 		return result;
 	}
