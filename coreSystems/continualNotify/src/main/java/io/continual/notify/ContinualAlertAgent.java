@@ -42,6 +42,7 @@ public class ContinualAlertAgent implements ContinualAlertTracker
 	 * @param addlData additional data for the alert
 	 * @return an alert
 	 */
+	@Override
 	public Alert onset ( String subject, String condition, long atMs, JSONObject addlData )
 	{
 		final HashMap<String,Alert> byCondition = fAlertsBySubjectAndCondition.computeIfAbsent (
@@ -79,6 +80,7 @@ public class ContinualAlertAgent implements ContinualAlertTracker
 	 * @param condition the alert's condition
 	 * @return an alert, or null if none exists
 	 */
+	@Override
 	public Alert get ( String subject, String condition )
 	{
 		final HashMap<String,Alert> byCondition = fAlertsBySubjectAndCondition.get ( subject );
@@ -92,6 +94,7 @@ public class ContinualAlertAgent implements ContinualAlertTracker
 	 * @param condition the alert's condition
 	 * @return the cleared alert, or null if none exists
 	 */
+	@Override
 	public Alert clear ( String subject, String condition )
 	{
 		final Alert a = get ( subject, condition );
@@ -106,6 +109,7 @@ public class ContinualAlertAgent implements ContinualAlertTracker
 	 * Get a collection of standing alerts
 	 * @return a collection of standing alerts
 	 */
+	@Override
 	public Collection<Alert> standingAlerts ()
 	{
 		final LinkedList<Alert> result = new LinkedList<> ();
