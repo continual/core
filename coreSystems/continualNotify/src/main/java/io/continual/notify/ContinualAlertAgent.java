@@ -50,7 +50,7 @@ public class ContinualAlertAgent
 
 		/**
 		 * Clear the alert at the given time.
-		 * @param clearTimeMs
+		 * @param clearTimeMs the time at which the alert is cleared
 		 */
 		void clear ( long clearTimeMs );
 	}
@@ -76,8 +76,8 @@ public class ContinualAlertAgent
 
 	/**
 	 * Onset an alert for the given subject and condition at the current time.
-	 * @param subject
-	 * @param condition
+	 * @param subject the alert's subject
+	 * @param condition the alert's condition
 	 * @return an alert
 	 */
 	public Alert onset ( String subject, String condition )
@@ -87,8 +87,8 @@ public class ContinualAlertAgent
 
 	/**
 	 * Onset an alert for the given subject and condition at the current time with an exception as additional data.
-	 * @param subject
-	 * @param condition
+	 * @param subject the alert's subject
+	 * @param condition the alert's condition
 	 * @param x
 	 * @return an alert
 	 */
@@ -101,8 +101,8 @@ public class ContinualAlertAgent
 
 	/**
 	 * Onset an alert for the given subject and condition at the given time.
-	 * @param subject
-	 * @param condition
+	 * @param subject the alert's subject
+	 * @param condition the alert's condition
 	 * @param atMs
 	 * @return an alert
 	 */
@@ -113,8 +113,8 @@ public class ContinualAlertAgent
 
 	/**
 	 * Onset an alert for the given subject and condition at the current time with additional JSON data.
-	 * @param subject
-	 * @param condition
+	 * @param subject the alert's subject
+	 * @param condition the alert's condition
 	 * @param addlData
 	 * @return an alert
 	 */
@@ -154,8 +154,8 @@ public class ContinualAlertAgent
 
 	/**
 	 * Onset an alert for the given subject and condition at the given time with additional JSON data.
-	 * @param subject
-	 * @param condition
+	 * @param subject the alert's subject
+	 * @param condition the alert's condition
 	 * @param atMs
 	 * @param addlData
 	 * @return an alert
@@ -196,8 +196,8 @@ public class ContinualAlertAgent
 
 	/**
 	 * Get an existing alert for the given subject and condition.
-	 * @param subject
-	 * @param condition
+	 * @param subject the alert's subject
+	 * @param condition the alert's condition
 	 * @return an alert, or null if none exists
 	 */
 	public Alert get ( String subject, String condition )
@@ -209,8 +209,8 @@ public class ContinualAlertAgent
 
 	/**
 	 * Clear an alert for the given subject and condition, if it exists.
-	 * @param subject
-	 * @param condition
+	 * @param subject the alert's subject
+	 * @param condition the alert's condition
 	 * @return the cleared alert, or null if none exists
 	 */
 	public Alert clear ( String subject, String condition )
