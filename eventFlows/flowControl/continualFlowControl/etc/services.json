@@ -8,7 +8,7 @@
 		},
 
 		//
-		//	Account service
+		// accounts
 		//
 		{
 			"name": "accounts",
@@ -21,8 +21,8 @@
 		//
 		{
 			"name": "encryptor",
-			"class": "io.continual.flowcontrol.impl.enc.Enc",
-			"key": "fuga.key.123"
+			"class": "io.continual.flowcontrol.impl.common.Enc",
+			"key": "${FLOWCONTROL_ENCKEY}"
 		},
 
 		//
@@ -37,7 +37,7 @@
 		},
 
 		//
-		//	job db
+		//	job db layered over the model
 		//
 		{
 			"name": "jobDb",
@@ -46,12 +46,13 @@
 		},
 
 		//
-		//	deployment db
+		//	deployment db layered over the model
 		//
 		{
 			"name": "deployDb",
-			"class": "io.continual.flowcontrol.impl.deploydb.model.ModelBackedDeployDb",
-			"model": "db"
+			"class": "io.continual.flowcontrol.impl.deploydb.model.ModelDeployDb",
+			"model": "db",
+			"modelUser": "flowcontrol"
 		},
 
 		//
@@ -61,13 +62,20 @@
 			"name": "controller",
 			"class": "io.continual.flowcontrol.impl.controller.k8s.K8sController",
 
-			"installationName": "${INSTALLATION_NAME|testInstallationName}",
+			"installationName": "${FC_INSTALLATION_NAME|testInstallationName}",
+
+			"imagePullSecrets": [ "regcred" ],
+
+			"defaultCpuRequest": "${FC_DEFAULT_CPU_REQUEST|100m}",
+			"defaultCpuLimit": "${FC_DEFAULT_CPU_LIMIT|250m}",
+			"defaultMemRequest":  "${FC_DEFAULT_MEM_REQUEST|500Mi}",
+			"defaultMemLimit":   "${FC_DEFAULT_MEM_LIMIT|500Mi}",
 
 			"imageMapper":
 			{
-				"class": "io.continual.flowcontrol.impl.controller.InlineImageMapper",
+				"class": "io.continual.flowcontrol.impl.controller.k8s.impl.InlineImageMapper",
 				"rules": [
-					{ "match": ".*", "image": "${CONTAINER_REGISTRY|docker.io/library}/continualeventproc:0.3.21-SNAPSHOT" }
+					{ "match": ".*", "image": "${FC_CONTAINER_REGISTRY|docker.io/library}/continualeventproc:0.3.21-SNAPSHOT" }
 				]
 			},
 
@@ -75,7 +83,7 @@
 			//
 			//	internal config URL for runtime pods
 			//
-			"internalConfigUrl": "${INTERNAL_CONFIG_BASE_URL}",
+			"internalConfigUrl": "${FC_INTERNAL_CONFIG_BASE_URL}",
 
 			///////////////////////////////////////////////////////////////////////////////////////////////////////////
 			//
@@ -84,19 +92,19 @@
 
 			// setting useKubeConfig to true, or explicitly setting the name of the config file
 			// as kubeConfig will have the controller use the appropriate kube config.
-			"useKubeConfig": true,
+			"useKubeConfig": "${FC_USE_KUBECONFIG|true}",
 			//"kubeConfig": "${HOME}/.kube/config",
 
 			// if using kube config, which context?
-			"kubeConfigContext": "minikube",
+			"kubeConfigContext": "${FC_KUBECONFIG_CONTEXT|minikube}",
 
 			// the namespace assigned to flowcontrol
-			"namespace": "flowcontrol",
+			"namespace": "${FC_NAMESPACE|flowcontrol}",
 
 			///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 			"deploymentDb": "deployDb",
-			"signingKey": "fuga.key.456",
+			"signingKey": "${FC_DEPLOY_SIGNING_KEY}",
 
 			// k8s deployment elements
 			"elements":
@@ -105,6 +113,9 @@
 				{ "class": "ConfigPullScriptDeployer", "scriptResource": "configPullScript.sh" },
 				{
 					"class": "StatefulSetDeployer",
+
+					"persistenceStorageClass": "${FC_PERSISTENCE_STORAGE_CLASS|standard}",
+					"loggingStorageClass": "${FC_LOGGING_STORAGE_CLASS|standard}",
 
 					//
 					//	additional environment vars in the pods
@@ -123,7 +134,7 @@
 		{
 			"name": "HttpService",
 			"class":"io.continual.http.service.framework.TomcatHttpService",
-			"port": "8080"
+			"port": "${FC_SERVICE_PORT|8080}"
 		},
 
 		//
@@ -131,17 +142,22 @@
 		//
 		{
 			"name": "flowcontrol",
-			"class": "io.continual.flowcontrol.services.httpapi.BaseHttpService",
+			"class": "io.continual.flowcontrol.httpapi.BaseHttpService",
 			"namespace": "api-test-namespace",
 
 			"accounts": "accounts",
 			"httpService": "HttpService",
+
 			"jobDb": "jobDb",
-			"deployApi": "controller"
+			"deployApi": "controller",
+			"runtimeSystemApi": "controller"
 		}
 	],
 
 	"profiles":
 	{
+		"default":
+		{
+		}
 	}
 }

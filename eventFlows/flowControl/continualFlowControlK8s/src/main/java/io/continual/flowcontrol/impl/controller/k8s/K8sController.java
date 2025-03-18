@@ -1,3 +1,4 @@
+
 package io.continual.flowcontrol.impl.controller.k8s;
 
 import java.io.FileReader;
@@ -17,18 +18,21 @@ import org.yaml.snakeyaml.introspector.PropertySubstitute;
 import io.continual.builder.Builder;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.builder.sources.BuilderJsonDataSource;
-import io.continual.flowcontrol.impl.controller.k8s.K8sElement.ElementDeployException;
-import io.continual.flowcontrol.impl.controller.k8s.K8sElement.ImagePullPolicy;
-import io.continual.flowcontrol.impl.controller.k8s.K8sElement.K8sDeployContext;
+import io.continual.flowcontrol.impl.controller.k8s.FlowControlK8sElement.ElementDeployException;
+import io.continual.flowcontrol.impl.controller.k8s.FlowControlK8sElement.ImagePullPolicy;
+import io.continual.flowcontrol.impl.controller.k8s.FlowControlK8sElement.K8sDeployContext;
+import io.continual.flowcontrol.impl.controller.k8s.FlowControlK8sElement.K8sInstallationContext;
 import io.continual.flowcontrol.impl.controller.k8s.elements.SecretDeployer;
+import io.continual.flowcontrol.impl.controller.k8s.impl.ContainerImageMapper;
 import io.continual.flowcontrol.impl.controller.k8s.impl.NoMapImageMapper;
 import io.continual.flowcontrol.impl.deployer.BaseDeployer;
+import io.continual.flowcontrol.model.Encryptor;
 import io.continual.flowcontrol.model.FlowControlCallContext;
-import io.continual.flowcontrol.model.FlowControlDeployment;
+import io.continual.flowcontrol.model.FlowControlDeploymentRecord;
 import io.continual.flowcontrol.model.FlowControlDeploymentSpec;
 import io.continual.flowcontrol.model.FlowControlJob.FlowControlRuntimeSpec;
-import io.continual.flowcontrol.services.controller.ContainerImageMapper;
-import io.continual.flowcontrol.services.encryption.Encryptor;
+import io.continual.flowcontrol.model.FlowControlRuntimeState;
+import io.continual.flowcontrol.model.FlowControlRuntimeSystem;
 import io.continual.iam.access.AccessControlList;
 import io.continual.iam.identity.Identity;
 import io.continual.services.ServiceContainer;
@@ -40,7 +44,10 @@ import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.util.ClientBuilder;
 import io.kubernetes.client.util.KubeConfig;
 
-public class K8sController extends BaseDeployer
+/**
+ * This kubernetes controller is both a "deployer" and a "runtime system".
+ */
+public class K8sController extends BaseDeployer implements FlowControlRuntimeSystem
 {
 	static final String kSetting_ConfigMountLoc = "configMountLoc";
 	static final String kDefault_ConfigMountLoc = "/var/flowcontrol/config";
@@ -130,7 +137,7 @@ public class K8sController extends BaseDeployer
 			@Override
 			public boolean visit ( JSONObject element ) throws JSONException, BuildFailure
 			{
-				final K8sElement elementBuilder = Builder.withBaseClass ( K8sElement.class )
+				final FlowControlK8sElement elementBuilder = Builder.withBaseClass ( FlowControlK8sElement.class )
 					.withClassNameInData ()
 					.searchingPath ( SecretDeployer.class.getPackageName () )
 					.usingData ( new BuilderJsonDataSource ( element ) )
@@ -142,9 +149,8 @@ public class K8sController extends BaseDeployer
 		} );
 	}
 
-	
 	@Override
-	protected FlowControlDeployment internalDeploy ( FlowControlCallContext ctx, FlowControlDeploymentSpec ds, String configKey ) throws ServiceException, RequestException
+	protected FlowControlDeploymentRecord internalDeploy ( FlowControlCallContext ctx, FlowControlDeploymentSpec ds, String configKey ) throws ServiceException, RequestException
 	{
 		try
 		{
@@ -217,7 +223,7 @@ public class K8sController extends BaseDeployer
 			};
 
 			// build each element
-			for ( K8sElement element : fElements )
+			for ( FlowControlK8sElement element : fElements )
 			{
 				log.info ( "deploying k8s element {}", element );
 				element.deploy ( deployContext );
@@ -232,17 +238,31 @@ public class K8sController extends BaseDeployer
 		}
 	}
 
+	private K8sInstallationContext makeInstallContext ( String deploymentId )
+	{
+		return new K8sInstallationContext ()
+		{
+			@Override
+			public String getInstallationName () { return fInstallationName; }
+			@Override
+			public String getNamespace () { return fK8sNamespace; }
+			@Override
+			public String getDeployId () { return deploymentId; }
+		};
+	}
+
 	@Override
-	protected void internalUndeploy ( FlowControlCallContext ctx, String deploymentId, FlowControlDeployment deployment ) throws ServiceException
+	protected void internalUndeploy ( FlowControlCallContext ctx, String deploymentId, FlowControlDeploymentRecord deployment ) throws ServiceException
 	{
 		// build elements
 		try
 		{
-			final LinkedList<K8sElement> reversed = new LinkedList<> ( fElements );
+			final K8sInstallationContext installationContext = makeInstallContext ( deploymentId );
+			final LinkedList<FlowControlK8sElement> reversed = new LinkedList<> ( fElements );
 			Collections.reverse ( reversed );
-			for ( K8sElement element : reversed )
+			for ( FlowControlK8sElement element : reversed )
 			{
-				element.undeploy ( fK8sNamespace, deploymentId );
+				element.undeploy ( installationContext );
 			}
 		}
 		catch ( ElementDeployException x )
@@ -250,75 +270,40 @@ public class K8sController extends BaseDeployer
 			throw new ServiceException ( x );
 		}
 	}
-/*
-	@Override
-	public FlowControlDeployment getDeployment ( FlowControlCallContext ctx, String deploymentId ) throws ServiceException
-	{
-		try
-		{
-			final K8sDeployWrapper dw = getDeployment ( deploymentId );
-			if ( dw == null ) return null;
-			
-			return new IntDeployment ( dw.getMetadata ().getName (), getJobIdFrom ( dw, "(unknown)" ) );
-		}
-		catch ( KubernetesClientException x )
-		{
-			final Throwable cause = x.getCause ();
-			if ( cause instanceof java.net.ProtocolException )
-			{
-				// this is a "not found" symptom
-				return null;
-			}
-			
-			mapExceptionSvcOnly ( x );
-			return null;	// unreachable
-		}
-		catch ( IllegalStateException x )
-		{
-			return null;
-		}
-	}
 
+	/**
+	 * Get the running process information
+	 * @param fccc the call context
+	 * @param deploymentId the ID of a deployment
+	 * @return a runtime state
+	 */
 	@Override
-	public List<FlowControlDeployment> getDeployments ( FlowControlCallContext ctx ) throws ServiceException
+	public FlowControlRuntimeState getRuntimeState ( FlowControlCallContext fccc, String deploymentId ) throws ServiceException
 	{
-		final LinkedList<FlowControlDeployment> result = new LinkedList<> ();
-		try
+		// find the runtime element and return its state
+		for ( FlowControlK8sElement e : fElements )
 		{
-			for ( K8sDeployWrapper dw : getK8sDeployments () )
+			if ( e.isRuntimeProvider () )
 			{
-				result.add ( new IntDeployment ( dw.getMetadata ().getName (), getJobIdFrom ( dw, "(unknown)" ) ) );
-			}
-		}
-		catch ( KubernetesClientException x )
-		{
-			mapExceptionSvcOnly ( x );
-		}
-		return result;
-	}
-
-	@Override
-	public List<FlowControlDeployment> getDeploymentsForJob ( FlowControlCallContext ctx, String jobId ) throws ServiceException
-	{
-		final LinkedList<FlowControlDeployment> result = new LinkedList<> ();
-		try
-		{
-			for ( K8sDeployWrapper dw : getK8sDeployments () )
-			{
-				final String thisJobId = getJobIdFrom ( dw, null );
-				if ( jobId.equals ( thisJobId ) )
+				try
 				{
-					result.add ( new IntDeployment ( dw.getMetadata ().getName (), thisJobId ) );
+					final K8sInstallationContext installationContext = makeInstallContext ( deploymentId );
+					if ( !e.isDeployed ( installationContext ) )
+					{
+						return null;
+					}
+					return e.getRuntimeState ( installationContext );
+				}
+				catch ( ElementDeployException x )
+				{
+					throw new ServiceException ( x );
 				}
 			}
 		}
-		catch ( KubernetesClientException x )
-		{
-			mapExceptionSvcOnly ( x );
-		}
-		return result;
+
+		throw new ServiceException ( "No Kubernetes deployment elements identify as providing a runtime environment. (This is a service configuration error.)" );
 	}
-*/
+
 	private final Encryptor fEncryptor;
 
 	private final String fK8sNamespace;
@@ -328,7 +313,7 @@ public class K8sController extends BaseDeployer
 	private final ContainerImageMapper fImageMapper;
 	private final String fInstallationName;
 	private final List<String> fImgPullSecrets;
-	private final LinkedList<K8sElement> fElements;
+	private final LinkedList<FlowControlK8sElement> fElements;
 	private final String fInternalConfigBaseUrl;
 
 	private static final Logger log = LoggerFactory.getLogger ( K8sController.class );
@@ -343,93 +328,7 @@ public class K8sController extends BaseDeployer
 		return from.toLowerCase ();
 	}
 
-/*
-	private class K8sDeployWrapper
-	{
-		public K8sDeployWrapper ( Deployment d ) { fDeployment = d; fStatefulSet = null; }
-		public K8sDeployWrapper ( StatefulSet ss ) { fDeployment = null; fStatefulSet = ss; }
-
-		public io.fabric8.kubernetes.api.model.ObjectMeta getMetadata ()
-		{
-			if ( fDeployment != null ) return fDeployment.getMetadata (); 
-			if ( fStatefulSet != null ) return fStatefulSet.getMetadata ();
-			return null;
-		}
-
-		public void delete ()
-		{
-			if ( fDeployment != null ) fApiClient.resource ( fDeployment ).delete (); 
-			if ( fStatefulSet != null ) fApiClient.resource ( fStatefulSet ).delete ();
-		}
-
-		public FlowControlRuntimeState.DeploymentStatus getStatus ()
-		{
-			if ( fDeployment != null )
-			{
-				boolean progressing = false;
-				boolean available = false;
-				
-				final DeploymentStatus ds = fDeployment.getStatus ();
-				for ( DeploymentCondition dc : ds.getConditions () )
-				{
-					final String type = dc.getType ();
-					final String status = dc.getStatus ();
-
-					if ( type.equalsIgnoreCase ( "progressing" ) && status.equalsIgnoreCase ( "true" ) )
-					{
-						progressing = true;
-					}
-					else if ( type.equalsIgnoreCase ( "available" ) && status.equalsIgnoreCase ( "true" ) )
-					{
-						available = true;
-					}
-				}
-
-				if ( progressing && available )
-				{
-					return FlowControlRuntimeState.DeploymentStatus.RUNNING;
-				}
-				else if ( progressing && !available )
-				{
-					return FlowControlRuntimeState.DeploymentStatus.PENDING;
-				}
-			}
-			else if ( fStatefulSet != null )
-			{
-				final int replReqd = safeInt ( fStatefulSet.getSpec ().getReplicas () );
-				final StatefulSetStatus sss = fStatefulSet.getStatus ();
-				final int ready = safeInt ( sss.getReadyReplicas () );
-				final int repls = safeInt ( sss.getReplicas () );
-
-				log.info ( "Sts {}: {} reqd, {} created, {} ready", fStatefulSet.getMetadata ().getName (), replReqd, repls, ready );
-
-				if ( ready < replReqd )
-				{
-					return FlowControlRuntimeState.DeploymentStatus.PENDING;
-				}
-				else if ( ready == replReqd )
-				{
-					return FlowControlRuntimeState.DeploymentStatus.RUNNING;
-				}
-			}
-			return FlowControlRuntimeState.DeploymentStatus.UNKNOWN;
-		}
-
-		public int getReplicaCount ()
-		{
-			if ( fDeployment != null )
-			{
-				final DeploymentStatus ds = fDeployment.getStatus ();
-				return ds.getReplicas ();
-			}
-			return -1;
-		}
-		
-		private final Deployment fDeployment;
-		private final StatefulSet fStatefulSet;
-	}
-*/
-	private class IntDeployment implements FlowControlDeployment
+	private class IntDeployment implements FlowControlDeploymentRecord
 	{
 		public IntDeployment ( String tag, AccessControlList acl, FlowControlDeploymentSpec ds, Identity deployer, String configKey )
 		{
@@ -484,106 +383,6 @@ public class K8sController extends BaseDeployer
 
 		return result;
 	}
-	
-	private K8sDeployWrapper getDeployment ( String tag )
-	{
-		// First look for a stateful set. Issuing a call for a named item as a deployment and then
-		// as a stateful set (since we don't know which was used in the init yaml) seemed to cause trouble
-		// either for the fabric8 client or for the service, with the 2nd call throwing "not found" so instead
-		// we're just grabbing the list and searching locally, and also running the stateful set search first
-		// since it's our normal.
-
-		try
-		{
-			// get the stateful set list
-			final StatefulSetList ssl = fApiClient.apps().statefulSets ().inNamespace ( fK8sNamespace ).list ();
-			for ( StatefulSet ss : ssl.getItems () )
-			{
-				if ( ss.getMetadata ().getName ().equals ( tag ) )
-				{
-					return new K8sDeployWrapper ( ss );
-				}
-			}
-		}
-		catch ( KubernetesClientException | IllegalStateException x )
-		{
-			// spec says object should be null if it doesn't exist, but testing implies this exception is thrown instead
-			log.warn ( x.getMessage () );
-		}
-
-		try
-		{
-			// now try deployment list
-			final DeploymentList dl = fApiClient.apps().deployments ().inNamespace ( fK8sNamespace ).list ();
-			for ( Deployment d : dl.getItems () )
-			{
-				if ( d.getMetadata ().getName ().equals ( tag ) )
-				{
-					return new K8sDeployWrapper ( d );
-				}
-			}
-		}
-		catch ( KubernetesClientException | IllegalStateException x )
-		{
-			// spec says object should be null if it doesn't exist, but testing implies this exception is thrown instead
-			log.warn ( x.getMessage () );
-		}
-
-		return null;
-	}
-
-	private List<K8sDeployWrapper> getK8sDeployments ( )
-	{
-		final LinkedList<K8sDeployWrapper> result = new LinkedList<> ();
-		for ( Deployment d : fApiClient.apps().deployments().inNamespace ( fK8sNamespace ).list ().getItems () )
-		{
-			result.add ( new K8sDeployWrapper ( d ) );
-		}
-		for ( StatefulSet d : fApiClient.apps().statefulSets ().inNamespace ( fK8sNamespace ).list ().getItems () )
-		{
-			result.add ( new K8sDeployWrapper ( d ) );
-		}
-		return result;
-	}
-
-	private List<Pod> getPodsFor ( String tag )
-	{
-		final PodList pl = fApiClient
-			.pods ()
-			.inNamespace ( fK8sNamespace )
-			.withLabel ( "app", "job-" + tag )
-
-			.list ()
-		;
-		return pl.getItems ();
-	}
-
-	private static int safeInt ( Integer i )
-	{
-		return i == null ? 0 : i;
-	}
-
-	private static String getJobIdFrom ( K8sDeployWrapper dw, String defval )
-	{
-		// make no assumptions about the existence of structures here!
-		if ( dw != null )
-		{
-			final ObjectMeta om = dw.getMetadata ();
-			if ( om != null )
-			{
-				final Map<String,String> labels = om.getLabels ();
-				if ( labels != null )
-				{
-					final String jobId = labels.get ( "flowcontroljob" );
-					if ( jobId != null )
-					{
-						return jobId;
-					}
-				}
-			}
-		}
-		return defval;
-	}
 */
 	private void setupK8sConfig ( JSONObject config, String namespace ) throws BuildFailure
 	{
@@ -616,10 +415,17 @@ public class K8sController extends BaseDeployer
 				}
 
 				// build
-				client = ClientBuilder
-					.kubeconfig ( kc )
-					.build ()
-				;
+				try
+				{
+					client = ClientBuilder
+						.kubeconfig ( kc )
+						.build ()
+					;
+				}
+				catch ( IllegalArgumentException x )
+				{
+					throw new BuildFailure ( x );
+				}
 			}
 			else
 			{

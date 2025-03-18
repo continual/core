@@ -11,11 +11,11 @@
 
 	<!-- When changing version, also change parent version number in sub-pom files -->
 	<!-- You can run versionUpdate.sh in this directory to do this. -->
-	<version>0.3.26</version> <!-- build_version -->
+	<version>0.3.27</version> <!-- build_version -->
 	<packaging>pom</packaging>
 
 	<name>ContinualIO</name>
-	<description>ContinualIO&apos;s monitoring architecture.</description>
+	<description>ContinualIO's monitoring architecture.</description>
 	<url>https://continual.io</url>
 
 	<organization>
@@ -94,13 +94,13 @@
 			<dependency>
 				<groupId>org.slf4j</groupId>
 				<artifactId>slf4j-api</artifactId>
-				<version>1.7.36</version>
+				<version>2.0.17</version>
 			</dependency>
 
 			<dependency>
 				<groupId>ch.qos.logback</groupId>
 				<artifactId>logback-classic</artifactId>
-				<version>1.2.13</version>
+				<version>1.5.17</version>
 			</dependency>
 
 			<!-- OK HTTP client -->
@@ -127,7 +127,7 @@
 			<dependency>
 				<groupId>com.amazonaws</groupId>
 				<artifactId>aws-java-sdk-s3</artifactId>
-				<version>1.12.573</version>
+				<version>1.12.777</version>
 			</dependency>
 
 			<!-- https://mvnrepository.com/artifact/javax.servlet/javax.servlet-api -->

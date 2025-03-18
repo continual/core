@@ -5,12 +5,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.flowcontrol.impl.enc.Enc;
+import io.continual.flowcontrol.impl.common.Enc;
 import io.continual.flowcontrol.impl.jobdb.model.ModelJobDb;
+import io.continual.flowcontrol.model.Encryptor;
 import io.continual.flowcontrol.model.FlowControlCallContext;
-import io.continual.flowcontrol.model.FlowControlDeployment;
-import io.continual.flowcontrol.services.deployer.FlowControlDeploymentService.ServiceException;
-import io.continual.flowcontrol.services.encryption.Encryptor;
+import io.continual.flowcontrol.model.FlowControlDeploymentRecord;
+import io.continual.flowcontrol.model.FlowControlDeploymentService.ServiceException;
 import io.continual.iam.identity.Identity;
 import io.continual.services.ServiceContainer;
 import io.continual.services.model.impl.mem.InMemoryModel;
@@ -87,7 +87,7 @@ public class K8sClientAuthTester extends ConfiguredConsole
 			};
 
 			log.info ( "Requesting deployments..." );
-			for ( final FlowControlDeployment d : ctrl.getDeployments ( fccc ) )
+			for ( final FlowControlDeploymentRecord d : ctrl.getDeployments ( fccc ) )
 			{
 				log.info ( "... job: " + d.getId () );
 			}

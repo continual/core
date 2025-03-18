@@ -34,7 +34,7 @@ public class ContinualNotifier
 	 */
 	public static void send ( String subject, String condition )
 	{
-		new ContinualNotifier()
+		new ContinualNotifier ()
 			.onSubject ( subject )
 			.withCondition ( condition )
 			.send ()
@@ -51,16 +51,16 @@ public class ContinualNotifier
 		fPassword = evalSetting ( "CONTINUAL_PASSWORD" );
 
 		fTopic = evalSetting ( "CONTINUAL_RCVR_TOPIC" );
-		fSourceSystem = evalSetting ( "CONTINUAL_SYSTEM" );
-		if ( fSourceSystem != null && fSourceSystem.length () > 0 )
+		final String sourceSystem = evalSetting("CONTINUAL_SYSTEM");
+		if ( sourceSystem != null && !sourceSystem.isEmpty() )
 		{
-			onSubject ( fSourceSystem );
+			onSubject ( sourceSystem );
 		}
 
 		fStream = evalSetting ( "CONTINUAL_RCVR_STREAM" );
-		if ( fStream == null && fSourceSystem != null && fSourceSystem.length () > 0 )
+		if ( fStream == null && sourceSystem != null && !sourceSystem.isEmpty() )
 		{
-			fStream = fSourceSystem;
+			fStream = sourceSystem;
 		}
 
 		fMsg.put ( kVersionTag, kVersion );
@@ -69,17 +69,20 @@ public class ContinualNotifier
 	/**
 	 * Close the background send queue and wait for it to finish work. After this call, no further background
 	 * sends will be accepted and attempts to send in the background will fail with an illegal state exception.
-	 * @throws InterruptedException 
+	 * @throws InterruptedException if the thread is interrupted while waiting for background sender shutdown
 	 */
 	public static void closeAndWaitForBackgroundSends ( long timeoutMs ) throws InterruptedException
 	{
 		skBackgroundSender.shutdown ();
-		skBackgroundSender.awaitTermination ( timeoutMs, TimeUnit.MILLISECONDS );
+		if ( !skBackgroundSender.awaitTermination ( timeoutMs, TimeUnit.MILLISECONDS ) )
+		{
+			log.warn ( "ContinualNotifier background sender did not stop properly." );
+		}
 	}
 	
 	/**
 	 * Specify the topic to which the notification will be sent.
-	 * @param topic
+	 * @param topic the notification topic
 	 * @return this notifier
 	 */
 	public ContinualNotifier toTopic ( String topic )
@@ -90,7 +93,7 @@ public class ContinualNotifier
 
 	/**
 	 * Specify the stream within the topic to which the notification will be sent.
-	 * @param stream
+	 * @param stream the notification stream
 	 * @return this notifier
 	 */
 	public ContinualNotifier onStream ( String stream )
@@ -101,14 +104,14 @@ public class ContinualNotifier
 
 	/**
 	 * Specify the user and password to use for sending the notification.
-	 * @param user
-	 * @param pwd
+	 * @param user the notification service user
+	 * @param pwd the notification service password
 	 * @return this notifier
 	 */
 	public ContinualNotifier asUser ( String user, String pwd )
 	{
-		if ( user == null || user.length () == 0 ) throw new IllegalArgumentException ( "Provide a username." );
-		if ( pwd == null || pwd.length () == 0 ) throw new IllegalArgumentException ( "Provide a password." );
+		if ( user == null || user.isEmpty()) throw new IllegalArgumentException ( "Provide a username." );
+		if ( pwd == null || pwd.isEmpty()) throw new IllegalArgumentException ( "Provide a password." );
 
 		fUser = user;
 		fPassword = pwd;
@@ -137,7 +140,7 @@ public class ContinualNotifier
 
 	/**
 	 * Specify the subject of the notification.
-	 * @param subject
+	 * @param subject the subject of the notification
 	 * @return this notifier
 	 */
 	public ContinualNotifier onSubject ( String subject )
@@ -149,7 +152,7 @@ public class ContinualNotifier
 
 	/**
 	 * Specify the subject of the notification.
-	 * @param subject
+	 * @param subject the subject of the notification
 	 * @return this notifier
 	 */
 	public ContinualNotifier onSubject ( Path subject )
@@ -159,7 +162,7 @@ public class ContinualNotifier
 
 	/**
 	 * Specify the condition that's occurred with respect to the subject.
-	 * @param condition
+	 * @param condition the condition that's occurred
 	 * @return this notifier
 	 */
 	public ContinualNotifier withCondition ( String condition )
@@ -191,7 +194,7 @@ public class ContinualNotifier
 
 	/**
 	 * Provide additional details about the notification.
-	 * @param details
+	 * @param details additional details for the notification
 	 * @return this notifier
 	 */
 	public ContinualNotifier withDetails ( String details )
@@ -203,8 +206,8 @@ public class ContinualNotifier
 
 	/**
 	 * Provide additional data for the notification.
-	 * @param key
-	 * @param val
+	 * @param key the key for the additional data
+	 * @param val the value for the additional data
 	 * @return this notifier
 	 */
 	public ContinualNotifier withAddlData ( String key, Object val )
@@ -236,13 +239,12 @@ public class ContinualNotifier
 		}
 	}
 
-	private String fTopic = null;
+	private String fTopic;
 	private String fStream = null;
-	private JSONObject fMsg = new JSONObject ();
-	private String fUser = null;
-	private String fPassword = null;
+	private final JSONObject fMsg = new JSONObject ();
+	private String fUser;
+	private String fPassword;
 	private boolean fBackground = true;
-	private String fSourceSystem = null;
 
 	private static final String kVersionTag = "ver";
 	private static final String kVersion = "1.0";
@@ -278,10 +280,10 @@ public class ContinualNotifier
 				String urlText = skBaseUrlStr;
 				if ( fTopic != null )
 				{
-					urlText = urlText + "/" + URLEncoder.encode ( fTopic, StandardCharsets.UTF_8.toString () );
+					urlText = urlText + "/" + URLEncoder.encode ( fTopic, StandardCharsets.UTF_8 );
 					if  ( fStream != null )
 					{
-						urlText = urlText + "/" + URLEncoder.encode ( fStream, StandardCharsets.UTF_8.toString () );
+						urlText = urlText + "/" + URLEncoder.encode ( fStream, StandardCharsets.UTF_8 );
 					}
 				}
 
@@ -343,7 +345,7 @@ public class ContinualNotifier
 
 	private static final Logger log = LoggerFactory.getLogger ( ContinualNotifier.class );
 
-	private static ExecutorService skBackgroundSender = Executors.newSingleThreadExecutor ();
+	private static final ExecutorService skBackgroundSender = Executors.newSingleThreadExecutor ();
 
 	private static String formatLog ( String msg )
 	{
@@ -363,6 +365,6 @@ public class ContinualNotifier
 	private static String evalSetting ( String key )
 	{
 		final String val = skEval.evaluateText ( "${" + key + "}" );
-		return val == null || val.length () == 0 ? null : val;
+		return val == null || val.isEmpty() ? null : val;
 	}
 }

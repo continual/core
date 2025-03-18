@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.3.26</version>
+		<version>0.3.27</version>
 		<artifactId>continualFlowControlGroup</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -21,7 +21,7 @@
 
 		<dependency>
 			<groupId>io.continual</groupId>
-			<artifactId>continualFlowControlApis</artifactId>
+			<artifactId>continualFlowControlCore</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 

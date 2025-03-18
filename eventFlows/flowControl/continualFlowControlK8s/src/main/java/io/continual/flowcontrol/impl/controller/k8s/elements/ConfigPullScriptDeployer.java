@@ -9,7 +9,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.continual.flowcontrol.impl.controller.k8s.K8sElement;
+import io.continual.flowcontrol.impl.controller.k8s.FlowControlK8sElement;
 import io.continual.resources.ResourceLoader;
 import io.continual.util.data.StreamTools;
 import io.continual.util.standards.HttpStatusCodes;
@@ -18,7 +18,7 @@ import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.V1ConfigMap;
 import io.kubernetes.client.openapi.models.V1ConfigMapBuilder;
 
-public class ConfigPullScriptDeployer implements K8sElement
+public class ConfigPullScriptDeployer implements FlowControlK8sElement
 {
 	public static final String kWorkspaceKey_ConfigPullScriptConfigMap = "configPullConfigMap";
 	public static final String kWorkspaceKey_ConfigPullScriptName = "configfPullScriptName";
@@ -84,20 +84,42 @@ public class ConfigPullScriptDeployer implements K8sElement
 	}
 
 	@Override
-	public void undeploy ( String namespace, String deployId ) throws ElementDeployException
+	public boolean isDeployed ( K8sInstallationContext ctx ) throws ElementDeployException
 	{
-		final String configMapName = tagToConfigPullScriptConfigMap ( deployId );
-		final CoreV1Api api = new CoreV1Api ();
 		try
 		{
-			api.deleteNamespacedConfigMap ( configMapName, namespace ).execute ();
-			log.info ( "Removed {}/{}", namespace, configMapName );
+			final String configMapName = tagToConfigPullScriptConfigMap ( ctx.getDeployId () );
+			new CoreV1Api()
+				.readNamespacedConfigMap ( configMapName, ctx.getNamespace () )
+				.execute ()
+			;
+			return true;
 		}
 		catch ( ApiException x )
 		{
 			if ( x.getCode () == HttpStatusCodes.k404_notFound )
 			{
-				log.info ( "Element {} in {} did not exist.", deployId, namespace );
+				return false;
+			}
+			throw new ElementDeployException ( x );
+		}
+	}
+
+	@Override
+	public void undeploy ( K8sInstallationContext ctx ) throws ElementDeployException
+	{
+		final String configMapName = tagToConfigPullScriptConfigMap ( ctx.getDeployId () );
+		final CoreV1Api api = new CoreV1Api ();
+		try
+		{
+			api.deleteNamespacedConfigMap ( configMapName, ctx.getNamespace () ).execute ();
+			log.info ( "Removed {}/{}", ctx.getNamespace (), configMapName );
+		}
+		catch ( ApiException x )
+		{
+			if ( x.getCode () == HttpStatusCodes.k404_notFound )
+			{
+				log.info ( "Element {} in {} did not exist.", ctx.getDeployId (), ctx.getNamespace () );
 				return;
 			}
 			throw new ElementDeployException ( x );
