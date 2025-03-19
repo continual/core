@@ -24,7 +24,6 @@ import io.continual.metrics.MetricsCatalog;
 import io.continual.metrics.MetricsService;
 import io.continual.metrics.impl.noop.NoopMetricsCatalog;
 import io.continual.services.ServiceContainer;
-import io.continual.util.data.StreamTools;
 import io.continual.util.data.json.JsonUtil;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.data.json.JsonVisitor.ObjectVisitor;
@@ -32,6 +31,7 @@ import org.apache.catalina.Context;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.connector.Connector;
 import org.apache.catalina.startup.Tomcat;
+import org.apache.coyote.ProtocolHandler;
 import org.apache.coyote.http11.Http11NioProtocol;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -40,46 +40,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
-import java.util.Enumeration;
 import java.util.TreeSet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class TomcatHttpService extends CHttpService
 {
-	private static final String kSetting_ServletWorkDir = "workDir";
-	private static final String kDefault_ServletWorkDir = new File ( System.getProperty ( "java.io.tmpdir" )).getAbsolutePath ();
-
-	private static final String kSetting_TomcatBaseDir = "baseDir";
-	private static final String kDefault_TomcatBaseDir = "${CONTINUAL_TOMCAT_BASEDIR}";
-
-	private static final String kSetting_Keystore = "keystore";
-
-	private static final String kSetting_KeystoreFile = "file";
-
-	private static final String kSetting_KeystoreType = "type";
-	private static final String kDefault_KeystoreType = "JKS";
-
-	private static final String kSetting_KeystoreAlias = "alias";
-	private static final String kDefault_KeystoreAlias = "tomcat";
-
-	private static final String kSetting_KeystoreAliasScan = "scanForAlias";
-
-	private static final String kSetting_KeystorePassword = "password";
-	private static final String kDefault_KeystorePassword = "changeme";
-
-	private static final String kSetting_KeystorePasswordFile = "passwordFile";
-
-	private static final String kSetting_Port = "port";
-	private static final int kDefault_HttpPort = 8080;
-	private static final int kDefault_HttpsPort = 8443;
-
 	public TomcatHttpService ( ServiceContainer sc, JSONObject rawConfig ) throws BuildFailure
 	{
 		super ( sc, rawConfig );
@@ -123,6 +90,9 @@ public class TomcatHttpService extends CHttpService
 					throw new BuildFailure ( "Couldn't create working directory " + fWorkDir.getAbsolutePath () );
 				}
 			}
+
+			// background monitoring for keystore updates
+			fKeystoreMonitors = Executors.newScheduledThreadPool ( 1 );
 
 			// set up the endpoints
 			setupEndpoints ( fTomcat, settings );
@@ -184,6 +154,20 @@ public class TomcatHttpService extends CHttpService
 		try
 		{
 			fTomcat.stop ();
+
+			// stop the keystore monitors
+			try
+			{
+				if ( !fKeystoreMonitors.awaitTermination ( 30, TimeUnit.SECONDS ) )
+				{
+					fKeystoreMonitors.shutdownNow ();
+				}
+			}
+			catch ( InterruptedException x )
+			{
+				fKeystoreMonitors.shutdownNow ();
+			}
+
 			fRunning = false;
 		}
 		catch ( LifecycleException e )
@@ -205,12 +189,14 @@ public class TomcatHttpService extends CHttpService
 	private final File fWorkDir;
 	private final SessionLifeCycle fLifeCycle;
 
-	@Deprecated
+	// FIXME: this settings block is passed to the Tomcat constructor; it'd be nicer to control what's passed directly.
 	private final JSONObject fSettings;
 
 	private final IamService<?,?> fAccounts;
 	private final MetricsCatalog fMetrics;
 	private final CHttpObserverMgr fInspector;
+
+	private final ScheduledExecutorService fKeystoreMonitors;
 
 	private static final Logger log = LoggerFactory.getLogger ( TomcatHttpService.class );
 
@@ -259,67 +245,41 @@ public class TomcatHttpService extends CHttpService
 					throw new BuildFailure ( "Connector " + configName + " is set to https but is missing the required " + kSetting_Keystore + " configuration block." );
 				}
 
-				try
-				{
-					String keystoreFilename = keystoreConfig.getString ( kSetting_KeystoreFile );
-					final File keystoreFile = new File ( keystoreFilename );
-					if ( !keystoreFile.isAbsolute () )
-					{
-						// tomcat requires an absolute filename, or it'll use env var CATALINA_HOME. We want a file
-						// relative to the current working directory.
-						final Path path = FileSystems.getDefault ().getPath ( "." ).toAbsolutePath ();
-						final File file = new File ( path.toFile (), keystoreFilename );
-						keystoreFilename = file.getAbsolutePath ();
-						log.info ( "Using absolute path [" + keystoreFilename + "] for keystore." );
-					}
+				final TomcatTlsConfig tlsConfig = new TomcatTlsConfig.Builder()
+					.fromJsonConfig ( keystoreConfig )
+					.build ()
+				;
+				tlsConfig.writeToConnector ( connector );
 
-					// the keystore password can be delivered directly in configuration, or loaded from a file
-					String keystorePassword = kDefault_KeystorePassword;
-					if ( keystoreConfig.has ( kSetting_KeystorePassword ) )
+				// setup a monitor for keystore updates
+				fKeystoreMonitors.scheduleAtFixedRate ( () ->
+				{
+					if ( tlsConfig.hasUpdate () )
 					{
-						keystorePassword = keystoreConfig.getString ( kSetting_KeystorePassword );
-					}
-					else if ( keystoreConfig.has ( kSetting_KeystorePasswordFile ) )
-					{
-						final String pwdFileName = keystoreConfig.optString ( kSetting_KeystorePasswordFile, null );
-						final File pwdFile = new File ( pwdFileName );
-						try ( FileInputStream fis = new FileInputStream ( pwdFile ) )
+						log.info ( "Connector {} has a keystore update...", configName );
+						tlsConfig.writeToConnector ( connector );
+
+						if ( isRunning () )
 						{
-							final byte[] pwdData = StreamTools.readBytes ( fis );
-							keystorePassword = new String ( pwdData ).trim ();
-						} catch ( IOException x )
+							log.info ( "Connector {} config updated; reloading...", configName );
+
+							final ProtocolHandler ph = connector.getProtocolHandler ();
+							if ( ph instanceof Http11NioProtocol )
+							{
+								((Http11NioProtocol) ph).reloadSslHostConfigs ();
+								log.info ( "Connector {} reloaded.", configName );
+							}
+						}
+						else
 						{
-							log.warn ( "There was a problem trying to read {}: {}", pwdFileName, x.getMessage () );
+							log.info ( "Connector {} config updated, but the service is not running now.", configName );
 						}
 					}
-
-					final String keystoreType = keystoreConfig.optString ( kSetting_KeystoreType, kDefault_KeystoreType );
-
-					// the keystore alias can be delivered directly in configuration, or determined by a scan of the keystore
-					String keystoreAlias = kDefault_KeystoreAlias;
-					if ( keystoreConfig.has ( kSetting_KeystoreAlias ) )
+					else
 					{
-						keystoreAlias = keystoreConfig.getString ( kSetting_KeystoreAlias );
+						log.info ( "Checked for keystore update on {}; none found.", configName );
 					}
-					else if ( keystoreConfig.optBoolean ( kSetting_KeystoreAliasScan, false ) )
-					{
-						keystoreAlias = scanKeystoreForPrivateKey ( keystoreFilename, keystorePassword, keystoreType );
-					}
-
-					connector.setScheme ( "https" );
-					connector.setSecure ( true );
-					connector.setProperty ( "keystoreFile", keystoreFilename );
-					connector.setProperty ( "keystorePass", keystorePassword );
-					connector.setProperty ( "keystoreType", keystoreType );
-					connector.setProperty ( "keyAlias", keystoreAlias );
-					connector.setProperty ( "clientAuth", "false" );
-					connector.setProperty ( "sslProtocol", "TLS" );
-					connector.setProperty ( "SSLEnabled", "true" );
-				}
-				catch ( JSONException x )
-				{
-					throw new BuildFailure ( x );
-				}
+				}, 5, 5, TimeUnit.MINUTES );
 			}
 
 			// get any overrides from the optional "tomcat" block
@@ -379,32 +339,15 @@ public class TomcatHttpService extends CHttpService
 		} );
 	}
 
-	private static String scanKeystoreForPrivateKey ( String keystoreFilename, String keystorePassword, String keystoreType )
-	{
-		try
-		{
-			log.info ( "Scanning {} for its first private key...", keystoreFilename );
+	private static final String kSetting_ServletWorkDir = "workDir";
+	private static final String kDefault_ServletWorkDir = new File ( System.getProperty ( "java.io.tmpdir" )).getAbsolutePath ();
 
-			final KeyStore ks = KeyStore.getInstance ( keystoreType );
-			ks.load ( new FileInputStream ( keystoreFilename ), keystorePassword.toCharArray () );
+	private static final String kSetting_TomcatBaseDir = "baseDir";
+	private static final String kDefault_TomcatBaseDir = "${CONTINUAL_TOMCAT_BASEDIR}";
 
-			log.info ( "Keystore {} loaded...", keystoreFilename );
+	private static final String kSetting_Keystore = "keystore";
 
-			final Enumeration<String> enumeration = ks.aliases ();
-			while ( enumeration.hasMoreElements () )
-			{
-				final String alias = enumeration.nextElement ();
-				if ( ks.entryInstanceOf ( alias, KeyStore.PrivateKeyEntry.class ) )
-				{
-					log.info ( "Found private key {}.", alias );
-					return alias;
-				}
-			}
-		}
-		catch ( IOException | KeyStoreException | NoSuchAlgorithmException | CertificateException x )
-		{
-			log.warn ( "Exception inspecting keystore {} for alias: {}", keystoreFilename, x.getMessage () );
-		}
-		return "";
-	}
+	private static final String kSetting_Port = "port";
+	private static final int kDefault_HttpPort = 8080;
+	private static final int kDefault_HttpsPort = 8443;
 }
