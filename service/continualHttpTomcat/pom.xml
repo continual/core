@@ -19,7 +19,7 @@
 
 	<properties>
 		<!-- note that Tomcat 10 adopts Jakarta EE and changes the servlet package name -->
-		<tomcatVersion>9.0.99</tomcatVersion>
+		<tomcatVersion>9.0.102</tomcatVersion>
 		<!--<tomcatVersion>10.0.26</tomcatVersion>-->
 	</properties>
 
