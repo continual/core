@@ -64,7 +64,8 @@ public class TomcatTlsConfig
 				// the keystore alias can be delivered directly in configuration, or determined by a scan of the keystore
 				fKeystoreAlias = keystoreConfig.optString ( kSetting_KeystoreAlias, fKeystoreAlias );
 				fScanForAlias = keystoreConfig.optBoolean ( kSetting_KeystoreAliasScan, fScanForAlias );
-			} catch ( JSONException x )
+			}
+			catch ( JSONException x )
 			{
 				throw new BuildFailure ( x );
 			}
