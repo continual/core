@@ -53,33 +53,6 @@ import java.util.TreeSet;
 
 public class TomcatHttpService extends CHttpService
 {
-	private static final String kSetting_ServletWorkDir = "workDir";
-	private static final String kDefault_ServletWorkDir = new File ( System.getProperty ( "java.io.tmpdir" )).getAbsolutePath ();
-
-	private static final String kSetting_TomcatBaseDir = "baseDir";
-	private static final String kDefault_TomcatBaseDir = "${CONTINUAL_TOMCAT_BASEDIR}";
-
-	private static final String kSetting_Keystore = "keystore";
-
-	private static final String kSetting_KeystoreFile = "file";
-
-	private static final String kSetting_KeystoreType = "type";
-	private static final String kDefault_KeystoreType = "JKS";
-
-	private static final String kSetting_KeystoreAlias = "alias";
-	private static final String kDefault_KeystoreAlias = "tomcat";
-
-	private static final String kSetting_KeystoreAliasScan = "scanForAlias";
-
-	private static final String kSetting_KeystorePassword = "password";
-	private static final String kDefault_KeystorePassword = "changeme";
-
-	private static final String kSetting_KeystorePasswordFile = "passwordFile";
-
-	private static final String kSetting_Port = "port";
-	private static final int kDefault_HttpPort = 8080;
-	private static final int kDefault_HttpsPort = 8443;
-
 	public TomcatHttpService ( ServiceContainer sc, JSONObject rawConfig ) throws BuildFailure
 	{
 		super ( sc, rawConfig );
@@ -407,4 +380,31 @@ public class TomcatHttpService extends CHttpService
 		}
 		return "";
 	}
+
+	private static final String kSetting_ServletWorkDir = "workDir";
+	private static final String kDefault_ServletWorkDir = new File ( System.getProperty ( "java.io.tmpdir" )).getAbsolutePath ();
+
+	private static final String kSetting_TomcatBaseDir = "baseDir";
+	private static final String kDefault_TomcatBaseDir = "${CONTINUAL_TOMCAT_BASEDIR}";
+
+	private static final String kSetting_Keystore = "keystore";
+
+	private static final String kSetting_KeystoreFile = "file";
+
+	private static final String kSetting_KeystoreType = "type";
+	private static final String kDefault_KeystoreType = "JKS";
+
+	private static final String kSetting_KeystoreAlias = "alias";
+	private static final String kDefault_KeystoreAlias = "tomcat";
+
+	private static final String kSetting_KeystoreAliasScan = "scanForAlias";
+
+	private static final String kSetting_KeystorePassword = "password";
+	private static final String kDefault_KeystorePassword = "changeme";
+
+	private static final String kSetting_KeystorePasswordFile = "passwordFile";
+
+	private static final String kSetting_Port = "port";
+	private static final int kDefault_HttpPort = 8080;
+	private static final int kDefault_HttpsPort = 8443;
 }
