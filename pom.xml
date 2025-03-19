@@ -125,9 +125,9 @@
 
 			<!-- AWS -->
 			<dependency>
-				<groupId>software.amazon.awssdk</groupId>
-				<artifactId>s3</artifactId>
-				<version>2.31.2</version>
+				<groupId>com.amazonaws</groupId>
+				<artifactId>aws-java-sdk-s3</artifactId>
+				<version>1.12.777</version>
 			</dependency>
 
 			<!-- https://mvnrepository.com/artifact/javax.servlet/javax.servlet-api -->

@@ -31,9 +31,10 @@
 		</dependency>
 
 		<!-- If available, ResourceLoader can load from S3 -->
+		<!-- https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-s3 -->
 		<dependency>
-			<groupId>software.amazon.awssdk</groupId>
-			<artifactId>s3</artifactId>
+			<groupId>com.amazonaws</groupId>
+			<artifactId>aws-java-sdk-s3</artifactId>
 			<scope>provided</scope>
 		</dependency>
 
