@@ -56,5 +56,5 @@ public class Clear implements Processor
 		}
 	}
 
-	private TreeSet<String> fKeys;
+	private final TreeSet<String> fKeys;
 }

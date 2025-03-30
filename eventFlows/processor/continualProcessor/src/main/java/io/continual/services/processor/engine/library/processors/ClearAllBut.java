@@ -44,8 +44,7 @@ public class ClearAllBut implements Processor
 	public void process ( MessageProcessingContext context )
 	{
 		final Message msg = context.getMessage ();
-		final TreeSet<String> allKeys = new TreeSet<> ();
-		allKeys.addAll ( msg.accessRawJson ().keySet () );
+		final TreeSet<String> allKeys = new TreeSet<> ( msg.accessRawJson ().keySet () );
 		for ( String key : allKeys )
 		{
 			if ( !fKeys.contains ( key ) )

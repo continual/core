@@ -20,7 +20,7 @@ public interface Processor
 {
 	/**
 	 * Process the message contained in the given context
-	 * @param context
+	 * @param context the message processing context
 	 */
 	void process ( MessageProcessingContext context );
 }

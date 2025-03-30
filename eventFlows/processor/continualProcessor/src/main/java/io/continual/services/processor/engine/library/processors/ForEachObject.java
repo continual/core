@@ -116,10 +116,7 @@ public class ForEachObject implements Processor
 							.clearValue ( "_item" )
 						;
 					}
-					else
-					{
-						// skip it
-					}
+					// else: skip it
 					return true;
 				}
 			} );
