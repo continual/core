@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.3.28</version>
+		<version>0.3.29-SNAPSHOT</version>
 		<artifactId>continualIntegrations</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
