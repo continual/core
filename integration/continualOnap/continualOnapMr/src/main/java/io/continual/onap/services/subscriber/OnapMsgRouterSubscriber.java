@@ -8,6 +8,7 @@ import java.util.LinkedList;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import okhttp3.ResponseBody;
 import org.slf4j.Logger;
 
 import io.continual.onap.services.mrCommon.Clock;
@@ -22,8 +23,8 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 /**
- * A simple message router subscriber. This class issues HTTP transactions that execute in the foreground
- * to push messages to the ONAP Message Router service. 
+ * A simple Cambria  subscriber. This class issues HTTP transactions that execute in the foreground
+ * to push messages to the ONAP Message Router service.
  */
 public class OnapMsgRouterSubscriber
 {
@@ -164,6 +165,17 @@ public class OnapMsgRouterSubscriber
 		public Builder noRecvLimit ()
 		{
 			return recvAtMostEvents ( NO_RECV_LIMIT );
+		}
+
+		/**
+		 * Specify the amount of time to wait for a transaction to complete.
+		 * @param ms the number of milliseconds to wait for transaction. Set to a negative value to use the default.
+		 * @return this builder
+		 */
+		public Builder transactionTimeAtMost ( long ms )
+		{
+			super.transactionTimeAtMost ( ms );
+			return this;
 		}
 
 		/**
@@ -339,8 +351,8 @@ public class OnapMsgRouterSubscriber
 		final ArrayList<String> hostsLeft = new ArrayList<> ();
 		fHosts.copyInto ( hostsLeft );
 
-		final long noResponseTimeoutMs = fClock.nowMs () + fSocketWaitTimeoutMs;
-		while ( fClock.nowMs () < noResponseTimeoutMs && hostsLeft.size () > 0 )
+		final long noResponseTimeoutMs = fClock.nowMs () + fTrxWaitTimeoutMs;
+		while ( fClock.nowMs () < noResponseTimeoutMs && !hostsLeft.isEmpty () )
 		{
 			final String host = hostsLeft.remove ( 0 );
 			final String path = buildPath ( host, waitAtServerMs, maxEventsToFetch );
@@ -363,13 +375,17 @@ public class OnapMsgRouterSubscriber
 				final int statusCode = response.code ();
 				final String statusText = response.message ();
 
-				fLog.info ( "    MR reply {} {} ({} ms)", statusCode, statusText, trxDurationMs );
+				fLog.info ( "    Cambria reply {} {} ({} ms)", statusCode, statusText, trxDurationMs );
 
 				if ( HttpHelper.isSuccess ( statusCode ) )
 				{
 					// process the response body into strings
 					final OnapMrFetchResponse fetchResponse = new OnapMrFetchResponse ( statusCode, statusText );
-					fResponseParser.parseResponseBody ( response.body (), fetchResponse );
+					final ResponseBody body = response.body ();
+					if ( body != null )
+					{
+						fResponseParser.parseResponseBody ( body, fetchResponse );
+					}
 					return fetchResponse;
 				}
 				else if ( HttpHelper.isClientFailure ( statusCode ) )
@@ -388,23 +404,23 @@ public class OnapMsgRouterSubscriber
 				final long trxEndMs = fClock.nowMs ();
 				final long trxDurationMs = trxEndMs - trxStartMs;
 
-				fLog.warn ( "    MR failure for host [{}]: {} ({} ms)", host, x.getMessage (), trxDurationMs );
+				fLog.warn ( "    Cambria failure for host [{}]: {} ({} ms)", host, x.getMessage (), trxDurationMs );
 				fHosts.demote ( host );
 			}
 			catch ( Throwable t )
 			{
-				fLog.warn ( "    Throwable", t.getMessage (), t );
+				fLog.warn ( "    Throwable {}", t.getMessage (), t );
 				throw t;
 			}
 		}
 
-		// if we're here, we've timed out on all MR hosts and we have to fail the transaction.
-		return new OnapMrFetchResponse ( HttpHelper.k503_serviceUnavailable, "No Message Router server could acknowledge the request.", new LinkedList<String> () );
+		// if we're here, we've timed out on all Cambria hosts and we have to fail the transaction.
+		return new OnapMrFetchResponse ( HttpHelper.k503_serviceUnavailable, "No Cambria  server could acknowledge the request.", new LinkedList<String> () );
 	}
 
 	/**
-	 * Build a URL path for Message Router, provided protocol, port, and path as needed
-	 * @param host
+	 * Build a URL path for the Cambria service, provided protocol, port, and path as needed
+	 * @param host the host to use
 	 * @return a complete URL path
 	 */
 	private String buildPath ( String host, long waitAtServerMs, int maxEventsToFetch )
@@ -441,8 +457,7 @@ public class OnapMsgRouterSubscriber
 		if ( waitAtServerMs > -1L )
 		{
 			sb
-				.append ( argsAdded ? "&" : "?" )
-				.append ( "timeout=" )
+				.append ( "?timeout=" )
 				.append ( waitAtServerMs )
 			;
 			argsAdded = true;
@@ -469,7 +484,7 @@ public class OnapMsgRouterSubscriber
 	private final String fSubId;
 	private final long fServerWaitMs;
 	private final int fMaxEventsPerFetch;
-	private final long fSocketWaitTimeoutMs;
+	private final long fTrxWaitTimeoutMs;
 	private final boolean fDefaultHttps;
 	private final Credentials fCreds;
 	private final String fLabel;
@@ -482,7 +497,8 @@ public class OnapMsgRouterSubscriber
 
 	private OnapMsgRouterSubscriber ( Builder builder )
 	{
-		if ( builder.getHosts().size () < 1 ) throw new IllegalArgumentException ( "No hosts provided." );
+		if ( builder.getHosts ()
+			.isEmpty () ) throw new IllegalArgumentException ( "No hosts provided." );
 
 		fHosts = HostSelector.builder ()
 			.withHosts ( builder.getHosts () )
@@ -503,8 +519,8 @@ public class OnapMsgRouterSubscriber
 
 		fServerWaitMs = builder.fServerWaitMs;
 		fMaxEventsPerFetch = builder.fMaxEventsPerFetch;
-	
-		fSocketWaitTimeoutMs = builder.getSocketWaitMs ();
+
+		fTrxWaitTimeoutMs = builder.getTransactionWaitMs ();
 
 		fLog = builder.getLog();
 		if ( fLog == null ) throw new IllegalArgumentException ( "You must provide a logger." );
@@ -512,10 +528,11 @@ public class OnapMsgRouterSubscriber
 		fClock = builder.getClock ();
 
 		// setup our HTTP client
+		final long socketTimeoutMs = builder.getSocketWaitMs ();
 		OkHttpClient.Builder okb = new OkHttpClient.Builder ()
-			.connectTimeout ( 15, TimeUnit.SECONDS )
-			.writeTimeout ( 15, TimeUnit.SECONDS )
-			.readTimeout ( 30, TimeUnit.SECONDS )
+			.connectTimeout ( socketTimeoutMs, TimeUnit.MILLISECONDS )
+			.writeTimeout ( socketTimeoutMs, TimeUnit.MILLISECONDS )
+			.readTimeout ( socketTimeoutMs, TimeUnit.MILLISECONDS )
 		;
 
 		// setup proxy
@@ -534,13 +551,11 @@ public class OnapMsgRouterSubscriber
 			throw new IllegalArgumentException ( "A response parser is required." );
 		}
 
-		fLabel = new StringBuilder ()
-			.append ( fTopic )
-			.append ( " on " )
-			.append ( fHosts.toString () )
-			.append ( " as " )
-			.append ( fCreds.getUserDescription () )
-			.toString ()
+		fLabel = fTopic +
+			" on " +
+			fHosts.toString () +
+			" as " +
+			fCreds.getUserDescription ()
 		;
 	}
 }
