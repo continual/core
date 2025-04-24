@@ -76,7 +76,7 @@ public class Notify implements Processor
 	private String readSetting ( MessageProcessingContext context, String key )
 	{
 		final String result = context.evalExpression ( "${" + key + "}", new JsonDataSource ( fPreConfig ) );
-		return result == null || result.length () == 0 ? null : result;
+		return result == null || result.isEmpty () ? null : result;
 	}
 	
 	private static final String kTopicSetting = "CONTINUAL_TOPIC";

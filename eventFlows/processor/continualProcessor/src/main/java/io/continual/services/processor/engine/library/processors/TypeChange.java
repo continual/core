@@ -49,11 +49,7 @@ public class TypeChange implements Processor
 
 			fToField = config.optString ( "to", null );
 		}
-		catch ( IllegalArgumentException e )
-		{
-			throw new BuildFailure ( e );
-		}
-		catch ( JSONException e )
+		catch ( IllegalArgumentException | JSONException e )
 		{
 			throw new BuildFailure ( e );
 		}
@@ -75,8 +71,8 @@ public class TypeChange implements Processor
 				msg.putValue ( to, TypeConvertor.convertToDouble ( fromVal, 0.0 ) );
 				break;
 
-			default:
 			case STRING:
+			default:
 				msg.putValue ( to, fromVal );
 				break;
 		}

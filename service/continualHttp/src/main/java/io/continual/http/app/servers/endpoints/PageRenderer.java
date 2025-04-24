@@ -47,7 +47,7 @@ public class PageRenderer<I extends Identity> extends TypicalUiEndpoint<I>
 		{
 			path = path + fRequiredSuffix;
 		}
-		
+
 		final ContinualTemplateSource template = fTemplateCatalog.getTemplate ( path );
 		fTemplates.renderTemplate ( template, templateCtx, context.response ().getStreamForBinaryResponse ( MimeTypes.kHtml ) );
 	}

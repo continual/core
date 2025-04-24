@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Proxy;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -105,12 +106,23 @@ public class OnapMsgRouterPublisher
 		}
 
 		/**
+		 * Specify the amount of time to wait for a transaction to complete.
+		 * @param ms the number of milliseconds to wait for transaction. Set to a negative value to use the default.
+		 * @return this builder
+		 */
+		public CommonClientBuilder transactionTimeAtMost ( long ms )
+		{
+			super.transactionTimeAtMost ( ms );
+			return this;
+		}
+
+		/**
 		 * Specify the amount of time to wait on a socket connection, read, or write.
 		 * @param ms the number of milliseconds to wait for a socket operation (connect/read/write)
 		 * @return this builder
 		 */
 		@Override
-		public Builder waitingAtMost ( long ms )
+		public Builder socketWaitAtMost ( long ms )
 		{
 			super.socketWaitAtMost ( ms );
 			return this;
@@ -245,7 +257,7 @@ public class OnapMsgRouterPublisher
 		return new Builder ()
 			.withHost ( "localhost" )
 			.onTopic ( "TEST-TOPIC" )
-			.waitingAtMost ( 30000L )
+			.socketWaitAtMost ( 30000L )
 		;
 	}
 
@@ -286,9 +298,9 @@ public class OnapMsgRouterPublisher
 	}
 
 	/**
-	 * Send a single message to the MR cluster.
+	 * Send a single message to the Cambria cluster.
 	 * @param msg the message to post
-	 * @return the HTTP status code from MR
+	 * @return the HTTP status code from Cambria
 	 */
 	public OnapMrResponse send ( Message msg )
 	{
@@ -296,16 +308,16 @@ public class OnapMsgRouterPublisher
 	}
 
 	/**
-	 * Send a set of messages to the MR cluster in an all or nothing attempt. Each host in
+	 * Send a set of messages to the Cambria cluster in an all or nothing attempt. Each host in
 	 * the host list will be attempted at most once.
 	 * 
 	 * @param msgList a list of messages
-	 * @return the HTTP status code from MR
+	 * @return the HTTP status code from Cambria
 	 */
 	public OnapMrResponse send ( List<Message> msgList )
 	{
 		// if we have nothing to send, reply ok
-		if ( msgList.size () < 1 ) return HttpHelper.skAccepted;
+		if ( msgList.isEmpty () ) return HttpHelper.skAccepted;
 
 		// generate the transaction payload for content-type "application/cambria-zip"
 		ByteArrayOutputStream baos;
@@ -332,18 +344,18 @@ public class OnapMsgRouterPublisher
 		catch ( IOException e )
 		{
 			// an I/O exception while building the request body isn't likely
-			fLog.error ( "Error while building payload for MR publish. Returning 400 Bad Request. " + e.getMessage (), e );
+			fLog.error ( "Error while building payload for Cambria publish. Returning 400 Bad Request. " + e.getMessage (), e );
 			return new OnapMrResponse ( HttpHelper.k400_badRequest, "Unable to build payload." );
 		}
 		final byte[] msgBody = baos.toByteArray ();
 
-		// send the data to MR, trying each host in order until we have a conclusion...
+		// send the data to Cambria, trying each host in order until we have a conclusion...
 
 		final ArrayList<String> hostsLeft = new ArrayList<> ();
 		fHosts.copyInto ( hostsLeft );
 
-		final long noResponseTimeoutMs = fClock.nowMs () + fWaitTimeoutMs;
-		while ( fClock.nowMs () < noResponseTimeoutMs && hostsLeft.size () > 0 )
+		final long noResponseTimeoutMs = fClock.nowMs () + fTransactionTimeoutMs;
+		while ( fClock.nowMs () < noResponseTimeoutMs && !hostsLeft.isEmpty () )
 		{
 			final String host = hostsLeft.remove ( 0 );
 			final String path = buildPath ( host );
@@ -368,11 +380,11 @@ public class OnapMsgRouterPublisher
 				final String statusText = response.message ();
 				final String responseBody = response.body ().string ();
 
-				fLog.info ( "    MR reply {} {} ({} ms): {}", statusCode, statusText, trxDurationMs, formatJsonTextForLog ( responseBody ) );
+				fLog.info ( "    Cambria reply {} {} ({} ms): {}", statusCode, statusText, trxDurationMs, formatJsonTextForLog ( responseBody ) );
 
 				if ( HttpHelper.isSuccess ( statusCode ) || HttpHelper.isClientFailure ( statusCode ) )
 				{
-					// just relay MR's reply
+					// just relay Cambria's reply
 					return new OnapMrResponse ( statusCode, statusText );
 				}
 				else if ( HttpHelper.isServerFailure ( statusCode ) )
@@ -386,12 +398,12 @@ public class OnapMsgRouterPublisher
 				final long trxEndMs = fClock.nowMs ();
 				final long trxDurationMs = trxEndMs - trxStartMs;
 
-				fLog.warn ( "    MR failure for host [{}]: {} ({} ms)", host, x.getMessage (), trxDurationMs );
+				fLog.warn ( "    Cambria failure for host [{}]: {} ({} ms)", host, x.getMessage (), trxDurationMs );
 				fHosts.demote ( host );
 			}
 		}
 
-		// if we're here, we've timed out on all MR hosts and we have to fail the transaction.
+		// if we're here, we've timed out on all Cambria hosts and we have to fail the transaction.
 		return HttpHelper.skSvcUnavailable;
 	}
 
@@ -433,7 +445,7 @@ public class OnapMsgRouterPublisher
 
 	private final HostSelector fHosts;
 	private final String fTopic;
-	private final long fWaitTimeoutMs;
+	private final long fTransactionTimeoutMs;
 	private final Credentials fCreds;
 	private final boolean fDefaultHttps;
 	private final String fLabel;
@@ -444,7 +456,7 @@ public class OnapMsgRouterPublisher
 	private final Logger fLog;
 
 	private static final MediaType kCambriaZip = MediaType.get ( "application/cambria-zip" );
-	private static final Charset kUtf8 = Charset.forName ( "UTF-8" );
+	private static final Charset kUtf8 = StandardCharsets.UTF_8;
 
 	private static String formatJsonTextForLog ( String text )
 	{
@@ -454,8 +466,8 @@ public class OnapMsgRouterPublisher
 
 	private OnapMsgRouterPublisher ( Builder builder )
 	{
-		if ( builder.getHosts().size () < 1 ) throw new IllegalArgumentException ( "No hosts provided." );
-		if ( builder.getTopic() == null || builder.getTopic().length () < 1 ) throw new IllegalArgumentException ( "No topic provided." );
+		if ( builder.getHosts ().isEmpty () ) throw new IllegalArgumentException ( "No hosts provided." );
+		if ( builder.getTopic() == null || builder.getTopic ().isEmpty () ) throw new IllegalArgumentException ( "No topic provided." );
 
 		fHosts = HostSelector.builder ()
 			.withHosts ( builder.getHosts () )
@@ -464,7 +476,7 @@ public class OnapMsgRouterPublisher
 
 		fTopic = builder.getTopic();
 
-		fWaitTimeoutMs = builder.getSocketWaitMs ();
+		fTransactionTimeoutMs = builder.getTransactionTimeoutMs ();
 		fDefaultHttps = builder.getDefaultHttps ();
 
 		fCreds = builder.getCredentials ();
@@ -475,10 +487,11 @@ public class OnapMsgRouterPublisher
 		fClock = builder.getClock();
 
 		// setup our HTTP client
+		final long socketTimeoutMs = builder.getSocketWaitMs ();
 		OkHttpClient.Builder okb = new OkHttpClient.Builder ()
-			.connectTimeout ( 15, TimeUnit.SECONDS )
-			.writeTimeout ( 15, TimeUnit.SECONDS )
-			.readTimeout ( 30, TimeUnit.SECONDS )
+			.connectTimeout ( socketTimeoutMs, TimeUnit.MILLISECONDS )
+			.writeTimeout ( socketTimeoutMs, TimeUnit.MILLISECONDS )
+			.readTimeout ( socketTimeoutMs, TimeUnit.MILLISECONDS )
 		;
 
 		// setup proxy

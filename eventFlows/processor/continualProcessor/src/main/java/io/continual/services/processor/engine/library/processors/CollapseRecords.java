@@ -1,6 +1,7 @@
 package io.continual.services.processor.engine.library.processors;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 
 import org.json.JSONObject;
@@ -28,10 +29,7 @@ public class CollapseRecords implements Processor
 
 	public CollapseRecords onKey ( String... keyFields )
 	{
-		for ( String key : keyFields )
-		{
-			fKeys.add ( key );
-		}
+		Collections.addAll ( fKeys, keyFields );
 		return this;
 	}
 
@@ -55,6 +53,6 @@ public class CollapseRecords implements Processor
 		fLastRecord = valHash;
 	}
 
-	private LinkedList<String> fKeys;
+	private final LinkedList<String> fKeys;
 	private int fLastRecord;
 }

@@ -653,7 +653,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		}
 		catch ( AmazonS3Exception x ) 
 		{
-			if ( x.getErrorCode ().equals ( "NoSuchKey" ) )
+			if ( x.getErrorCode ().equals ( "NoSuchKey" ) || x.getErrorCode ().equals ( "NoSuchBucket" ) )
 			{
 				if ( fFoldersAsObjects )
 				{

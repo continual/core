@@ -18,7 +18,7 @@ public interface ContinualMessageSink
 
 		public static AckType fromUserValue ( String text )
 		{
-			String v = text.trim ().toUpperCase ();
+			final String v = text.trim ().toUpperCase ();
 			if ( v.equals ( "MIN" ) || v.equals ( "MINIMAL" ) ) return MINIMAL;
 			if ( v.equals ( "NONE" ) ) return NONE;
 			if ( v.equals ( "ALL" ) ) return ALL;

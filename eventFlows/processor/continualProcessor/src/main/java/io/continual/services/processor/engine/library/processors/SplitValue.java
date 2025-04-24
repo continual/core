@@ -17,11 +17,8 @@ public class SplitValue implements Processor
 {
 	public SplitValue ( ConfigLoadContext sc, JSONObject config ) throws BuildFailure
 	{
-		fPatternText = config.getString ( "pattern" );
-		fPattern = Pattern.compile ( fPatternText );
-
+		fPattern = Pattern.compile ( config.getString ( "pattern" ) );
 		fValueExpr = config.getString ( "value" );
-
 		fTargetFields = JsonVisitor.objectToMap ( config.getJSONObject ( "assignments" ) );
 	}
 
@@ -62,7 +59,6 @@ public class SplitValue implements Processor
 		// else: do nothing
 	}
 
-	private final String fPatternText;
 	private final Pattern fPattern;
 	private final String fValueExpr;
 	private final Map<String,String> fTargetFields;

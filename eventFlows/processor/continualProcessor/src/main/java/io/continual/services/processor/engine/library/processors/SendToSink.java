@@ -26,6 +26,8 @@ import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.Processor;
 import io.continual.services.processor.engine.model.Sink;
 
+import static io.continual.metrics.metricTypes.Timer.*;
+
 public class SendToSink implements Processor
 {
 	public SendToSink ( String sinkName )
@@ -66,7 +68,7 @@ public class SendToSink implements Processor
 
 		if ( fSink != null )
 		{
-			try ( Timer.Context tc = context.getStreamProcessingContext ().getMetrics ().timer ( "sinkSend" ).time() )
+			try ( Context tc = context.getStreamProcessingContext ().getMetrics ().timer ( "sinkSend" ).time() )
 			{
 				fSink.process ( context );
 			}

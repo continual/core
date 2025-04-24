@@ -25,7 +25,7 @@ public class CommonClientBuilder
 	 */
 	public CommonClientBuilder withHost ( String host )
 	{
-		if ( host == null || host.length () == 0 )
+		if ( host == null || host.isEmpty () )
 		{
 			throw new IllegalArgumentException ( "Invalid host value." );
 		}
@@ -167,25 +167,38 @@ public class CommonClientBuilder
 	}
 
 	/**
-	 * Specify the amount of time to wait on a socket connection, read, or write.
-	 * @param ms the number of milliseconds to wait for a socket operation (connect/read/write)
-	 * @deprecated Use socketWaitAtMost
+	 * Specify the amount of time to wait for a transaction to complete.
+	 * @param ms the number of milliseconds to wait for transaction. Set to a negative value to use the default.
 	 * @return this builder
 	 */
-	@Deprecated
-	public CommonClientBuilder waitingAtMost ( long ms )
+	public CommonClientBuilder transactionTimeAtMost ( long ms )
 	{
-		return socketWaitAtMost ( ms );
+		if ( ms >= 0 )
+		{
+			fTrxTimeoutMs = ms;
+		}
+		else
+		{
+			fTrxTimeoutMs = kDefaultTrxWaitMs;
+		}
+		return this;
 	}
 
 	/**
 	 * Specify the amount of time to wait on a socket connection, read, or write.
-	 * @param ms the number of milliseconds to wait for a socket operation (connect/read/write)
+	 * @param ms the number of milliseconds to wait for a socket operation (connect/read/write). Set to a negative value to use the default.
 	 * @return this builder
 	 */
 	public CommonClientBuilder socketWaitAtMost ( long ms )
 	{
-		fWaitTimeoutMs = ms;
+		if ( ms >= 0 )
+		{
+			fWaitTimeoutMs = ms;
+		}
+		else
+		{
+			fWaitTimeoutMs = kDefaultSocketWaitMs;
+		}
 		return this;
 	}
 	
@@ -235,6 +248,8 @@ public class CommonClientBuilder
 	
 	public String getTopic () { return fTopic; }
 
+	public long getTransactionWaitMs () { return fTrxTimeoutMs; }
+
 	public long getSocketWaitMs () { return fWaitTimeoutMs; }
 
 	public Logger getLog () { return fLog; }
@@ -249,11 +264,14 @@ public class CommonClientBuilder
 	private int fProxyPort = 8888;
 	private String fTopic = null;
 	private Credentials fCreds = Credentials.anonymous ();
-	private long fWaitTimeoutMs = 30000L;
+	private long fTrxTimeoutMs = kDefaultTrxWaitMs;
+	private long fWaitTimeoutMs = kDefaultSocketWaitMs;
 	private Logger fLog = defaultLog;
 	private Clock fClock = new StdClock ();
 
 	private static final Logger defaultLog = LoggerFactory.getLogger ( "io.continual.onap" );
+	private static final long kDefaultTrxWaitMs = 60 * 1000L;
+	private static final long kDefaultSocketWaitMs = 30 * 1000L;
 
 	private static class StdClock implements Clock
 	{
