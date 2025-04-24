@@ -476,7 +476,7 @@ public class OnapMsgRouterPublisher
 
 		fTopic = builder.getTopic();
 
-		fTransactionTimeoutMs = builder.getTransactionTimeoutMs ();
+		fTransactionTimeoutMs = builder.getTransactionWaitMs ();
 		fDefaultHttps = builder.getDefaultHttps ();
 
 		fCreds = builder.getCredentials ();
@@ -505,13 +505,11 @@ public class OnapMsgRouterPublisher
 			.build ()
 		;
 
-		fLabel = new StringBuilder ()
-			.append ( fTopic )
-			.append ( " on " )
-			.append ( fHosts.toString () )
-			.append ( " as " )
-			.append ( fCreds.isAnonymous () ? "anonymous" : fCreds.getUserDescription () )
-			.toString ()
+		fLabel = fTopic +
+			" on " +
+			fHosts.toString () +
+			" as " +
+			( fCreds.isAnonymous () ? "anonymous" : fCreds.getUserDescription () )
 		;
 	}
 
