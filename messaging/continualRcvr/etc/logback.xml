@@ -10,8 +10,44 @@
 		</encoder>
 	</appender>
 
+	<appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>./logs/system.log</file>
+		<encoder>
+			<pattern>%d{yyyy-MMM-dd HH:mm:ss.SSS,GMT+0} [%thread] %-5level %logger{36} - %msg%n</pattern>
+		</encoder>
+		<rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+			<fileNamePattern>./logs/system.%i.log</fileNamePattern>
+			<minIndex>1</minIndex>
+			<maxIndex>20</maxIndex>
+		</rollingPolicy>
+		<triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+			<maxFileSize>256MB</maxFileSize>
+		</triggeringPolicy>
+	</appender>
+
+	<appender name="METRICS_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>./logs/metrics.log</file>
+		<encoder>
+			<pattern>{ "ts":"%d{yyyy-MMM-dd HH:mm:ss.SSS,GMT+0}", "metrics":%msg }%n</pattern>
+		</encoder>
+		<rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+			<fileNamePattern>./logs/metrics.%i.log</fileNamePattern>
+			<minIndex>1</minIndex>
+			<maxIndex>20</maxIndex>
+		</rollingPolicy>
+		<triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+			<maxFileSize>256MB</maxFileSize>
+		</triggeringPolicy>
+	</appender>
+
+	<!-- metrics logging -->
+	<logger name="io.continual.metrics.reporters.LoggingReporter" level="info" additivity="false">
+		<appender-ref ref="METRICS_FILE" />
+	</logger>
+
 	<!-- the root logger -->
 	<root level="info">
+		<appender-ref ref="FILE" />
 		<appender-ref ref="CONSOLE" />
 	</root>
 
