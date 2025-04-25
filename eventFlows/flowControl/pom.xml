@@ -7,7 +7,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.3.30</version>
+		<version>0.3.31-SNAPSHOT</version>
 		<artifactId>continualEventFlowsGroup</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
