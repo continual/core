@@ -23,16 +23,20 @@ import io.continual.iam.IamService;
 import io.continual.metrics.MetricsCatalog;
 import io.continual.metrics.MetricsService;
 import io.continual.metrics.impl.noop.NoopMetricsCatalog;
+import io.continual.metrics.metricTypes.Gauge;
 import io.continual.services.ServiceContainer;
 import io.continual.util.data.json.JsonUtil;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.data.json.JsonVisitor.ObjectVisitor;
+import io.continual.util.naming.Name;
+import io.continual.util.naming.Path;
 import org.apache.catalina.Context;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.connector.Connector;
 import org.apache.catalina.startup.Tomcat;
 import org.apache.coyote.ProtocolHandler;
 import org.apache.coyote.http11.Http11NioProtocol;
+import org.apache.tomcat.util.threads.ThreadPoolExecutor;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -41,6 +45,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.TreeSet;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -203,6 +208,10 @@ public class TomcatHttpService extends CHttpService
 	private void setupConnectorEndpoints ( final Tomcat tomcat, final JSONArray connectors ) throws BuildFailure
 	{
 		final TreeSet<Integer> portsInUse = new TreeSet<> ();
+		final Path tomcatConnectorMetrics = Path.getRootPath ()
+			.makeChildItem ( Name.fromString ( "tomcat" ) )
+			.makeChildItem ( Name.fromString ( "connectors" ) )
+		;
 
 		for ( int i=0; i<connectors.length (); i++ )
 		{
@@ -288,7 +297,74 @@ public class TomcatHttpService extends CHttpService
 			// add the connector to our tomcat instance
 			tomcat.getService ().addConnector ( connector );
 			log.info ( "Service [{}] terminates {} on port {}.", fName, ( isHttps ? "https" : "http" ), port );
+
+			// setup metrics for this connector
+			final Path connectorPath = tomcatConnectorMetrics.makeChildItem ( Name.fromString ( "" + port ) );
+
+			fMetrics.gauge ( connectorPath.makeChildItem ( Name.fromString ( "acceptCount" ) ), () -> { return new ConnectorGauge ( connector )
+			{
+				@Override
+				public Integer getValue ( Http11NioProtocol proto, ThreadPoolExecutor tpe ) { return proto.getAcceptCount (); }
+			}; } );
+
+			fMetrics.gauge ( connectorPath.makeChildItem ( Name.fromString ( "connectionCount" ) ), () -> { return new ConnectorGauge ( connector )
+			{
+				@Override
+				public Integer getValue ( Http11NioProtocol proto, ThreadPoolExecutor tpe ) { return Math.toIntExact ( proto.getConnectionCount () ); }
+			}; } );
+
+			fMetrics.gauge ( connectorPath.makeChildItem ( Name.fromString ( "minSpareThreads" ) ), () -> { return new ConnectorGauge ( connector )
+			{
+				@Override
+				public Integer getValue ( Http11NioProtocol proto, ThreadPoolExecutor tpe ) { return proto.getMinSpareThreads (); }
+			}; } );
+
+			fMetrics.gauge ( connectorPath.makeChildItem ( Name.fromString ( "maxPoolSize" ) ), () -> { return new ConnectorGauge ( connector )
+			{
+				@Override
+				public Integer getValue ( Http11NioProtocol proto, ThreadPoolExecutor tpe ) { return tpe.getMaximumPoolSize (); }
+			}; } );
+
+			fMetrics.gauge ( connectorPath.makeChildItem ( Name.fromString ( "busyThreads" ) ), () -> { return new ConnectorGauge ( connector )
+			{
+				@Override
+				public Integer getValue ( Http11NioProtocol proto, ThreadPoolExecutor tpe ) { return tpe.getActiveCount (); }
+			}; } );
 		}
+	}
+
+	private abstract static class ConnectorGauge implements Gauge<Integer>
+	{
+		public ConnectorGauge ( Connector c )
+		{
+			final ProtocolHandler ph = c.getProtocolHandler ();
+			if ( ph instanceof Http11NioProtocol )
+			{
+				fProto = (Http11NioProtocol) ph;
+			}
+			else
+			{
+				fProto = null;
+			}
+		}
+
+		@Override
+		public Integer getValue ()
+		{
+			if ( fProto != null )
+			{
+				final Executor exec = fProto.getExecutor ();
+				if ( exec instanceof ThreadPoolExecutor )
+				{
+					return getValue ( fProto, (ThreadPoolExecutor) exec );
+				}
+			}
+			return -1;
+		}
+
+		public abstract Integer getValue ( Http11NioProtocol proto, ThreadPoolExecutor tpe );
+
+		private final Http11NioProtocol fProto;
 	}
 
 	private void setupEndpoints ( Tomcat tomcat, JSONObject settings ) throws BuildFailure
