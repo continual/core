@@ -139,6 +139,29 @@ public class JmxMetricsCollector extends SimpleService
 			log.warn ( "OS bean is not of type com.sun.management.OperatingSystemMXBean" );
 		}
 
+		// resource use
+		if ( osBean instanceof com.sun.management.UnixOperatingSystemMXBean )
+		{
+			final com.sun.management.UnixOperatingSystemMXBean unixOsBean = (com.sun.management.UnixOperatingSystemMXBean) osBean;
+
+			fJmxCatalog.gauge ( os.makeChildItem ( Name.fromString ( "fdOpen" ) ), () -> {
+				return new Gauge<Long> () {
+					@Override
+					public Long getValue () { return unixOsBean.getOpenFileDescriptorCount (); }
+				};
+			} );
+			fJmxCatalog.gauge ( os.makeChildItem ( Name.fromString ( "fdMax" ) ), () -> {
+				return new Gauge<Long> () {
+					@Override
+					public Long getValue () { return unixOsBean.getMaxFileDescriptorCount (); }
+				};
+			} );
+		}
+		else
+		{
+			log.warn ( "OS bean is not of type com.sun.management.UnixOperatingSystemMXBean" );
+		}
+
 		// get the GC gauges started
 		reloadGcGauges ();
 	}
