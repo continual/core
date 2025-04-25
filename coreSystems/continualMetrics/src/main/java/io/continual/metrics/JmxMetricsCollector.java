@@ -162,6 +162,16 @@ public class JmxMetricsCollector extends SimpleService
 			log.warn ( "OS bean is not of type com.sun.management.UnixOperatingSystemMXBean" );
 		}
 
+		// uptime
+		final RuntimeMXBean runtime = ManagementFactory.getRuntimeMXBean ();
+		final Path runtimePath = Path.getRootPath ().makeChildItem ( Name.fromString ( "runtime" ) );
+		fJmxCatalog.gauge ( runtimePath.makeChildItem ( Name.fromString ( "uptime" ) ), () -> {
+			return new Gauge<Long> () {
+				@Override
+				public Long getValue () { return runtime.getUptime (); }
+			};
+		} );
+
 		// get the GC gauges started
 		reloadGcGauges ();
 	}
