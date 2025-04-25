@@ -135,7 +135,10 @@ public interface MetricsCatalog
 	 */
 	interface GaugeFactory<T>
 	{
-		Gauge<T> makeNewGauage ();
+		@Deprecated
+		default Gauge<T> makeNewGauage () { return makeNewGauge (); }
+
+		Gauge<T> makeNewGauge ();
 	}
 
 	/**

@@ -6,19 +6,30 @@
 	"services":
 	[
 		//
+		//	metrics catalog and reporter
+		//
+		{
+			"name": "metrics",
+			"class": "io.continual.metrics.DropWizardMetricsService"
+		},
+		{
+			"name": "jmxMetricsCollector",
+			"class": "io.continual.metrics.JmxMetricsCollector"
+		},
+		{
+			"name": "metricsReporter",
+			"class": "io.continual.metrics.reporters.LoggingReporter",
+			"metrics": "metrics"
+		},
+
+		//
 		// accounts
 		//
 		{
 			"name":"accounts",
 
-			"class": "io.continual.iam.impl.s3.S3IamServiceManager",
-			"aws":
-			{
-				"accessKey": "${AWS_ACCOUNTS_APIKEY}",
-				"secretKey": "${AWS_ACCOUNTS_APISECRET}"
-			},
-			"bucketId": "${AWS_ACCOUNTS_BUCKET}",
-			"pathPrefix": "${AWS_ACCOUNTS_PREFIX}"
+			"class": "io.continual.iam.impl.file.IamFileDbServiceManager",
+			"file": "${ACCOUNTS_FILE|./etc/accounts.db}",
 		},
 
 		// basic http presence
@@ -27,6 +38,7 @@
 			"class":"io.continual.http.service.framework.TomcatHttpService",
 
 			"accountService": "accounts",
+			"metricsService": "metrics",
 
 			"port":8080
 		},
