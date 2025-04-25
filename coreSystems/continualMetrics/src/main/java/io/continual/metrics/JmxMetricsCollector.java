@@ -114,6 +114,31 @@ public class JmxMetricsCollector extends SimpleService
 			};
 		} );
 
+		// try for OS info
+		final Path os = Path.getRootPath ().makeChildItem ( Name.fromString ( "os" ) );
+		final OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean ();
+		if ( osBean instanceof com.sun.management.OperatingSystemMXBean )
+		{
+			final com.sun.management.OperatingSystemMXBean sunOsBean = (com.sun.management.OperatingSystemMXBean) osBean;
+
+			fJmxCatalog.gauge ( os.makeChildItem ( Name.fromString ( "sysCpu" ) ), () -> {
+				return new Gauge<Double> () {
+					@Override
+					public Double getValue () { return Math.round ( sunOsBean.getSystemCpuLoad () * 10000.0 ) / 100.0; }
+				};
+			} );
+			fJmxCatalog.gauge ( os.makeChildItem ( Name.fromString ( "processCpu" ) ), () -> {
+				return new Gauge<Double> () {
+					@Override
+					public Double getValue () { return Math.round ( sunOsBean.getProcessCpuLoad () * 10000.0 ) / 100.0; }
+				};
+			} );
+		}
+		else
+		{
+			log.warn ( "OS bean is not of type com.sun.management.OperatingSystemMXBean" );
+		}
+
 		// get the GC gauges started
 		reloadGcGauges ();
 	}
