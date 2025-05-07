@@ -18,6 +18,7 @@ package io.continual.services.processor.engine.library.sinks;
 
 import java.io.PrintStream;
 
+import io.continual.services.processor.engine.model.MessageProcessingContext;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
@@ -78,9 +79,9 @@ public class ConsoleSink implements Sink
 	}
 
 	@Override
-	public void process ( Message msg )
+	public void process ( MessageProcessingContext mc )
 	{
-		fStream.println ( msg.toLine () );
+		fStream.println ( mc.getMessage ().toLine () );
 	}
 
 	private final PrintStream fStream;

@@ -22,6 +22,7 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 
+import io.continual.services.processor.engine.model.MessageProcessingContext;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -137,7 +138,7 @@ public class CsvSink implements Sink
 	}
 
 	@Override
-	public void process ( Message msg )
+	public void process ( MessageProcessingContext context )
 	{
 		if ( !fHasOutputHeader )
 		{
@@ -151,8 +152,8 @@ public class CsvSink implements Sink
 			fHasOutputHeader = true;
 		}
 
-		final JSONObject msgJson = msg.toJson ();
-		
+		final JSONObject msgJson = context.getMessage ().toJson ();
+
 		// output the data line
 		final CsvLineBuilder clb = new CsvLineBuilder ();
 		for ( ColInfo ci : fCols )
@@ -163,7 +164,7 @@ public class CsvSink implements Sink
 			{
 				if ( targetClass.equals ( Integer.class ) )
 				{
-					if ( val.length () == 0 )
+					if ( val.isEmpty () )
 					{
 						clb.appendEmpty ();
 					}
@@ -174,7 +175,7 @@ public class CsvSink implements Sink
 				}
 				else if ( targetClass.equals ( Long.class ) )
 				{
-					if ( val.length () == 0 )
+					if ( val.isEmpty () )
 					{
 						clb.appendEmpty ();
 					}
@@ -185,7 +186,7 @@ public class CsvSink implements Sink
 				}
 				else if ( targetClass.equals ( Double.class ) )
 				{
-					if ( val.length () == 0 )
+					if ( val.isEmpty () )
 					{
 						clb.appendEmpty ();
 					}
@@ -240,7 +241,7 @@ public class CsvSink implements Sink
 
 		private static Class<?> classFrom ( String text )
 		{
-			if ( text == null || text.length () == 0 ) return String.class;
+			if ( text == null || text.isEmpty () ) return String.class;
 
 			text = text.trim ().toLowerCase ();
 			if ( text.startsWith ( "int" ) )
