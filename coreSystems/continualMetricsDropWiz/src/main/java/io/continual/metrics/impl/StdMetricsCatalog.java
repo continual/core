@@ -179,7 +179,7 @@ public class StdMetricsCatalog implements MetricsCatalog, JsonSerialized
 			@Override
 			public com.codahale.metrics.Gauge<T> newMetric ()
 			{
-				Gauge<T> g = factory.makeNewGauage ();
+				Gauge<T> g = factory.makeNewGauge ();
 				return new com.codahale.metrics.Gauge ()
 				{
 				    public T getValue()
