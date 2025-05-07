@@ -35,7 +35,7 @@ public class AuthApiHandler<I extends Identity> extends TypicalRestApiEndpoint<I
 	{
 		try
 		{
-			CorsOptionsRouter.setupCorsHeaders ( context );
+			writeCorsHeaders ( context );
 
 			final JSONObject body = readBody ( context );
 			final String username = readJsonString ( body, "username" );
@@ -68,7 +68,7 @@ public class AuthApiHandler<I extends Identity> extends TypicalRestApiEndpoint<I
 
 	public void logout ( CHttpRequestContext context ) throws IamSvcException, IOException
 	{
-		CorsOptionsRouter.setupCorsHeaders ( context );
+		writeCorsHeaders ( context );
 
 		final UserContext<I> user = getUser ( context );
 		if ( user != null )
@@ -89,7 +89,7 @@ public class AuthApiHandler<I extends Identity> extends TypicalRestApiEndpoint<I
 
 	public void validateToken ( CHttpRequestContext context ) throws IamSvcException, IOException
 	{
-		CorsOptionsRouter.setupCorsHeaders ( context );
+		writeCorsHeaders ( context );
 
 		try
 		{
@@ -124,7 +124,7 @@ public class AuthApiHandler<I extends Identity> extends TypicalRestApiEndpoint<I
 
 	public void changePassword ( CHttpRequestContext context ) throws IamSvcException, IOException
 	{
-		CorsOptionsRouter.setupCorsHeaders ( context );
+		writeCorsHeaders ( context );
 
 		final UserContext<I> user = getUser ( context );
 		if ( user == null )

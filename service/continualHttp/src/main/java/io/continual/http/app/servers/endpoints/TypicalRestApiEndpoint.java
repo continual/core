@@ -18,7 +18,11 @@
 package io.continual.http.app.servers.endpoints;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.TreeSet;
 
+import io.continual.util.data.json.JsonVisitor;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -74,7 +78,7 @@ public class TypicalRestApiEndpoint<I extends Identity> extends JsonIoEndpoint
 
 	/**
 	 * Make a simple resource reference from the given name
-	 * @param named
+	 * @param named the name of a resource
 	 * @return a resource
 	 */
 	public static Resource makeResource ( String named ) { return Resource.fromName ( named ); } 
@@ -95,22 +99,35 @@ public class TypicalRestApiEndpoint<I extends Identity> extends JsonIoEndpoint
 	}
 
 	/**
-	 * Construct the base endpoint with a service container and specific settings
-	 * @param sc
-	 * @param settings
-	 * @throws BuildFailure
+	 * Construct the base endpoint with a service container and specific settings. If the settings include
+	 * an array called "allowedOrigins", the endpoint will allow CORS requests from those origins.
+	 *
+	 * @param sc the process service container
+	 * @param settings settings for this instance
+	 * @throws BuildFailure if the endpoint cannot be constructed
 	 */
 	@SuppressWarnings("unchecked")
 	public TypicalRestApiEndpoint ( ServiceContainer sc, JSONObject settings ) throws BuildFailure
 	{
 		fAccts = sc.getReqd ( getAcctsSvcName ( settings ), IamService.class );
 		fAuthenticator = new AuthList<I> ( settings );
+
+		final JSONArray origins = settings.optJSONArray ( "allowedOrigins" );
+		if ( origins != null )
+		{
+			final List<String> originList = JsonVisitor.arrayToList ( origins );
+			fAllowedOrigins = new TreeSet<> ( originList );
+		}
+		else
+		{
+			fAllowedOrigins = null;
+		}
 	}
 
 	/**
 	 * Handle the given request with the given ApiHandler after authentication
-	 * @param context
-	 * @param handler
+	 * @param context the http request context
+	 * @param handler a handler for the request
 	 */
 	public void handleWithApiAuth ( CHttpRequestContext context, ApiHandler<I> handler )
 	{
@@ -119,16 +136,16 @@ public class TypicalRestApiEndpoint<I extends Identity> extends JsonIoEndpoint
 
 	/**
 	 * Handle the given request with the given ApiHandler after authentication and access control checks.
-	 * @param context
-	 * @param handler
-	 * @param accessReqd
+	 * @param context the http request context
+	 * @param handler a handler for the request
+	 * @param accessReqd access required for the user before the call is handled
 	 */
 	public void handleWithApiAuthAndAccess ( CHttpRequestContext context, ApiHandler<I> handler, ResourceAccess... accessReqd )
 	{
 		try
 		{
-			// add cors headers
-			CorsOptionsRouter.setupCorsHeaders ( context );
+			// add cors headers to the response
+			writeCorsHeaders ( context );
 
 			// get the user
 			final UserContext<I> user = getUser ( context );
@@ -167,7 +184,7 @@ public class TypicalRestApiEndpoint<I extends Identity> extends JsonIoEndpoint
 
 	/**
 	 * Can the given user perform the given operation on the given resource?
-	 * @param context
+	 * @param context the http request context
 	 * @param user
 	 * @param resId
 	 * @param operation
@@ -185,7 +202,7 @@ public class TypicalRestApiEndpoint<I extends Identity> extends JsonIoEndpoint
 
 	/**
 	 * Get the current user via authentication and return a user context
-	 * @param context
+	 * @param context the http request context
 	 * @return a UserContext or null of the user is not authenticated
 	 * @throws IamSvcException
 	 */
@@ -246,8 +263,14 @@ public class TypicalRestApiEndpoint<I extends Identity> extends JsonIoEndpoint
 		return fAccts;
 	}
 
+	protected void writeCorsHeaders ( CHttpRequestContext context )
+	{
+		CorsOptionsRouter.setupCorsHeaders ( context, fAllowedOrigins );
+	}
+
 	private final IamService<I, ?> fAccts;
 	private final Authenticator<I> fAuthenticator;
+	private final TreeSet<String> fAllowedOrigins;
 
 	private static final Logger log = LoggerFactory.getLogger ( TypicalRestApiEndpoint.class );
 

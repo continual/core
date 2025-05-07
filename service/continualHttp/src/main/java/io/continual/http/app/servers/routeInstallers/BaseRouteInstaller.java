@@ -19,6 +19,8 @@ package io.continual.http.app.servers.routeInstallers;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -46,6 +48,15 @@ public class BaseRouteInstaller implements CHttpRouteInstaller
 	public BaseRouteInstaller ( boolean withCors )
 	{
 		fWithCors = withCors;
+		fAllowedOrigins = null;
+		fRouteEntries = new LinkedList<> ();
+		fErrorHandlerEntries = new LinkedList<> ();
+	}
+
+	public BaseRouteInstaller ( Set<String> allowedOrigins )
+	{
+		fWithCors = true;
+		fAllowedOrigins = new TreeSet<> ( allowedOrigins );
 		fRouteEntries = new LinkedList<> ();
 		fErrorHandlerEntries = new LinkedList<> ();
 	}
@@ -180,10 +191,14 @@ public class BaseRouteInstaller implements CHttpRouteInstaller
 		} );
 	}
 
+	/**
+	 * Setup generic CORS headers for the router, allowing specific origins.
+	 * @param rr a request router
+	 */
 	protected void setupCorsHandler ( CHttpRequestRouter rr )
 	{
 		// general purpose OPTIONS handler
-		rr.addRouteSource ( new CorsOptionsRouter () );
+		rr.addRouteSource ( new CorsOptionsRouter ( fAllowedOrigins ) );
 	}
 
 	protected void setupExceptionHandlers ( CHttpRequestRouter rr )
@@ -194,7 +209,7 @@ public class BaseRouteInstaller implements CHttpRouteInstaller
 		}
 	}
 
-	private class ErrHandlerEntry
+	private static class ErrHandlerEntry
 	{
 		public ErrHandlerEntry ( Class<? extends Throwable> exClass, CHttpErrorHandler handler )
 		{
@@ -210,6 +225,7 @@ public class BaseRouteInstaller implements CHttpRouteInstaller
 	}
 	
 	private final boolean fWithCors;
+	private final TreeSet<String> fAllowedOrigins;
 	private final LinkedList<CHttpRouteSource> fRouteEntries;
 	private final LinkedList<ErrHandlerEntry> fErrorHandlerEntries;
 }
