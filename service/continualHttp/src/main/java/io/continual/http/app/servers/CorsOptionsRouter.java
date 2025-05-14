@@ -18,7 +18,7 @@ public class CorsOptionsRouter implements CHttpRouteSource
 {
 	public CorsOptionsRouter ( Set<String> allowedOrigins )
 	{
-		fAllowedOrigins = new TreeSet<> ( allowedOrigins );
+		fAllowedOrigins = allowedOrigins == null ? null : new TreeSet<> ( allowedOrigins );
 	}
 
 	@Override
@@ -31,7 +31,7 @@ public class CorsOptionsRouter implements CHttpRouteSource
 				@Override
 				public void run ( CHttpRequestContext context )
 				{
-					setupCorsHeaders ( context );
+					setupCorsHeadersWithOrigins ( context );
 					context.response ().setStatus ( HttpStatusCodes.k204_noContent );
 				}
 
@@ -84,10 +84,16 @@ public class CorsOptionsRouter implements CHttpRouteSource
 		if ( withOriginCheck )
 		{
 			final String origin = context.request ().getFirstHeader ( "Origin" );
-			if ( origin == null || !allowedOrigins.contains ( origin ) )
+			if ( origin == null )
+			{
+				// no origin provided -- likely a rest user agent
+				log.info ( "No origin on request; no CORS headers set." );
+				return;
+			}
+			else if ( !allowedOrigins.contains ( origin ) )
 			{
 				// the origin (if any) is not allowed, so we don't set CORS headers at all
-				log.warn ( "Origin {} is not allowed.", origin == null ? "null" : origin );
+				log.warn ( "Origin {} is not allowed; no CORS headers set.", origin );
 				return;
 			}
 

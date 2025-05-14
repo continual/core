@@ -20,10 +20,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.Set;
-import java.util.TreeSet;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.http.app.servers.CorsOptionsRouter;
@@ -40,25 +40,40 @@ import io.continual.util.standards.MimeTypes;
 
 public class BaseRouteInstaller implements CHttpRouteInstaller
 {
+	/**
+	 * Setup a base route installer
+	 */
 	public BaseRouteInstaller ()
 	{
-		this ( true );
+		fRouteEntries = new LinkedList<> ();
+		fErrorHandlerEntries = new LinkedList<> ();
 	}
 
+	/**
+	 * Setup a base route installer
+	 * @param withCors
+	 * @deprecated Specify allowed origins
+	 */
+	@Deprecated
 	public BaseRouteInstaller ( boolean withCors )
 	{
-		fWithCors = withCors;
-		fAllowedOrigins = null;
-		fRouteEntries = new LinkedList<> ();
-		fErrorHandlerEntries = new LinkedList<> ();
+		this ( false, null );
 	}
 
-	public BaseRouteInstaller ( Set<String> allowedOrigins )
+	/**
+	 * Setup a base route installer
+	 * @param generateCorsHeaders if true, generate cors headers. If false, no cors headers
+	 * are generated here and allowedOrigins is ignored.
+	 * @param allowedOrigins if not null, the list of allowed origins. If a
+	 * 	call doesn't match (or doesn't provide an origin), no cors headers are sent.
+	 * 	If null, a wildcard allowed origins is sent but not credentials cors header.
+	 * @deprecated if a cors (options) handler is required, call "setupCorsHandler ( requestRouter, originSet )". 
+	 */
+	@Deprecated
+	public BaseRouteInstaller ( boolean generateCorsHeaders, Set<String> allowedOrigins )
 	{
-		fWithCors = true;
-		fAllowedOrigins = new TreeSet<> ( allowedOrigins );
-		fRouteEntries = new LinkedList<> ();
-		fErrorHandlerEntries = new LinkedList<> ();
+		this ();
+		log.error ( "If a cors (options) handler is required, call \"setupCorsHandler ( requestRouter, originSet )\"." );
 	}
 
 	public BaseRouteInstaller registerRouteSource ( CHttpRouteSource routeSource )
@@ -70,12 +85,7 @@ public class BaseRouteInstaller implements CHttpRouteInstaller
 	@Override
 	public void setupRouter ( CHttpRequestRouter rr, NvReadable prefs ) throws IOException 
 	{
-		if ( fWithCors )
-		{
-			setupCorsHandler ( rr );
-		}
 		setupExceptionHandlers ( rr );
-
 		for ( CHttpRouteSource rs : fRouteEntries )
 		{
 			rr.addRouteSource ( rs );
@@ -192,13 +202,14 @@ public class BaseRouteInstaller implements CHttpRouteInstaller
 	}
 
 	/**
-	 * Setup generic CORS headers for the router, allowing specific origins.
+	 * Setup generic CORS headers for the router, allowing specific origins. This is equivalent
+	 * to calling "addRouteSource ( new CorsOptionsRouter ( allowedOrigins ) )"
 	 * @param rr a request router
+	 * @param allowedOrigins
 	 */
-	protected void setupCorsHandler ( CHttpRequestRouter rr )
+	protected void setupCorsHandler ( CHttpRequestRouter rr, Set<String> allowedOrigins )
 	{
-		// general purpose OPTIONS handler
-		rr.addRouteSource ( new CorsOptionsRouter ( fAllowedOrigins ) );
+		rr.addRouteSource ( new CorsOptionsRouter ( allowedOrigins ) );
 	}
 
 	protected void setupExceptionHandlers ( CHttpRequestRouter rr )
@@ -224,8 +235,8 @@ public class BaseRouteInstaller implements CHttpRouteInstaller
 		private final CHttpErrorHandler fHandler;
 	}
 	
-	private final boolean fWithCors;
-	private final TreeSet<String> fAllowedOrigins;
 	private final LinkedList<CHttpRouteSource> fRouteEntries;
 	private final LinkedList<ErrHandlerEntry> fErrorHandlerEntries;
+
+	private static final Logger log = LoggerFactory.getLogger ( BaseRouteInstaller.class );
 }

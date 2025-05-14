@@ -16,10 +16,13 @@
 
 package io.continual.http.app.servers.routeInstallers;
 
+import java.util.Set;
+
 import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.continual.http.app.servers.CorsOptionsRouter;
 import io.continual.http.service.framework.routing.CHttpRequestRouter;
 import io.continual.iam.access.AccessException;
 import io.continual.iam.exceptions.IamSvcException;
@@ -34,8 +37,21 @@ public class TypicalApiServiceRouteInstaller extends BaseRouteInstaller
 
 	public TypicalApiServiceRouteInstaller ( boolean withCors, boolean withStdErrHandlers )
 	{
-		super ( withCors );
+		this ( withCors, null, withStdErrHandlers );
+	}
 
+	public TypicalApiServiceRouteInstaller ( boolean withCors, Set<String> allowedOrigins, boolean withStdErrHandlers )
+	{
+		super ();
+
+		registerRouteSource ( new CorsOptionsRouter ( allowedOrigins ) );
+		installStdErrHandlers ( withStdErrHandlers );
+	}
+
+	private static final Logger log = LoggerFactory.getLogger ( TypicalApiServiceRouteInstaller.class );
+
+	private void installStdErrHandlers ( boolean withStdErrHandlers )
+	{
 		if ( withStdErrHandlers )
 		{
 			registerErrorHandler ( CHttpRequestRouter.noMatchingRoute.class, HttpStatusCodes.k404_notFound, "Not found. See the API docs." );
@@ -45,6 +61,4 @@ public class TypicalApiServiceRouteInstaller extends BaseRouteInstaller
 			registerErrorHandler ( Throwable.class, HttpStatusCodes.k500_internalServerError, "There was a problem at the server.", log );
 		}
 	}
-
-	private static final Logger log = LoggerFactory.getLogger ( TypicalApiServiceRouteInstaller.class );
 }

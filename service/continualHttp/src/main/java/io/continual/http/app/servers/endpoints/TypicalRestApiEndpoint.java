@@ -115,7 +115,9 @@ public class TypicalRestApiEndpoint<I extends Identity> extends JsonIoEndpoint
 		final JSONArray origins = settings.optJSONArray ( "allowedOrigins" );
 		if ( origins != null )
 		{
-			final List<String> originList = JsonVisitor.arrayToList ( origins );
+			final JSONArray evaled = sc.getExprEval ().evaluateJsonArray ( origins );
+
+			final List<String> originList = JsonVisitor.arrayToList ( evaled );
 			fAllowedOrigins = new TreeSet<> ( originList );
 		}
 		else
@@ -263,6 +265,10 @@ public class TypicalRestApiEndpoint<I extends Identity> extends JsonIoEndpoint
 		return fAccts;
 	}
 
+	/**
+	 * Add CORS headers to the given response
+	 * @param context
+	 */
 	protected void writeCorsHeaders ( CHttpRequestContext context )
 	{
 		CorsOptionsRouter.setupCorsHeaders ( context, fAllowedOrigins );
