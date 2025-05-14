@@ -16,6 +16,7 @@
 
 package io.continual.services.processor.engine.library.sinks;
 
+import io.continual.services.processor.engine.model.MessageProcessingContext;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
@@ -50,7 +51,7 @@ public class NullSink implements Sink
 	}
 
 	@Override
-	public void process ( Message msg )
+	public void process ( MessageProcessingContext mc )
 	{
 	}
 }

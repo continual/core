@@ -36,7 +36,7 @@ public class Options extends TypicalRestApiEndpoint<Identity>
 
 	public void listOptions ( CHttpRequestContext context, final String path )
 	{
-		CorsOptionsRouter.setupCorsHeaders ( context );
+		writeCorsHeaders ( context );
 
 		final CHttpResponse reply = context.response ();
 		reply.setStatus ( HttpStatusCodes.k204_noContent );

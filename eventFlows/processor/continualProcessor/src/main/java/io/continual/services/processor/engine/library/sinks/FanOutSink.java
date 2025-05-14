@@ -98,12 +98,6 @@ public class FanOutSink implements Sink
 	}
 
 	@Override
-	public void process ( Message msg )
-	{
-		// no-op
-	}
-
-	@Override
 	public void process ( MessageProcessingContext context )
 	{
 		for ( Sink s : fSinks )

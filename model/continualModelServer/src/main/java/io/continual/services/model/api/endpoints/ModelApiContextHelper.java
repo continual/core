@@ -95,9 +95,10 @@ public class ModelApiContextHelper extends TypicalRestApiEndpoint<Identity>
 	
 	/**
 	 * Authenticate the user and setup base paths, etc. for model service use.
-	 * @param context
-	 * @param handler
-	 * @throws ModelRequestException
+	 * @param context the http request context
+	 * @param acctId the account ID to use for authentication
+	 * @param handler the handler to call with the authenticated user context
+	 * @throws ModelRequestException if there's an error with the request
 	 */
 	public void handleModelRequest ( final CHttpRequestContext context, final String acctId, final ModelApiHandler handler ) throws ModelRequestException
 	{
@@ -105,7 +106,7 @@ public class ModelApiContextHelper extends TypicalRestApiEndpoint<Identity>
 		{
 			final IamService<?,?> as = getInternalAccts ();
 
-			CorsOptionsRouter.setupCorsHeaders ( context );
+			writeCorsHeaders ( context );
 
 			final UserContext<?> userContext = getUser ( context );
 			if ( userContext == null )

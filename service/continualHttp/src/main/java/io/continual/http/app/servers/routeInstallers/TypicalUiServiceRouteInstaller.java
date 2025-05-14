@@ -30,7 +30,7 @@ public class TypicalUiServiceRouteInstaller extends BaseRouteInstaller
 {
 	public TypicalUiServiceRouteInstaller ()
 	{
-		super ( false );
+		super ();
 
 		final Logger log = LoggerFactory.getLogger ( this.getClass ().getName () );
 

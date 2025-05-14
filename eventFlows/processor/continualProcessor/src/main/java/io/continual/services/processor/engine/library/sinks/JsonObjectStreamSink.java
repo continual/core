@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.continual.services.processor.engine.model.MessageProcessingContext;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
@@ -48,9 +49,9 @@ public class JsonObjectStreamSink implements Sink
 	}
 
 	@Override
-	public void process ( Message msg )
+	public void process ( MessageProcessingContext mc )
 	{
-		fPending.add ( msg.toJson () );
+		fPending.add ( mc.getMessage ().toJson () );
 	}
 
 	@Override
