@@ -22,6 +22,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Maps a key to a list (not just a set) of values. The classes used for
@@ -136,9 +138,34 @@ public class MultiMap<K,V>
 		return fMultiMap.keySet ();
 	}
 
+	public synchronized Set<K> keySet ()
+	{
+		return new TreeSet<K> ( getKeys () );
+	}
+
 	public synchronized Map<K,List<V>> getValues ()
 	{
 		return fMultiMap;
+	}
+
+	public synchronized Set<Map.Entry<K, List<V>>> entrySet ()
+	{
+		final TreeSet<Map.Entry<K, List<V>>> result = new TreeSet<> ();
+		for ( Entry<K, List<V>> e : fMultiMap.entrySet () )
+		{
+			result.add ( new Map.Entry<> ()
+			{
+				@Override
+				public K getKey () { return e.getKey (); }
+
+				@Override
+				public List<V> getValue () { return e.getValue (); }
+
+				@Override
+				public List<V> setValue ( List<V> value ) { return e.getValue (); }
+			} );
+		}
+		return result;
 	}
 
 	public synchronized Map<K,Collection<V>> getCopyAsSimpleMap ()

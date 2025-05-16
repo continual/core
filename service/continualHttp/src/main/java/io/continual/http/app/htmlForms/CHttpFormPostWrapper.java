@@ -22,6 +22,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -73,7 +75,7 @@ public class CHttpFormPostWrapper
 
 		fIsMultipartFormData = ct != null && ct.startsWith ( "multipart/form-data" );
 		fPartFactory = mimePartFactory == null ? new simpleStorage () : mimePartFactory;
-		fParsedValues = new HashMap<>();
+		fParsedValues = new MultiMap<>();
 		fParseComplete = false;
 	}
 
@@ -82,9 +84,12 @@ public class CHttpFormPostWrapper
 	 */
 	public void close ()
 	{
-		for ( CHttpMimePart vi : fParsedValues.values () )
+		for ( List<CHttpMimePart> partList : fParsedValues.getValues ().values () )
 		{
-			vi.discard ();
+			for ( CHttpMimePart part : partList )
+			{
+				part.discard ();
+			}
 		}
 	}
 	
@@ -98,17 +103,19 @@ public class CHttpFormPostWrapper
 		{
 			if ( fParseComplete )
 			{
-				for ( Entry<String, CHttpMimePart> e : fParsedValues.entrySet () )
+				for ( Entry<String, List<CHttpMimePart>> e : fParsedValues.entrySet () )
 				{
 					sb.append ( e.getKey () ).append ( ":" );
-					final CHttpMimePart mp = e.getValue ();
-					if ( mp.getAsString () != null )
+					for ( CHttpMimePart mp : e.getValue () )
 					{
-						 sb.append ( "'" ).append(mp.getAsString()).append ( "' " );
-					}
-					else
-					{
-						sb.append ( "(data) " );
+						if ( mp.getAsString () != null )
+						{
+							 sb.append ( "'" ).append(mp.getAsString()).append ( "' " );
+						}
+						else
+						{
+							sb.append ( "(data) " );
+						}
 					}
 				}
 			}
@@ -194,9 +201,13 @@ public class CHttpFormPostWrapper
 
 		if ( fIsMultipartFormData )
 		{
-			for ( Map.Entry<String,CHttpMimePart> e : fParsedValues.entrySet () )
+			for ( Map.Entry<String,List<CHttpMimePart>> e : fParsedValues.entrySet () )
 			{
-				final String val = e.getValue ().getAsString ();
+				final List<CHttpMimePart> parts = e.getValue ();
+				if ( parts.size() == 0 ) continue;
+
+				final CHttpMimePart firstVal = e.getValue ().get ( 0 );
+				final String val = firstVal.getAsString ();
 				if ( val != null )
 				{
 					map.put ( e.getKey(), val );
@@ -235,8 +246,12 @@ public class CHttpFormPostWrapper
 		{
 			if ( fIsMultipartFormData )
 			{
-				final CHttpMimePart val = fParsedValues.get ( name );
-				result = ( val != null && val.getAsString () != null );
+				final List<CHttpMimePart> vals = fParsedValues.get ( name );
+				if ( vals.size () > 0 )
+				{
+					final CHttpMimePart val = vals.get ( 0 );
+					result = ( val != null && val.getAsString () != null );
+				}
 			}
 			else
 			{
@@ -261,12 +276,17 @@ public class CHttpFormPostWrapper
 		String result;
 		if ( fIsMultipartFormData )
 		{
-			final CHttpMimePart val = fParsedValues.get ( name );
-			
 			result = null;
-			if ( val != null && val.getAsString () != null )
+
+			final List<CHttpMimePart> vals = fParsedValues.get ( name );
+			if ( vals.size () > 0 )
 			{
-				result = val.getAsString ().trim ();
+				final CHttpMimePart val = vals.get ( 0 );
+
+				if ( val != null && val.getAsString () != null )
+				{
+					result = val.getAsString ().trim ();
+				}
 			}
 		}
 		else
@@ -459,7 +479,10 @@ public class CHttpFormPostWrapper
 		{
 			if ( fParsedValues.containsKey ( fieldName ) )
 			{
-				fParsedValues.get ( fieldName ).discard ();
+				for ( CHttpMimePart part : fParsedValues.get ( fieldName ) )
+				{
+					part.discard ();
+				}
 			}
 			
 			final inMemoryFormDataPart part = new inMemoryFormDataPart ( "", "form-data; name=\"" + fieldName + "\"" );
@@ -475,7 +498,8 @@ public class CHttpFormPostWrapper
 	}
 
 	/**
-	 * Get the MIME part for a given field name.
+	 * Get the MIME part for a given field name. Note that forms can have multiple MIME parts with
+	 * the same name. In these cases, the first entry is returned.
 	 * @param name
 	 * @return a MIME part
 	 * @throws ParseException 
@@ -486,19 +510,44 @@ public class CHttpFormPostWrapper
 
 		if ( fIsMultipartFormData )
 		{
-			final CHttpMimePart val = fParsedValues.get ( name );
-			if ( val != null && val.getAsString () == null )
+			final List<CHttpMimePart> vals = fParsedValues.get ( name );
+			if ( vals.size () > 0 )
 			{
-				return val;
+				final CHttpMimePart val = vals.get ( 0 );
+				if ( val != null && val.getAsString () == null )
+				{
+					return val;
+				}
 			}
 		}
 		return null;
 	}
 	
+
+	/**
+	 * Get all MIME parts in the post.
+	 * @return a list of all MIME parts
+	 * @throws ParseException 
+	 */
+	public List<CHttpMimePart> getAllStreams () throws ParseException
+	{
+		parseIfNeeded ();
+
+		final LinkedList<CHttpMimePart> result = new LinkedList<> ();
+		if ( fIsMultipartFormData )
+		{
+			for ( Map.Entry<String,List<CHttpMimePart>> e : fParsedValues.entrySet () )
+			{
+				result.addAll ( e.getValue () );
+			}
+		}
+		return result;
+	}
+
 	private final CHttpRequest fRequest;
 	private final boolean fIsMultipartFormData;
 	private boolean fParseComplete;
-	private final HashMap<String,CHttpMimePart> fParsedValues;
+	private final MultiMap<String,CHttpMimePart> fParsedValues;
 	private final CHttpMimePartFactory fPartFactory;
 
 	private void parseIfNeeded () throws ParseException
