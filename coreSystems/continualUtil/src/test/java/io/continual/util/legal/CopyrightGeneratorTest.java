@@ -1,10 +1,6 @@
 package io.continual.util.legal;
-
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Date;
-import java.util.TimeZone;
 
 import org.junit.Assert;
 import org.junit.Test;
