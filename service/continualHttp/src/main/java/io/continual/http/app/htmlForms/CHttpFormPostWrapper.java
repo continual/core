@@ -538,7 +538,13 @@ public class CHttpFormPostWrapper
 		{
 			for ( Map.Entry<String,List<CHttpMimePart>> e : fParsedValues.entrySet () )
 			{
-				result.addAll ( e.getValue () );
+				for ( CHttpMimePart p : e.getValue () )
+				{
+					if ( p.isStream () )
+					{
+						result.add ( p );
+					}
+				}
 			}
 		}
 		return result;
@@ -685,6 +691,9 @@ public class CHttpFormPostWrapper
 		}
 
 		@Override
+		public boolean isStream () { return false; }
+
+		@Override
 		public InputStream openStream () throws IOException
 		{
 			throw new IOException ( "Opening stream on in-memory form data." );
@@ -694,6 +703,12 @@ public class CHttpFormPostWrapper
 		public String getAsString ()
 		{
 			return fValue;
+		}
+
+		@Override
+		public String getCompareString ()
+		{
+			return this.getClass ().getSimpleName () + "::" + fValue;
 		}
 
 		private String fValue;
@@ -729,6 +744,9 @@ public class CHttpFormPostWrapper
 		}
 
 		@Override
+		public boolean isStream () { return true; }
+
+		@Override
 		public InputStream openStream () throws IOException
 		{
 			if ( fStream != null )
@@ -751,6 +769,12 @@ public class CHttpFormPostWrapper
             fFile.delete ();
 			fFile = null;
 			fStream = null;
+		}
+
+		@Override
+		public String getCompareString ()
+		{
+			return this.getClass ().getSimpleName () + "::" + fFile.getAbsolutePath ();
 		}
 
 		private File fFile;

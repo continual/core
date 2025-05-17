@@ -23,7 +23,7 @@ import java.io.InputStream;
  * A MIME part. These are created by the multipart MIME reader via the supplied
  * part factory. 
  */
-public interface CHttpMimePart
+public interface CHttpMimePart extends Comparable<CHttpMimePart>
 {
 	/**
 	 * Get the content type for this part.
@@ -50,7 +50,13 @@ public interface CHttpMimePart
 	 * @return a string or null if undefined
 	 */
 	String getContentDispositionValue ( String key );
-	
+
+	/**
+	 * Return true if this is a stream part.
+	 * @return true if this is a stream part.
+	 */
+	boolean isStream ();
+
 	/**
 	 * open a stream to read this part's data.
 	 * @return an input stream
@@ -83,4 +89,18 @@ public interface CHttpMimePart
 	 * @throws IOException
 	 */
 	void close () throws IOException;
+
+	/**
+	 * Used in comparison to compare across implementation types.
+	 * @return a comparison string
+	 */
+	String getCompareString ();
+
+	/**
+	 * implement comparison
+	 */
+	default int compareTo ( CHttpMimePart that )
+	{
+		return getCompareString ().compareTo ( that.getCompareString () );
+	}
 }
