@@ -16,12 +16,15 @@
 package io.continual.util.collections;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Maps a key to a list (not just a set) of values. The classes used for
@@ -32,7 +35,7 @@ import java.util.Map.Entry;
  * @param <K> a key type for the map
  * @param <V> a value type for the map
  */
-public class MultiMap<K,V>
+public class MultiMap<K extends Comparable<? super K>, V>
 {
 	public MultiMap ()
 	{
@@ -136,9 +139,35 @@ public class MultiMap<K,V>
 		return fMultiMap.keySet ();
 	}
 
+	public synchronized Set<K> keySet ()
+	{
+		return new TreeSet<K> ( getKeys () );
+	}
+
 	public synchronized Map<K,List<V>> getValues ()
 	{
 		return fMultiMap;
+	}
+
+	public synchronized Set<Map.Entry<K, List<V>>> entrySet ()
+	{
+		final TreeSet<Map.Entry<K, List<V>>> result = new TreeSet<> ( new EntryComparator<K,V> () );
+
+		for ( Entry<K, List<V>> e : fMultiMap.entrySet () )
+		{
+			result.add ( new Map.Entry<> ()
+			{
+				@Override
+				public K getKey () { return e.getKey (); }
+
+				@Override
+				public List<V> getValue () { return e.getValue (); }
+
+				@Override
+				public List<V> setValue ( List<V> value ) { return e.getValue (); }
+			} );
+		}
+		return result;
 	}
 
 	public synchronized Map<K,Collection<V>> getCopyAsSimpleMap ()
@@ -190,5 +219,61 @@ public class MultiMap<K,V>
 			fMultiMap.put ( k, itemList );
 		}
 		return itemList;
+	}
+
+	private static class EntryComparator<K extends Comparable<? super K>, V> implements Comparator<Entry<K, List<V>>>
+	{
+		@Override
+		public int compare ( Entry<K, List<V>> o1, Entry<K, List<V>> o2 )
+		{
+			// Compare keys
+			int keyComp = o1.getKey ().compareTo ( o2.getKey () );
+			if ( keyComp != 0 )
+			{
+				return keyComp;
+			}
+		
+			// Compare list sizes
+			List<V> list1 = o1.getValue ();
+			List<V> list2 = o2.getValue ();
+		
+			int sizeComp = Integer.compare ( list1.size (), list2.size () );
+			if ( sizeComp != 0 )
+			{
+				return sizeComp;
+			}
+		
+			// Compare elements one-by-one
+			for ( int i = 0; i < list1.size (); i++ )
+			{
+				V v1 = list1.get ( i );
+				V v2 = list2.get ( i );
+
+				if ( v1 == null && v2 != null ) return -1;
+				if ( v1 != null && v2 == null ) return 1;
+				if ( v1 == null && v2 == null )
+				{
+					continue;
+				}
+
+				final String v1Str = v1.toString ();
+				final String v2Str = v2.toString ();
+
+				if ( v1Str == null && v2Str != null ) return -1;
+				if ( v1Str != null && v2Str == null ) return 1;
+				if ( v1Str == null && v2Str == null )
+				{
+					continue;
+				}
+
+				final int cmp = v1Str.compareTo ( v2Str );
+				if ( cmp != 0 )
+				{
+					return cmp;
+				}
+			}
+		
+			return 0; // Completely equal
+		}
 	}
 }
