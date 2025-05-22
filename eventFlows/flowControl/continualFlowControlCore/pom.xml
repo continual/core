@@ -5,7 +5,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.3.32-SNAPSHOT</version>
+		<version>0.3.32</version>
 		<artifactId>continualFlowControlGroup</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
