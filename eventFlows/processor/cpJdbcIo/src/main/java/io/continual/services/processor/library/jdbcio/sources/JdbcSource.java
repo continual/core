@@ -25,14 +25,11 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
+import io.continual.services.processor.engine.model.*;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.processor.config.readers.ConfigLoadContext;
-import io.continual.services.processor.engine.model.Message;
-import io.continual.services.processor.engine.model.MessageAndRouting;
-import io.continual.services.processor.engine.model.Source;
-import io.continual.services.processor.engine.model.StreamProcessingContext;
 import io.continual.services.processor.library.jdbcio.DbConnection;
 import io.continual.services.processor.library.jdbcio.common.DbConnector;
 
@@ -71,7 +68,7 @@ public class JdbcSource extends DbConnector implements Source
 			if ( fRows != null && fRows.size () > 0 )
 			{
 				final JSONObject data = fRows.remove ( 0 );
-				return new MessageAndRouting ( Message.adoptJsonAsMessage ( data ), fPipeline );
+				return new SimpleMessageAndRouting ( Message.adoptJsonAsMessage ( data ), fPipeline );
 			}
 		}
 		catch ( SQLException x )

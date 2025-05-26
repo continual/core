@@ -1,5 +1,6 @@
 package io.continual.services.processor.library.model.common.fetchers;
 
+import io.continual.services.processor.engine.model.SimpleMessageAndRouting;
 import org.json.JSONObject;
 
 import io.continual.services.model.core.data.BasicModelObject;
@@ -18,6 +19,6 @@ class BaseFetcher
 			.put ( "data", JsonModelObject.modelObjectToJson ( mo.getData () ) )
 		;
 		final Message msg = Message.adoptJsonAsMessage ( modelObjJson );
-		return new MessageAndRouting ( msg, pipeline );
+		return new SimpleMessageAndRouting ( msg, pipeline );
 	}
 }

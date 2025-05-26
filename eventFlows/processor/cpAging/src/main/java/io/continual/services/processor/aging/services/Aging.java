@@ -21,6 +21,7 @@ import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.continual.services.processor.engine.model.SimpleMessageAndRouting;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -130,7 +131,7 @@ public class Aging extends SimpleProcessingService
 					{
 						// requeue
 						final MessageProcessingContext mpc = mc.getMessageProcessingContext ();
-						mpc.getStreamProcessingContext ().requeue ( new MessageAndRouting ( mpc.getMessage (), fOnComplete ) );
+						mpc.getStreamProcessingContext ().requeue ( new SimpleMessageAndRouting ( mpc.getMessage (), fOnComplete ) );
 					}
 				}
 			}

@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
 
+import io.continual.services.processor.engine.model.*;
 import org.json.JSONObject;
 
 import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
@@ -17,10 +18,6 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 import io.continual.services.ServiceContainer;
-import io.continual.services.processor.engine.model.Message;
-import io.continual.services.processor.engine.model.MessageAndRouting;
-import io.continual.services.processor.engine.model.Source;
-import io.continual.services.processor.engine.model.StreamProcessingContext;
 import io.continual.util.data.exprEval.ExpressionEvaluator;
 import io.continual.util.data.json.CommentedJsonTokener;
 
@@ -107,7 +104,7 @@ public class S3DbJsonDocSource implements Source
 				try ( final InputStream is = obj.getObjectContent () )
 				{
 					final JSONObject o = new JSONObject ( new CommentedJsonTokener ( is ) );
-					return new MessageAndRouting ( Message.adoptJsonAsMessage ( o ), "default" );
+					return new SimpleMessageAndRouting ( Message.adoptJsonAsMessage ( o ), "default" );
 				}
 			}
 			catch ( IOException x )

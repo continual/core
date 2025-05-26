@@ -16,8 +16,26 @@
 
 package io.continual.services.processor.engine.model;
 
-public interface MessageAndRouting
+public class SimpleMessageAndRouting implements MessageAndRouting
 {
-	Message getMessage ();
-	String getPipelineName ();
+	public SimpleMessageAndRouting ( Message msg, String pipeline )
+	{
+		fMsg = msg;
+		fPipeline = pipeline;
+	}
+
+	@Override
+	public Message getMessage ()
+	{
+		return fMsg;
+	}
+
+	@Override
+	public String getPipelineName ()
+	{
+		return fPipeline;
+	}
+
+	private final Message fMsg;
+	private final String fPipeline;
 }

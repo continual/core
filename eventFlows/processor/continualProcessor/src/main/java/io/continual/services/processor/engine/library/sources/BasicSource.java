@@ -20,15 +20,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
+import io.continual.services.processor.engine.model.*;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.continual.services.processor.engine.model.Message;
-import io.continual.services.processor.engine.model.MessageAndRouting;
-import io.continual.services.processor.engine.model.Program;
-import io.continual.services.processor.engine.model.Source;
-import io.continual.services.processor.engine.model.StreamProcessingContext;
 import io.continual.util.time.Clock;
 
 public abstract class BasicSource implements Source
@@ -67,7 +63,7 @@ public abstract class BasicSource implements Source
 			synchronized ( this )
 			{
 				// first check the buffer
-				if ( fRequeued.size () > 0 ) return fRequeued.remove ( 0 );
+				if ( !fRequeued.isEmpty () ) return fRequeued.remove ( 0 );
 
 				// is the source stream EOF?
 				if ( isEof() ) return null;
@@ -133,12 +129,17 @@ public abstract class BasicSource implements Source
 
 	protected MessageAndRouting makeDefRoutingMessage ( final Message msg )
 	{
-		return new MessageAndRouting ( msg, fDefPipeline );
+		return new SimpleMessageAndRouting ( msg, getDefaultPipelineName () );
 	}
 
 	protected synchronized void noteEndOfStream ()
 	{
 		fEof = true;
+	}
+
+	protected String getDefaultPipelineName ()
+	{
+		return fDefPipeline;
 	}
 
 	private final String fDefPipeline;
