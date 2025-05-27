@@ -1,21 +1,6 @@
 package io.continual.services.processor.library.kafka.sources;
 
-import java.io.IOException;
-import java.time.Duration;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.Properties;
-import java.util.UUID;
-
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
+import io.continual.notify.ContinualAlertAgent;
 import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.library.sources.BasicSource;
 import io.continual.services.processor.engine.model.Message;
@@ -25,6 +10,18 @@ import io.continual.util.data.exprEval.ExpressionEvaluator;
 import io.continual.util.data.json.CommentedJsonTokener;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.data.json.JsonVisitor.ObjectVisitor;
+import org.apache.kafka.clients.consumer.*;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.time.Duration;
+import java.util.*;
 
 public class KafkaSource extends BasicSource
 {
@@ -42,15 +39,17 @@ public class KafkaSource extends BasicSource
 		readConfigInto ( config.optJSONObject ( "kafka" ), fProps, ee );
 		fProps.put ( "group.id", topic + "::" + group );
 		fProps.put ( "client.id", UUID.randomUUID ().toString () );
-		fProps.put ( "enable.auto.commit", cc.optBoolean ( "autoCommit", true ) );
+		fProps.put ( "enable.auto.commit", false );
 		fProps.put ( ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class );
 		fProps.put ( ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class );
 
 		fConsumer = new KafkaConsumer<> ( fProps );
-
-		fConsumer.subscribe ( Arrays.asList ( topic ) );
+		fConsumer.subscribe ( Collections.singletonList ( topic ) );
 
 		fPendingMsgs = new LinkedList<> ();
+		fCommitOnDraw = cc.optBoolean ( "commitOnDraw", false );
+
+		fAlerts = new ContinualAlertAgent ();
 	}
 
 	@Override
@@ -64,37 +63,100 @@ public class KafkaSource extends BasicSource
 	@Override
 	protected MessageAndRouting internalGetNextMessage ( StreamProcessingContext spc ) throws IOException, InterruptedException
 	{
-		if ( fPendingMsgs.size () > 0 )
+		if ( !fPendingMsgs.isEmpty () )
 		{
-			return fPendingMsgs.remove ();
+			return drawNext ();
 		}
 
 		final ConsumerRecords<String,String> records = fConsumer.poll ( Duration.ofMillis ( 100L ) );
 		for ( ConsumerRecord<String,String> cr : records )
 		{
-			final String msgStr = cr.value ();
 			try
 			{
-				final JSONObject msgData = new JSONObject ( new CommentedJsonTokener ( msgStr ) );
-				final Message msg = Message.adoptJsonAsMessage ( msgData );
-				fPendingMsgs.add ( makeDefRoutingMessage ( msg ) );
+				fPendingMsgs.add ( new LocalMsgAndRouting ( cr ) );
 			}
 			catch ( JSONException x )
 			{
-				spc.warn ( "Couldn't parse inbound text as JSON: " + msgStr );
+				spc.warn ( "Couldn't parse inbound text as a JSON object: " + cr.value () );
 			}
 		}
 
-		if ( fPendingMsgs.size () > 0 )
+		return drawNext ();
+	}
+
+	@Override
+	public synchronized void markComplete ( StreamProcessingContext spc, MessageAndRouting mr )
+	{
+		if ( !fCommitOnDraw && mr instanceof LocalMsgAndRouting )
 		{
-			return fPendingMsgs.remove ();
+			((LocalMsgAndRouting) mr).commit ();
 		}
-		return null;
 	}
 
 	private final Properties fProps;
 	private final KafkaConsumer<String, String> fConsumer;
-	private final LinkedList<MessageAndRouting> fPendingMsgs;
+	private final LinkedList<LocalMsgAndRouting> fPendingMsgs;
+	private final boolean fCommitOnDraw;
+	private final ContinualAlertAgent fAlerts;
+
+	private LocalMsgAndRouting drawNext ()
+	{
+		if ( !fPendingMsgs.isEmpty () )
+		{
+			final LocalMsgAndRouting msg = fPendingMsgs.remove ();
+			if ( fCommitOnDraw )
+			{
+				msg.commit ();
+			}
+			return msg;
+		}
+		return null;
+	}
+
+	private class LocalMsgAndRouting implements MessageAndRouting
+	{
+		public LocalMsgAndRouting ( ConsumerRecord<String,String> cr )
+		{
+			fRecord = cr;
+			fMsg = Message.adoptJsonAsMessage ( new JSONObject ( new CommentedJsonTokener ( cr.value () ) ) );
+			fCommitted = false;
+		}
+
+		@Override
+		public Message getMessage ()
+		{
+			return fMsg;
+		}
+
+		@Override
+		public String getPipelineName ()
+		{
+			return getDefaultPipelineName ();
+		}
+
+		public void commit ()
+		{
+			try
+			{
+				log.info ( "Committing offset for {}: {}", fRecord.topic (), fRecord.offset () );
+
+				final Map<TopicPartition, OffsetAndMetadata> commitMap = Collections.singletonMap (
+					new TopicPartition ( fRecord.topic (), fRecord.partition () ),
+					new OffsetAndMetadata ( fRecord.offset () + 1 ) // +1 to mark the *next* message
+				);
+				fConsumer.commitSync ( commitMap );
+				fCommitted = true;
+			}
+			catch ( Exception x )
+			{
+				log.error ( "Error committing offset for {}: {}", fRecord.topic (), x.getMessage () );
+			}
+		}
+
+		private final ConsumerRecord<String,String> fRecord;
+		private final Message fMsg;
+		private boolean fCommitted;
+	}
 
 	private void readConfigInto ( JSONObject config, Properties props, ExpressionEvaluator ee )
 	{
@@ -116,6 +178,7 @@ public class KafkaSource extends BasicSource
 				return true;
 			}
 		} );
-
 	}
+
+	private static final Logger log = LoggerFactory.getLogger ( KafkaSource.class );
 }
