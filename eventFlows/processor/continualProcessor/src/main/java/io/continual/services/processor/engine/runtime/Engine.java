@@ -130,7 +130,7 @@ public class Engine extends SimpleService
 
 	/**
 	 * Start the engine and wait for its completion.
-	 * @throws FailedToStart
+	 * @throws FailedToStart if the engine fails to start
 	 */
 	public void startAndWait () throws FailedToStart
 	{
@@ -179,7 +179,7 @@ public class Engine extends SimpleService
 	
 	/**
 	 * Get the stream context for a given source
-	 * @param sourceName
+	 * @param sourceName the name an event source
 	 * @return a stream context, or null if none exists
 	 */
 	public StreamProcessingContext getStreamContextFor ( String sourceName )
@@ -378,9 +378,9 @@ public class Engine extends SimpleService
 							Timer.Context mlt = msgLoadTime.time ()
 						)
 						{
-							msgAndRoute = fSource.getNextMessage ( fStreamContext, 500, TimeUnit.MILLISECONDS );
+							msgAndRoute = fSource.getNextMessage ( fStreamContext, kMaxEventWaitMs, TimeUnit.MILLISECONDS );
 						}
-	
+
 						if ( msgAndRoute != null )
 						{
 							msgsIn.mark ();
@@ -465,7 +465,9 @@ public class Engine extends SimpleService
 		used.add ( candidate );
 		return candidate;
 	}
-	
+
+	private static final long kMaxEventWaitMs = 2500L;
+
 	private static final Logger log = LoggerFactory.getLogger ( Engine.class );
 	private static final Logger metricsLog = LoggerFactory.getLogger ( "continualProcessorEngineMetrics" );
 }
