@@ -495,25 +495,16 @@ public class Builder<T>
 			// out of options
 			throw new BuildFailure ( "Could not find a suitable constructor/creator for class [" + className + "]" );
 		}
-		catch ( IllegalArgumentException e )
-		{
-			throw new BuildFailure ( e );
-		}
 		catch ( InvocationTargetException e )
 		{
 			final Throwable target = e.getTargetException ();
 			if ( target instanceof BuildFailure )
 			{
-				final BuildFailure f = (BuildFailure) target;
-				throw f;
+				throw (BuildFailure) target;
 			}
-			if ( target == null )
-			{
-				throw new BuildFailure ( e );
-			}
-			throw new BuildFailure ( target );
+			throw new BuildFailure ( target == null ? e : target );
 		}
-		catch ( ClassNotFoundException | NoSuchMethodException | InstantiationException | IllegalAccessException | SecurityException e )
+		catch ( IllegalArgumentException | ClassNotFoundException | NoSuchMethodException | InstantiationException | IllegalAccessException | SecurityException e )
 		{
 			throw new BuildFailure ( e );
 		}
