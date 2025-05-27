@@ -1,0 +1,25 @@
+{
+	"sources":
+	{
+		"kafka":
+		{
+			"class": "io.continual.services.processor.library.kafka.sources.KafkaSource",
+			"topic": "TEST-TOPIC",
+			"group": "test",
+			"commitOnDraw": true,
+			"kafka":
+			{
+				"bootstrap.servers": "localhost:9092"
+			},
+			"pipeline": "kafka"
+		}
+	},
+
+	"pipelines":
+	{
+		"kafka":
+		[
+			{ "always": [{ "class": "Log" }] }
+		]
+	}
+}
