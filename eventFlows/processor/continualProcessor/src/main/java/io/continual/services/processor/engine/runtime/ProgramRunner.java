@@ -42,12 +42,7 @@ public class ProgramRunner extends ConsoleProgram
 			}
 			e.startAndWait ();
 		}
-		catch ( ConfigReadException e )
-		{
-			log.error ( e.getMessage (), e );
-			System.err.println ( e.getMessage () );
-		}
-		catch ( FailedToStart e )
+		catch ( ConfigReadException | FailedToStart e )
 		{
 			log.error ( e.getMessage (), e );
 			System.err.println ( e.getMessage () );
