@@ -398,6 +398,11 @@ public class TomcatHttpService extends CHttpService
 			}
 			if ( httpsConfig != null )
 			{
+				// if the config doesn't have a "secure" flag, assume https
+				if ( !httpsConfig.has ( "secure" ) )
+				{
+					httpsConfig.put ( "secure", true );
+				}
 				connectors.put ( httpsConfig );
 			}
 		}
