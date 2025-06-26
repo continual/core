@@ -27,12 +27,17 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.util.Enumeration;
 import java.util.LinkedList;
+import java.util.concurrent.Executor;
 
+import io.continual.metrics.metricTypes.Gauge;
+import io.continual.util.naming.Name;
 import org.apache.catalina.Context;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.connector.Connector;
 import org.apache.catalina.startup.Tomcat;
+import org.apache.coyote.ProtocolHandler;
 import org.apache.coyote.http11.Http11NioProtocol;
+import org.apache.tomcat.util.threads.ThreadPoolExecutor;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -147,7 +152,13 @@ public class HttpService implements Service
 			{
 				fWorkDir.mkdirs ();
 			}
-	
+
+			// add some metrics for each connector
+			final io.continual.util.naming.Path tomcatConnectorMetrics = io.continual.util.naming.Path.getRootPath ()
+				.makeChildItem ( io.continual.util.naming.Name.fromString ( "tomcat" ) )
+				.makeChildItem ( io.continual.util.naming.Name.fromString ( "connectors" ) )
+			;
+
 			// the settings can have sub-objects "http" and/or "https". If neither is present, read "port" for the port number.
 			JSONObject httpConfig = settings.optJSONObject ( "http" );
 			final JSONObject httpsConfig = settings.optJSONObject ( "https" );
@@ -171,7 +182,10 @@ public class HttpService implements Service
 					transferConnectorAttributes ( connector, httpConfig.optJSONObject ( "tomcat" ) );
 					
 					fTomcat.getService ().addConnector ( connector );
-		
+
+					// add metrics for this connector
+					addMetrics ( connector, tomcatConnectorMetrics.makeChildItem ( Name.fromString ( "http" + port ) ) );
+
 					log.info ( "Service [" + fSettings.optString ( "name", "<anonymous>" ) + "] listens for HTTP on " + port + "." );
 				}
 				else
@@ -247,7 +261,10 @@ public class HttpService implements Service
 					transferConnectorAttributes ( connector, httpConfig.optJSONObject ( "tomcat" ) );
 
 					fTomcat.getService ().addConnector ( connector );
-		
+
+					// add metrics for this connector
+					addMetrics ( connector, tomcatConnectorMetrics.makeChildItem ( Name.fromString ( "https" + port ) ) );
+
 					log.info ( "Service [" + fSettings.optString ( "name", "<anonymous>" ) + "] listens for HTTPS on " + port + "." );
 				}
 				else
@@ -392,5 +409,72 @@ public class HttpService implements Service
 			log.warn ( "Exception inspecting keystore {} for alias: {}", keystoreFilename, x.getMessage () );
 		}
 		return "";
+	}
+
+	private void addMetrics ( Connector connector, io.continual.util.naming.Path connectorPath )
+	{
+		fMetrics.gauge ( connectorPath.makeChildItem ( Name.fromString ( "acceptCount" ) ), () -> { return new ConnectorGauge ( connector )
+		{
+			@Override
+			public Integer getValue ( Http11NioProtocol proto, ThreadPoolExecutor tpe ) { return proto.getAcceptCount (); }
+		};  } );
+
+		fMetrics.gauge ( connectorPath.makeChildItem ( Name.fromString ( "connectionCount" ) ), () -> { return new ConnectorGauge ( connector )
+		{
+			@Override
+			public Integer getValue ( Http11NioProtocol proto, ThreadPoolExecutor tpe ) { return Math.toIntExact ( proto.getConnectionCount () ); }
+		}; } );
+
+		fMetrics.gauge ( connectorPath.makeChildItem ( Name.fromString ( "minSpareThreads" ) ), () -> { return new ConnectorGauge ( connector )
+		{
+			@Override
+			public Integer getValue ( Http11NioProtocol proto, ThreadPoolExecutor tpe ) { return proto.getMinSpareThreads (); }
+		}; } );
+
+		fMetrics.gauge ( connectorPath.makeChildItem ( Name.fromString ( "maxPoolSize" ) ), () -> { return new ConnectorGauge ( connector )
+		{
+			@Override
+			public Integer getValue ( Http11NioProtocol proto, ThreadPoolExecutor tpe ) { return tpe.getMaximumPoolSize (); }
+		}; } );
+
+		fMetrics.gauge ( connectorPath.makeChildItem ( Name.fromString ( "busyThreads" ) ), () -> { return new ConnectorGauge ( connector )
+		{
+			@Override
+			public Integer getValue ( Http11NioProtocol proto, ThreadPoolExecutor tpe ) { return tpe.getActiveCount (); }
+		}; } );
+	}
+
+	private abstract static class ConnectorGauge implements Gauge<Integer>
+	{
+		public ConnectorGauge ( Connector c )
+		{
+			final ProtocolHandler ph = c.getProtocolHandler ();
+			if ( ph instanceof Http11NioProtocol )
+			{
+				fProto = (Http11NioProtocol) ph;
+			}
+			else
+			{
+				fProto = null;
+			}
+		}
+
+		@Override
+		public Integer getValue ()
+		{
+			if ( fProto != null )
+			{
+				final Executor exec = fProto.getExecutor ();
+				if ( exec instanceof ThreadPoolExecutor )
+				{
+					return getValue ( fProto, (ThreadPoolExecutor) exec );
+				}
+			}
+			return -1;
+		}
+
+		public abstract Integer getValue ( Http11NioProtocol proto, ThreadPoolExecutor tpe );
+
+		private final Http11NioProtocol fProto;
 	}
 }
