@@ -258,7 +258,7 @@ public class HttpService implements Service
 					connector.setProperty ( "SSLEnabled", "true" );
 					connector.setPort ( port );
 
-					transferConnectorAttributes ( connector, httpConfig.optJSONObject ( "tomcat" ) );
+					transferConnectorAttributes ( connector, httpsConfig.optJSONObject ( "tomcat" ) );
 
 					fTomcat.getService ().addConnector ( connector );
 
