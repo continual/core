@@ -1,3 +1,4 @@
+
 package io.continual.messaging.impl;
 
 import java.util.Collection;
@@ -13,7 +14,9 @@ import io.continual.messaging.ContinualMessageStream;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 
-public class LoggerPublisher extends SimpleService implements ContinualMessagePublisher
+public class LoggerPublisher
+	extends SimpleService
+	implements ContinualMessagePublisher
 {
 	public LoggerPublisher ()
 	{
@@ -38,7 +41,8 @@ public class LoggerPublisher extends SimpleService implements ContinualMessagePu
 	}
 
 	@Override
-	public ContinualMessageSink getTopic ( String topic ) throws TopicUnavailableException
+	public ContinualMessageSink getTopic ( String topic )
+		throws TopicUnavailableException
 	{
 		return new ContinualMessageSink ()
 		{
@@ -47,7 +51,9 @@ public class LoggerPublisher extends SimpleService implements ContinualMessagePu
 			{
 				for ( ContinualMessage msg : msgs )
 				{
-					log.info ( topic + " (" + stream.getName () + "): " + msg.toJson ().toString () ); // msg.getMessagePayload ().toString () );
+					log.info ( topic + " (" + stream.getName () + "): " + msg.toJson ().toString () ); // msg.getMessagePayload
+																										// ().toString
+																										// () );
 				}
 			}
 		};
