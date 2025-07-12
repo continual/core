@@ -229,7 +229,7 @@
 					<java>
 						<!-- Use Eclipse formatter with your preferred style -->
 						<eclipse>
-							<file>${project.basedir}/eclipseStyle.xml</file>
+							<file>${maven.multiModuleProjectDirectory}/eclipseStyle.xml</file>
 						</eclipse>
 						<!-- Remove unused imports -->
 						<removeUnusedImports />
