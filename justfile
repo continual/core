@@ -102,6 +102,11 @@ format:
 	@echo "Formatting code..."
 	-mvn spotless:apply || echo "Spotless not configured, skipping..."
 
+# format specific module
+format-module MODULE:
+	@echo "Formatting module: {{MODULE}}"
+	-mvn spotless:apply -pl {{MODULE}} || echo "Spotless not configured or module not found, skipping..."
+
 # run dependency analysis
 deps:
 	@echo "Analyzing dependencies..."
