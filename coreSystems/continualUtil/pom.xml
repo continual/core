@@ -59,5 +59,64 @@
 
 	</dependencies>
 
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>3.4.1</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<createDependencyReducedPom>true</createDependencyReducedPom>
+							<artifactSet>
+								<includes>
+									<include>jline:jline</include>
+									<include>com.github.f4b6a3:ulid-creator</include>
+									<include>com.jayway.jsonpath:json-path</include>
+									<include>net.minidev:json-smart</include>
+									<include>net.minidev:accessors-smart</include>
+									<include>org.ow2.asm:asm</include>
+								</includes>
+							</artifactSet>
+							<relocations>
+								<relocation>
+									<pattern>jline</pattern>
+									<shadedPattern>io.continual.util.shaded.jline</shadedPattern>
+								</relocation>
+								<relocation>
+									<pattern>com.jayway.jsonpath</pattern>
+									<shadedPattern>io.continual.util.shaded.jsonpath</shadedPattern>
+								</relocation>
+								<relocation>
+									<pattern>net.minidev</pattern>
+									<shadedPattern>io.continual.util.shaded.minidev</shadedPattern>
+								</relocation>
+								<relocation>
+									<pattern>org.objectweb.asm</pattern>
+									<shadedPattern>io.continual.util.shaded.asm</shadedPattern>
+								</relocation>
+							</relocations>
+							<filters>
+								<filter>
+									<artifact>*:*</artifact>
+									<excludes>
+										<exclude>META-INF/*.SF</exclude>
+										<exclude>META-INF/*.DSA</exclude>
+										<exclude>META-INF/*.RSA</exclude>
+									</excludes>
+								</filter>
+							</filters>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
 </project>
 
