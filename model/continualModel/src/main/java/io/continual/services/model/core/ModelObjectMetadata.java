@@ -49,4 +49,16 @@ public interface ModelObjectMetadata extends JsonSerialized
 	 * @return a timestamp as epoch ms
 	 */
 	long getLastUpdateTimeMs ();
+
+	/**
+	 * a monotonically increasing version number for this object.
+	 * @return a version  timestamp for the last write
+	 */
+	long getVersionStamp ();
+
+	/**
+	 * Bump the version stamp for this object.
+	 * This is used to indicate that the object has been modified.
+	 */
+	long bumpVersionStamp ();
 }

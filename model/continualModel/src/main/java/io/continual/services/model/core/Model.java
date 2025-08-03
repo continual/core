@@ -63,7 +63,7 @@ public interface Model extends ModelCapabilities, Closeable, Service
 		/**
 		 * Build the request context
 		 * @return a request context
-		 * @throws BuildFailure
+		 * @throws BuildFailure if the configuration is invalid
 		 */
 		ModelRequestContext build () throws BuildFailure;
 	};
