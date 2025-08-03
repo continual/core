@@ -1,3 +1,4 @@
+
 package io.continual.messaging;
 
 import java.io.IOException;
@@ -13,11 +14,14 @@ import io.continual.services.SimpleService;
 /**
  * A service to wrap a non-service publisher
  */
-public class ContinualMsgPubSvc extends SimpleService implements ContinualMessagePublisher
+public class ContinualMsgPubSvc
+	extends SimpleService
+	implements ContinualMessagePublisher
 {
-	public ContinualMsgPubSvc ( ServiceContainer sc, JSONObject config ) throws BuildFailure
+	public ContinualMsgPubSvc ( ServiceContainer sc, JSONObject config )
+		throws BuildFailure
 	{
-		final JSONObject innerConfig = config.getJSONObject ( "inner" ) ;
+		final JSONObject innerConfig = config.getJSONObject ( "inner" );
 		final JSONObject updatedInnerConfig = sc.getExprEval ( config ).evaluateJsonObject ( innerConfig );
 		fInner = Builder.withBaseClass ( ContinualMessagePublisher.class )
 			.withClassNameInData ()
@@ -27,22 +31,25 @@ public class ContinualMsgPubSvc extends SimpleService implements ContinualMessag
 	}
 
 	@Override
-	public void close () throws IOException
+	public void close ()
+		throws IOException
 	{
 		fInner.close ();
 	}
 
 	@Override
-	public ContinualMessageSink getTopic ( String topic ) throws TopicUnavailableException
+	public ContinualMessageSink getTopic ( String topic )
+		throws TopicUnavailableException
 	{
 		return fInner.getTopic ( topic );
 	}
 
 	@Override
-	public void flush () throws MessagePublishException
+	public void flush ()
+		throws MessagePublishException
 	{
 		fInner.flush ();
 	}
 
-	private final ContinualMessagePublisher fInner; 
+	private final ContinualMessagePublisher fInner;
 }

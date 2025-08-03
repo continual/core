@@ -1,3 +1,4 @@
+
 package io.continual.messaging;
 
 import org.json.JSONException;
@@ -11,7 +12,8 @@ import io.continual.util.data.json.JsonUtil;
 /**
  * A message is structured as a JSON document
  */
-public class ContinualMessage implements JsonSerialized
+public class ContinualMessage
+	implements JsonSerialized
 {
 	public static class MetadataSectionBuilder
 	{
@@ -47,7 +49,9 @@ public class ContinualMessage implements JsonSerialized
 	{
 		/**
 		 * Add the creation time to this message
-		 * @param timeMs timestamp
+		 *
+		 * @param timeMs
+		 *            timestamp
 		 * @return this builder
 		 */
 		public Builder createdAt ( long timeMs )
@@ -55,13 +59,14 @@ public class ContinualMessage implements JsonSerialized
 			return this
 				.withMetaDataSection ( kStdMetadata )
 				.set ( kStdMetata_CreateTime, timeMs )
-				.close ()
-			;
+				.close ();
 		}
 
 		/**
 		 * Add the message creator to this message
-		 * @param user a user
+		 *
+		 * @param user
+		 *            a user
 		 * @return this builder
 		 */
 		public Builder createdBy ( Identity user )
@@ -69,13 +74,14 @@ public class ContinualMessage implements JsonSerialized
 			return this
 				.withMetaDataSection ( kStdMetadata )
 				.set ( kStdMetata_CreatedBy, user.getId () )
-				.close ()
-			;
+				.close ();
 		}
 
 		/**
 		 * Add the message source system to this message
-		 * @param systemName the source system
+		 *
+		 * @param systemName
+		 *            the source system
 		 * @return this builder
 		 */
 		public Builder sentFromSource ( String systemName )
@@ -83,13 +89,14 @@ public class ContinualMessage implements JsonSerialized
 			return this
 				.withMetaDataSection ( kStdMetadata )
 				.set ( kStdMetata_SentFrom, systemName )
-				.close ()
-			;
+				.close ();
 		}
 
 		/**
 		 * Add message data to the message
-		 * @param data message payload
+		 *
+		 * @param data
+		 *            message payload
 		 * @return this builder
 		 */
 		public Builder withMessageData ( JSONObject data )
@@ -100,7 +107,9 @@ public class ContinualMessage implements JsonSerialized
 
 		/**
 		 * Add message data to the message
-		 * @param data message payload
+		 *
+		 * @param data
+		 *            message payload
 		 * @return this builder
 		 */
 		public Builder withMessageData ( String data )
@@ -111,7 +120,9 @@ public class ContinualMessage implements JsonSerialized
 
 		/**
 		 * Start a metadata section
-		 * @param sectionName a section of metadata
+		 *
+		 * @param sectionName
+		 *            a section of metadata
 		 * @return a metadata section that must be closed
 		 */
 		public MetadataSectionBuilder withMetaDataSection ( String sectionName )
@@ -127,6 +138,7 @@ public class ContinualMessage implements JsonSerialized
 
 		/**
 		 * Build the message
+		 *
 		 * @return a message
 		 */
 		public ContinualMessage build ()
@@ -139,7 +151,8 @@ public class ContinualMessage implements JsonSerialized
 	}
 
 	/**
-	 * Construct a builder for a message 
+	 * Construct a builder for a message
+	 *
 	 * @return a message builder
 	 */
 	public static Builder builder ()
@@ -147,12 +160,12 @@ public class ContinualMessage implements JsonSerialized
 		return new Builder ()
 			.withMetaDataSection ( kStdMetadata )
 			.set ( kStdMetata_Version, kPayloadVersion )
-			.close ()
-		;
+			.close ();
 	}
 
 	/**
 	 * Instantiate a message from a serialized string (normally from toString())
+	 *
 	 * @param jsonString
 	 * @return a new message
 	 */
@@ -166,7 +179,10 @@ public class ContinualMessage implements JsonSerialized
 
 	/**
 	 * Construct a message from JSON data
-	 * @param data if null, an empty JSON document is used. If this contains our standard metadata tag, that part is overwritten
+	 *
+	 * @param data
+	 *            if null, an empty JSON document is used. If this contains our standard metadata tag, that part is
+	 *            overwritten
 	 */
 	public ContinualMessage ( JSONObject data )
 	{
@@ -175,8 +191,12 @@ public class ContinualMessage implements JsonSerialized
 
 	/**
 	 * Construct a message from JSON data
-	 * @param data if null, an empty JSON document is used. If this contains our standard metadata tag, that part is overwritten
-	 * @param meta a metadata structure. If null, an empty JSON document is used.
+	 *
+	 * @param data
+	 *            if null, an empty JSON document is used. If this contains our standard metadata tag, that part is
+	 *            overwritten
+	 * @param meta
+	 *            a metadata structure. If null, an empty JSON document is used.
 	 */
 	public ContinualMessage ( JSONObject data, JSONObject meta )
 	{
@@ -189,7 +209,7 @@ public class ContinualMessage implements JsonSerialized
 	{
 		return fMessageData.toString ();
 	}
-	
+
 	/**
 	 * @return a copy of this message's data
 	 */
@@ -201,6 +221,7 @@ public class ContinualMessage implements JsonSerialized
 
 	/**
 	 * return a copy of this message's data without the metadata structure
+	 *
 	 * @return a copy of the message data
 	 */
 	public JSONObject getMessagePayload ()
@@ -219,19 +240,22 @@ public class ContinualMessage implements JsonSerialized
 	@Override
 	public boolean equals ( Object that )
 	{
-		if ( this == that ) return true;
-		if ( that == null ) return false;
-		if ( getClass () != that.getClass () ) return false;
-		
+		if ( this == that )
+			return true;
+		if ( that == null )
+			return false;
+		if ( getClass () != that.getClass () )
+			return false;
+
 		final String thisStr = JsonUtil.writeConsistently ( fMessageData );
-		final String thatStr = JsonUtil.writeConsistently ( ((ContinualMessage)that).fMessageData );
+		final String thatStr = JsonUtil.writeConsistently ( ( (ContinualMessage) that ).fMessageData );
 		return thisStr.equals ( thatStr );
 	}
 
 	private final JSONObject fMessageData;
 
 	private static final String kPayloadVersion = "1";
-	
+
 	private static final String kMetadataKey = "∞ⓜⓔⓣⓐ∞";
 	private static final String kStdMetadata = "base";
 	private static final String kStdMetata_CreateTime = "msgCreateTimeMs";
