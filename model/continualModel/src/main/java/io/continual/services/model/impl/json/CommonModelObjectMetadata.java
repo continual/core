@@ -16,12 +16,17 @@ public class CommonModelObjectMetadata implements ModelObjectMetadata
 	public static final String kMeta_AclTag = "acl";
 	public static final String kMeta_CreateTs = "createMs";
 	public static final String kMeta_UpdateTs = "updateMs";
+	public static final String kMeta_VersionStamp = "versionStamp";
 	public static final String kMeta_LockedTypes = "types";
 
 	public CommonModelObjectMetadata ()
 	{
+		final long updateTime = Clock.now ();
+
 		fMeta = new JSONObject ()
-			.put ( kMeta_CreateTs, Clock.now () )
+			.put ( kMeta_CreateTs, updateTime )
+			.put ( kMeta_UpdateTs, updateTime )
+			.put ( kMeta_VersionStamp, 0L )
 		;
 		fAcl = AccessControlList.createOpenAcl ();
 	}
@@ -49,9 +54,17 @@ public class CommonModelObjectMetadata implements ModelObjectMetadata
 	}
 
 	@Override
-	public long getLastUpdateTimeMs ()
+	public long getLastUpdateTimeMs () { return fMeta.optLong ( kMeta_UpdateTs, -1L ); }
+
+	@Override
+	public long getVersionStamp () { return fMeta.optLong ( kMeta_VersionStamp, 0L ); }
+
+	@Override
+	public long bumpVersionStamp ()
 	{
-		return fMeta.optLong ( kMeta_UpdateTs, -1L );
+		final long newVersion = 1 + fMeta.optLong ( kMeta_VersionStamp, 0L );
+		fMeta.put ( kMeta_VersionStamp, newVersion );
+		return newVersion;
 	}
 
 	@Override
@@ -73,8 +86,8 @@ public class CommonModelObjectMetadata implements ModelObjectMetadata
 		fAcl = AccessControlList.deserialize ( meta.optJSONObject ( kMeta_AclTag ), null );
 	}
 
-	private JSONObject fMeta;
-	private AccessControlList fAcl;
+	private final JSONObject fMeta;
+	private final AccessControlList fAcl;
 
 	private void packAcl ()
 	{

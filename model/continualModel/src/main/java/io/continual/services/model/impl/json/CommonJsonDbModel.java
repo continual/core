@@ -252,6 +252,9 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 						mu.update ( context, meta, data );
 					}
 
+					// increase the version stamp
+					meta.bumpVersionStamp ();
+
 					// validate the update
 					final ModelSchemaRegistry schemas = context.getSchemaRegistry ();
 					for ( String type : meta.getLockedTypes () )
@@ -283,7 +286,7 @@ public abstract class CommonJsonDbModel extends SimpleService implements Model
 					log.info ( "wrote {}", objectPath );
 					context.put ( objectPath, mdt );
 
-					final ModelNotificationService ns = context.getNotificationService();
+					final ModelNotificationService ns = context.getNotificationService ();
 					if ( isCreate ) 
 					{
 						ns.onObjectCreate ( objectPath );
