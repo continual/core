@@ -16,7 +16,7 @@
 package io.continual.iam.impl.common;
 
 import java.util.Collection;
-import java.util.LinkedList;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -577,7 +577,7 @@ public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends Common
 
 		fJwtTokenFactory = jwtProd;
 
-		fJwtValidators = new LinkedList<> ();
+		fJwtValidators = new CopyOnWriteArrayList<> ();
 		if ( fJwtTokenFactory != null )
 		{
 			fJwtValidators.add ( fJwtTokenFactory );	// our factory is a validator for its own tokens
@@ -651,8 +651,8 @@ public abstract class CommonJsonDb<I extends CommonJsonIdentity,G extends Common
 
 	private final AclFactory fAclFactory;
 	private final JwtProducer fJwtTokenFactory;
-	private final LinkedList<JwtValidator> fJwtValidators;
-	
+	private final CopyOnWriteArrayList<JwtValidator> fJwtValidators;
+
 	static final int kSaltChars = 64;
 
 	protected boolean checkPassword ( UsernamePasswordCredential upc, I user )

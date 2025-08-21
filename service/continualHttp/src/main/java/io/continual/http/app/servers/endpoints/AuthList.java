@@ -39,7 +39,7 @@ class AuthList<I extends Identity> implements Authenticator<I>
 		fAuthenticators = new LinkedList<>();
 
 		// API key...
-		addAuthenticator ( new Authenticator<I> ()
+		fAuthenticators.add ( new Authenticator<I> ()
 		{
 			@Override
 			public I authenticate ( IamService<I,?> am, final CHttpRequestContext context ) throws IamSvcException
@@ -62,7 +62,7 @@ class AuthList<I extends Identity> implements Authenticator<I>
 		} );
 
 		// JWT...
-		addAuthenticator ( new Authenticator<I> ()
+		fAuthenticators.add ( new Authenticator<I> ()
 		{
 			@Override
 			public I authenticate ( IamService<I,?> am, final CHttpRequestContext context ) throws IamSvcException
@@ -109,7 +109,7 @@ class AuthList<I extends Identity> implements Authenticator<I>
 		} );
 
 		// username/password...
-		addAuthenticator ( new Authenticator<I> ()
+		fAuthenticators.add ( new Authenticator<I> ()
 		{
 			@Override
 			public I authenticate ( IamService<I,?> am, final CHttpRequestContext context ) throws IamSvcException
@@ -130,21 +130,10 @@ class AuthList<I extends Identity> implements Authenticator<I>
 	}
 
 	/**
-	 * Add an authenticator to this authenticator list
-	 * @param a an authenticator
-	 * @return this authenticator list
-	 */
-	public synchronized AuthList<I> addAuthenticator ( Authenticator<I> a )
-	{
-		fAuthenticators.add ( a );
-		return this;
-	}
-	
-	/**
 	 * authenticate
 	 */
 	@Override
-	public synchronized I authenticate ( IamService<I, ?> am, CHttpRequestContext context ) throws IamSvcException
+	public I authenticate ( IamService<I, ?> am, CHttpRequestContext context ) throws IamSvcException
 	{
 		for ( Authenticator<I> inner : fAuthenticators )
 		{

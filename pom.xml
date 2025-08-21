@@ -11,7 +11,7 @@
 
 	<!-- When changing version, also change parent version number in sub-pom files -->
 	<!-- You can run versionUpdate.sh in this directory to do this. -->
-	<version>0.3.33</version> <!-- build_version -->
+	<version>0.3.34</version> <!-- build_version -->
 	<packaging>pom</packaging>
 
 	<name>ContinualIO</name>
@@ -218,6 +218,27 @@
 						</goals>
 					</execution>
 				</executions>
+			</plugin>
+
+			<!-- spotless code formatting -->
+			<plugin>
+				<groupId>com.diffplug.spotless</groupId>
+				<artifactId>spotless-maven-plugin</artifactId>
+				<version>2.43.0</version>
+				<configuration>
+					<java>
+						<!-- Use Eclipse formatter with your preferred style -->
+						<eclipse>
+							<file>${maven.multiModuleProjectDirectory}/eclipseStyle.xml</file>
+						</eclipse>
+						<!-- Remove unused imports -->
+						<removeUnusedImports />
+						<!-- Trim trailing whitespace -->
+						<trimTrailingWhitespace />
+						<!-- End files with newline -->
+						<endWithNewline />
+					</java>
+				</configuration>
 			</plugin>
 
 		</plugins>

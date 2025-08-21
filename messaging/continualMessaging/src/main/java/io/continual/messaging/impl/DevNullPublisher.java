@@ -1,3 +1,4 @@
+
 package io.continual.messaging.impl;
 
 import java.util.Collection;
@@ -10,7 +11,8 @@ import io.continual.messaging.ContinualMessageSink;
 import io.continual.messaging.ContinualMessageStream;
 import io.continual.services.ServiceContainer;
 
-public class DevNullPublisher implements ContinualMessagePublisher
+public class DevNullPublisher
+	implements ContinualMessagePublisher
 {
 	public DevNullPublisher ()
 	{
@@ -25,7 +27,8 @@ public class DevNullPublisher implements ContinualMessagePublisher
 	}
 
 	@Override
-	public ContinualMessageSink getTopic ( String topic ) throws TopicUnavailableException
+	public ContinualMessageSink getTopic ( String topic )
+		throws TopicUnavailableException
 	{
 		return new ContinualMessageSink ()
 		{

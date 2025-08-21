@@ -98,6 +98,12 @@ public class CollatzSequence extends ReadOnlyModel
 
 		@Override
 		public long getLastUpdateTimeMs () { return 0L; }
+
+		@Override
+		public long getVersionStamp () { return 0; }
+
+		@Override
+		public long bumpVersionStamp () { throw new IllegalStateException ( "This is a read-only model." ); }
 	};
 
 	@Override
