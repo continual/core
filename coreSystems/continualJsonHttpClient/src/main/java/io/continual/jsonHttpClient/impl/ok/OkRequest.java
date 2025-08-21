@@ -42,11 +42,31 @@ class OkRequest implements HttpRequest
 		{
 			final URI uri = new URI ( url );
 			final Map<String,String> params = parseQuery ( uri.getQuery () );
-			if ( params.size () > 0 )
+			if ( !params.isEmpty () )
 			{
-				fPath = new URI ( uri.getScheme (), uri.getUserInfo (), uri.getHost (), uri.getPort (), uri.getPath (), null, null )
-					.toString ()
-				;
+				final String scheme = uri.getScheme ();
+				final String userInfo = uri.getUserInfo ();
+				final String host = uri.getHost ();
+				final int port = uri.getPort ();
+				final String rawPath = uri.getRawPath ();
+
+				// Build URL manually to avoid double-encoding of rawPath
+				final StringBuilder urlBuilder = new StringBuilder ();
+				urlBuilder.append ( scheme ).append ( "://" );
+				if ( userInfo != null )
+				{
+					urlBuilder.append ( userInfo ).append ( "@" );
+				}
+				urlBuilder.append ( host );
+				if ( port != -1 && port != getDefaultPort ( scheme ) )
+				{
+					urlBuilder.append ( ":" ).append ( port );
+				}
+				if ( rawPath != null )
+				{
+					urlBuilder.append ( rawPath );
+				}
+				fPath = urlBuilder.toString ();
 				for ( Map.Entry<String,String> e : params.entrySet () )
 				{
 					addQueryParam ( e.getKey (), e.getValue () );
@@ -60,7 +80,6 @@ class OkRequest implements HttpRequest
 		}
 
 		fPath = url;
-
 		return this;
 	}
 	
@@ -267,6 +286,19 @@ class OkRequest implements HttpRequest
 			}
 		}
 		return queryPairs;
+	}
+
+	private static int getDefaultPort ( String scheme )
+	{
+		if ( "http".equalsIgnoreCase ( scheme ) )
+		{
+			return 80;
+		}
+		else if ( "https".equalsIgnoreCase ( scheme ) )
+		{
+			return 443;
+		}
+		return -1;
 	}
 
 	private static final Logger log = LoggerFactory.getLogger ( OkRequest.class );
