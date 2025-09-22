@@ -13,6 +13,10 @@
 	<artifactId>continualEmailTest</artifactId>
 	<packaging>jar</packaging>
 
+	<name>continual.io email test</name>
+	<description>Test utilities for continual.io email service.</description>
+	<url>https://continual.io</url>
+
 	<dependencies>
 
 		<dependency>
