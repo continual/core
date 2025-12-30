@@ -20,12 +20,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.continual.services.processor.engine.model.MessageProcessingContext;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.processor.config.readers.ConfigLoadContext;
-import io.continual.services.processor.engine.model.Message;
+import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.Sink;
 
 /**
