@@ -42,13 +42,13 @@ public class ForEachObject implements Processor
 		{
 			fSet = config.getString ( "set" );
 			fVarName = config.optString ( "varName", "_item" );
-			
+
 			final Object processing = config.opt ( "processing" );
 			if ( processing instanceof JSONArray )
 			{
 				fPipelineRef = null;
 				fPipeline = JsonConfigReader
-					.readPipeline ( (JSONArray) processing, new ArrayList<String>(), clc )
+					.readPipeline ( (JSONArray) processing, new ArrayList<String>(), clc, config.optBoolean ( JsonConfigReader.kEvalOnLoad, true ) )
 				;
 			}
 			else if ( processing instanceof String )

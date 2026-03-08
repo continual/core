@@ -50,6 +50,8 @@ import io.continual.util.data.json.JsonVisitor.ObjectVisitor;
 
 public class JsonConfigReader implements ConfigReader
 {
+	public static final String kEvalOnLoad = "evalOnLoad";
+	
 	/**
 	 * Read a program from a set of named resources containing JSON configurations
 	 * @param resNames
@@ -144,6 +146,8 @@ public class JsonConfigReader implements ConfigReader
 		final ArrayList<String> pkgs = new ArrayList<> ();
 		pkgs.addAll ( getStandardPackages() );
 
+		final boolean defEvalBlocksOnLoad = programJson.optBoolean ( kEvalOnLoad, true ); 
+
 		// read program packages
 		JsonVisitor.forEachElement ( programJson.optJSONArray ( "packages" ), new ArrayVisitor<String,ConfigReadException> ()
 		{
@@ -184,6 +188,11 @@ public class JsonConfigReader implements ConfigReader
 			{
 				try
 				{
+					final JSONObject blockConfig = sink.optBoolean ( kEvalOnLoad, defEvalBlocksOnLoad ) ?
+						clc.getServiceContainer ().getExprEval ().evaluateJsonObject ( sink ) :
+							sink
+					;
+
 					p.addSink (
 						sinkName, 
 						Builder.withBaseClass ( Sink.class )
@@ -191,7 +200,7 @@ public class JsonConfigReader implements ConfigReader
 							.searchingPath ( NullSink.class.getPackage ().getName () )
 							.searchingPaths ( pkgs )
 							.providingContext ( clc )
-							.usingData ( clc.getServiceContainer ().getExprEval ().evaluateJsonObject ( sink ) )
+							.usingData ( blockConfig )
 							.build ()
 					);
 					log.info ( "\twith sink {}...", sinkName );
@@ -211,7 +220,7 @@ public class JsonConfigReader implements ConfigReader
 			@Override
 			public boolean visit ( String pipelineName, JSONArray rules ) throws ConfigReadException
 			{
-				final Pipeline pl = readPipeline ( rules, pkgs, clc );
+				final Pipeline pl = readPipeline ( rules, pkgs, clc, defEvalBlocksOnLoad );
 				p.addPipeline ( pipelineName, pl );
 				log.info ( "\twith pipeline {}...", pipelineName );
 
@@ -239,19 +248,36 @@ public class JsonConfigReader implements ConfigReader
 		} );
 	}
 
+	@Deprecated
 	public static Filter readFilter ( JSONObject fromJson, ConfigLoadContext clc, List<String> pkgs ) throws BuildFailure
 	{
+		return readFilter ( fromJson, clc, pkgs, true );
+	}
+
+	public static Filter readFilter ( JSONObject fromJson, ConfigLoadContext clc, List<String> pkgs, boolean evalBlocksByDefault ) throws BuildFailure
+	{
+		final JSONObject blockConfig = fromJson.optBoolean ( kEvalOnLoad, evalBlocksByDefault ) ?
+			clc.getServiceContainer ().getExprEval ().evaluateJsonObject ( fromJson ) :
+			fromJson
+		;
+
 		return Builder.withBaseClass ( Filter.class )
 			.withClassNameInData ()
 			.searchingPath ( Any.class.getPackage ().getName () )
 			.searchingPaths ( pkgs )
 			.providingContext ( clc )	// FIXME: clc has search path for pkgs... why both?
-			.usingData ( clc.getServiceContainer ().getExprEval ().evaluateJsonObject ( fromJson ) )
+			.usingData ( blockConfig )
 			.build ()
 		;
 	}
 
+	@Deprecated
 	public static Pipeline readPipeline ( JSONArray rules, List<String> pkgs, ConfigLoadContext clc ) throws ConfigReadException
+	{
+		return readPipeline ( rules, pkgs, clc, true );
+	}
+
+	public static Pipeline readPipeline ( JSONArray rules, List<String> pkgs, ConfigLoadContext clc, boolean evalBlocksByDefault ) throws ConfigReadException
 	{
 		try
 		{
@@ -271,7 +297,7 @@ public class JsonConfigReader implements ConfigReader
 						final JSONObject ifBlock = rule.optJSONObject ( "if" );
 						if ( ifBlock != null )
 						{
-							f = readFilter ( rule.getJSONObject ( "if" ), clc, pkgs );
+							f = readFilter ( rule.getJSONObject ( "if" ), clc, pkgs, evalBlocksByDefault );
 						}
 						else
 						{
@@ -280,9 +306,15 @@ public class JsonConfigReader implements ConfigReader
 						}
 
 						// get THEN and ELSE processing
-						final List<Processor> thenSteps = readProcessorArray ( clc, pkgs, rule.optJSONArray ( isAlways ? "always" : "then" ) );
-						final List<Processor> elseSteps = isAlways ? new ArrayList<> () : readProcessorArray ( clc, pkgs, rule.optJSONArray ( "else" ) );
+						final List<Processor> thenSteps = readProcessorArray ( clc, pkgs, rule.optJSONArray ( isAlways ? "always" : "then" ), evalBlocksByDefault );
+						final List<Processor> elseSteps = isAlways ? new ArrayList<> () : readProcessorArray ( clc, pkgs, rule.optJSONArray ( "else" ), evalBlocksByDefault );
 
+						// note common misconfigs
+						if ( thenSteps.size () == 0 && elseSteps.size () == 0 )
+						{
+							log.warn ( "Rule [{}} has no actions", rule.toString () );
+						}
+						
 						// build the rule and add it to the pipeline
 						pl.addRule (
 							new Rule.Builder ()
@@ -342,7 +374,7 @@ public class JsonConfigReader implements ConfigReader
 		return src;
 	}
 	
-	private static List<Processor> readProcessorArray ( ConfigLoadContext clc, List<String> pkgs, JSONArray block ) throws ConfigReadException
+	private static List<Processor> readProcessorArray ( ConfigLoadContext clc, List<String> pkgs, JSONArray block, boolean evalBlocksByDefault ) throws ConfigReadException
 	{
 		final ArrayList<Processor> result = new ArrayList<> ();
 		JsonVisitor.forEachElement ( block, new ArrayVisitor<JSONObject,ConfigReadException> ()
@@ -352,13 +384,18 @@ public class JsonConfigReader implements ConfigReader
 			{
 				try
 				{
+					final JSONObject blockConfig = processorBlock.optBoolean ( kEvalOnLoad, evalBlocksByDefault ) ?
+						clc.getServiceContainer ().getExprEval ().evaluateJsonObject ( processorBlock ) :
+						processorBlock
+					;
+
 					result.add (
 						Builder.withBaseClass ( Processor.class )
 							.withClassNameInData ()
 							.searchingPath ( Set.class.getPackage ().getName () )
 							.searchingPaths ( pkgs )
 							.providingContext ( clc )
-							.usingData ( clc.getServiceContainer ().getExprEval ().evaluateJsonObject ( processorBlock ) )
+							.usingData ( blockConfig )
 							.build ()
 					);
 				}

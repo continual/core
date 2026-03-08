@@ -20,13 +20,11 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
-import io.continual.metrics.metricTypes.Timer;
+import io.continual.metrics.metricTypes.Timer.Context;
 import io.continual.services.processor.config.readers.ConfigLoadContext;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.Processor;
 import io.continual.services.processor.engine.model.Sink;
-
-import static io.continual.metrics.metricTypes.Timer.*;
 
 public class SendToSink implements Processor
 {

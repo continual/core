@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 import io.continual.builder.Builder;
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.processor.config.readers.ConfigLoadContext;
-import io.continual.services.processor.engine.model.Message;
 import io.continual.services.processor.engine.model.MessageProcessingContext;
 import io.continual.services.processor.engine.model.Sink;
 import io.continual.util.data.json.JsonVisitor;
