@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import com.auth0.client.auth.AuthAPI;
 import com.auth0.client.mgmt.ManagementAPI;
+import com.auth0.client.mgmt.filter.RolesFilter;
 import com.auth0.exception.APIException;
 import com.auth0.exception.Auth0Exception;
 import com.auth0.json.auth.TokenHolder;
@@ -190,8 +191,13 @@ public class Auth0IamDb implements IamDb<Auth0Identity,Auth0Group>
 		final TreeSet<String> result = new TreeSet<> ();
 		try
 		{
-			final UsersPage up = getMgmntApi().roles ().listUsers ( groupId, null ).execute ();
-			if ( up == null ) throw new IamGroupDoesNotExist ( groupId );	// not sure this happens
+			final RolesFilter filter = new RolesFilter ().withName ( groupId );
+			final RolesPage page = getMgmntApi ().roles ().list ( filter ).execute ();
+			final List<Role> roles = page.getItems ();
+			if ( roles == null || roles.isEmpty () ) throw new IamGroupDoesNotExist ( groupId );
+
+			final String roleId = roles.get ( 0 ).getId ();
+			final UsersPage up = getMgmntApi().roles ().listUsers ( roleId, null ).execute ();
 
 			for ( User u : up.getItems () )
 			{
