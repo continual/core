@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import com.auth0.client.auth.AuthAPI;
 import com.auth0.client.mgmt.ManagementAPI;
 import com.auth0.client.mgmt.filter.RolesFilter;
+import com.auth0.client.mgmt.filter.UserFilter;
 import com.auth0.exception.APIException;
 import com.auth0.exception.Auth0Exception;
 import com.auth0.json.auth.TokenHolder;
@@ -131,14 +132,36 @@ public class Auth0IamDb implements IamDb<Auth0Identity,Auth0Group>
 	@Override
 	public Collection<String> getAllUsers () throws IamSvcException
 	{
+		return getAllUserRecords().keySet ();
+	}
+
+	/**
+	 * NOTE: the identity records returned here are currently incomplete - they don't include roles
+	 * @return a map of users by id
+	 * @throws IamSvcException
+	 */
+	public Map<String,? extends Identity> getAllUserRecords () throws IamSvcException
+	{
 		try
 		{
-			final TreeSet<String> result = new TreeSet<String> ();
+			final HashMap<String,Auth0Identity> result = new HashMap<> ();
 
-			final UsersPage up = getMgmntApi ().users ().list ( null ).execute ();
-			for ( User u : up.getItems () )
+			boolean more = true;
+			int page = 0;
+			while ( more )
 			{
-				result.add ( u.getEmail () );
+				final UserFilter filter = new UserFilter ()
+					.withFields ( "user_id,email,last_login,logins_count", true )
+					.withPage ( page++, 100 )
+				;
+
+				final UsersPage up = getMgmntApi ().users ().list ( filter ).execute ();
+				final List<User> users = up.getItems ();
+				for ( User u : users )
+				{
+					result.put ( u.getEmail (), new Auth0Identity ( u, null ) );
+				}
+				more = users.size () != 0;
 			}
 
 			return result;
