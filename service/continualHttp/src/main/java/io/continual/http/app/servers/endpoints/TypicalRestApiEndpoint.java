@@ -44,7 +44,6 @@ public class TypicalRestApiEndpoint<I extends Identity> extends JsonIoEndpoint
 {
 	public static final String kSetting_ContinualProductTag = "apiKeyProductTag";
 	public static final String kContinualProductTag = "continual";
-	public static final String kContinualSystemsGroup = "continualSystems";
 
 	public static final String kSetting_AuthLineHeader = "http.auth.header";
 	public static final String kSetting_DateLineHeader = "http.date.header";
@@ -124,6 +123,8 @@ public class TypicalRestApiEndpoint<I extends Identity> extends JsonIoEndpoint
 		{
 			fAllowedOrigins = null;
 		}
+
+		fImpersonatorGroup = sc.getExprEval ().evaluateText ( settings.optString ( "impersonatorGroup" ) );
 	}
 
 	/**
@@ -226,12 +227,12 @@ public class TypicalRestApiEndpoint<I extends Identity> extends JsonIoEndpoint
 				if ( authFor != null && authFor.length () > 0 && !authFor.equals ( authUser.getId () ) )
 				{
 					// authorized user is vouching for another...
-					
+
 					// get that user's identity
 					final I authForUser = am.getIdentityDb ().loadUser ( authFor );
 
 					// if the user exists and this user is authorized...
-					if ( authForUser != null && authUser.getGroup ( kContinualSystemsGroup ) != null )
+					if ( authForUser != null && fImpersonatorGroup != null && !fImpersonatorGroup.isBlank() && authUser.getGroup ( fImpersonatorGroup ) != null )
 					{
 						// auth user is part of the special systems group
 						result = new UserContext.Builder<I> ()
@@ -277,6 +278,7 @@ public class TypicalRestApiEndpoint<I extends Identity> extends JsonIoEndpoint
 	private final IamService<I, ?> fAccts;
 	private final Authenticator<I> fAuthenticator;
 	private final TreeSet<String> fAllowedOrigins;
+	private final String fImpersonatorGroup;
 
 	private static final Logger log = LoggerFactory.getLogger ( TypicalRestApiEndpoint.class );
 

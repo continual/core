@@ -1,6 +1,7 @@
 package io.continual.iam.impl.auth0;
 
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -22,7 +23,10 @@ class Auth0Identity implements Identity
 	{
 		fUser = u;
 		fRoles = new TreeSet<> ();
-		fRoles.addAll ( groups );
+		if ( groups != null )
+		{
+			fRoles.addAll ( groups );
+		}
 	}
 
 	@Override
@@ -34,12 +38,25 @@ class Auth0Identity implements Identity
 	@Override
 	public String getUserData ( String key )
 	{
+		if ( key == null || key.isBlank () ) return null;
+		
 		Object val = getAppMetadata ().get ( key );
 		if ( val != null ) return val.toString ();
 
 		val = getUserMetadata ().get ( key );
 		if ( val != null ) return val.toString ();
 
+		if ( key.equals ( "lastLogin" ) )
+		{
+			final Date d = fUser.getLastLogin ();
+			return d == null ? null : d.toString ();
+		}
+		else if ( key.equals ( "loginsCount" ) )
+		{
+			final Integer count = fUser.getLoginsCount ();
+			return count == null ? null : count.toString ();
+		}
+		
 		return null;
 	}
 

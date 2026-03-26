@@ -4,12 +4,7 @@ import org.json.JSONObject;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.iam.IamServiceManager;
-import io.continual.iam.access.AccessDb;
-import io.continual.iam.access.AccessManager;
 import io.continual.iam.exceptions.IamSvcException;
-import io.continual.iam.identity.IdentityDb;
-import io.continual.iam.identity.IdentityManager;
-import io.continual.iam.tags.TagManager;
 import io.continual.services.ServiceContainer;
 import io.continual.services.SimpleService;
 
@@ -21,31 +16,31 @@ public class Auth0IamServiceManager extends SimpleService implements IamServiceM
 	}
 
 	@Override
-	public IdentityDb<Auth0Identity> getIdentityDb () throws IamSvcException
+	public Auth0IamDb getIdentityDb () throws IamSvcException
 	{
 		return fDb;
 	}
 
 	@Override
-	public AccessDb<Auth0Group> getAccessDb () throws IamSvcException
+	public Auth0IamDb getAccessDb () throws IamSvcException
 	{
 		return fDb;
 	}
 
 	@Override
-	public IdentityManager<Auth0Identity> getIdentityManager () throws IamSvcException
+	public Auth0IamDb getIdentityManager () throws IamSvcException
 	{
 		return fDb;
 	}
 
 	@Override
-	public AccessManager<Auth0Group> getAccessManager () throws IamSvcException
+	public Auth0IamDb getAccessManager () throws IamSvcException
 	{
 		return fDb;
 	}
 
 	@Override
-	public TagManager getTagManager () throws IamSvcException
+	public Auth0IamDb getTagManager () throws IamSvcException
 	{
 		return fDb;
 	}
