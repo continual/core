@@ -19,9 +19,11 @@ package io.continual.http.service.framework.context;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import io.continual.util.data.TypeConvertor;
 import io.continual.util.standards.HttpHeaders;
 
 /**
@@ -39,13 +41,13 @@ public interface CHttpRequest
 	 * Get the query string from the HTTP request, or null if there's no query
 	 * @return the query string or null
 	 */
-	String getQueryString ();
+	default String getQueryString () { return null; }
 
 	/**
 	 * Get the HTTP method for this request. 
 	 * @return the HTTP method
 	 */
-	String getMethod ();
+	default String getMethod () { return "GET"; }
 
 	/**
 	 * get the request's path within the servlet context
@@ -58,7 +60,11 @@ public interface CHttpRequest
 	 * @param header
 	 * @return null if the header does not exist, or the first value otherwise
 	 */
-	String getFirstHeader ( String header );
+	default String getFirstHeader ( String header )
+	{
+		final List<String> vals = getHeader ( header );
+		return vals.size () > 0 ? vals.get ( 0 ) : null;
+	}
 
 	/**
 	 * Get the first value (of 1 or more) for a given header name.
@@ -75,7 +81,17 @@ public interface CHttpRequest
 	 * @param header
 	 * @return a list of 0 or more values
 	 */
-	List<String> getHeader ( String header );
+	default List<String> getHeader ( String header )
+	{
+		for ( Map.Entry<String, List<String>> e : getAllHeaders ().entrySet () )
+		{
+			if ( e.getKey ().equalsIgnoreCase ( header ) )
+			{
+				return e.getValue () == null ? new LinkedList<> () : e.getValue ();
+			}
+		}
+		return new LinkedList<> ();
+	}
 
 	/**
 	 * Get all values for a given header.
@@ -114,7 +130,11 @@ public interface CHttpRequest
 	 * @param defVal
 	 * @return the value of the parameter, or the default value
 	 */
-	String getParameter ( String key, String defVal );
+	default String getParameter ( String key, String defVal )
+	{
+		final String val = getParameter ( key );
+		return val == null ? defVal : val;
+	}
 
 	/**
 	 * Get a parameter as an integer.
@@ -122,7 +142,11 @@ public interface CHttpRequest
 	 * @param defVal
 	 * @return an integer parameter, or the default value
 	 */
-	int getIntParameter ( String key, int defVal );
+	default int getIntParameter ( String key, int defVal )
+	{
+		final String val = getParameter ( key );
+		return val == null ? defVal : TypeConvertor.convertToInt ( val, defVal );
+	}
 
 	/**
 	 * Get a parameter as an long.
@@ -130,32 +154,48 @@ public interface CHttpRequest
 	 * @param defVal
 	 * @return an long parameter, or the default value
 	 */
-	long getLongParameter ( String key, long defVal );
+	default long getLongParameter ( String key, long defVal )
+	{
+		final String val = getParameter ( key );
+		return val == null ? defVal : TypeConvertor.convertToLong ( val, defVal );
+	}
 
 	/**
 	 * Get a parameter as a double.
 	 * @param key
 	 * @param defVal
-	 * @return
+	 * @return a double value
 	 */
-	double getDoubleParameter ( String key, double defVal );
+	default double getDoubleParameter ( String key, double defVal )
+	{
+		final String val = getParameter ( key );
+		return val == null ? defVal : TypeConvertor.convertToDouble ( val, defVal );
+	}
 
 	/**
 	 * Get a parameter as a boolean.
 	 * @param key
 	 * @param defVal
-	 * @return
+	 * @return a boolean value
 	 */
-	boolean getBooleanParameter ( String key, boolean defVal );
+	default boolean getBooleanParameter ( String key, boolean defVal )
+	{
+		final String val = getParameter ( key );
+		return val == null ? defVal : TypeConvertor.convertToBooleanBroad ( val );
+	}
 
 	/**
 	 * Get a parameter as a char.
 	 * @param key
 	 * @param defVal
-	 * @return
+	 * @return a character value
 	 */
-	char getCharParameter ( String key, char defVal );
-
+	default char getCharParameter ( String key, char defVal )
+	{
+		final String val = getParameter ( key );
+		return val == null || val.isBlank () ? defVal : val.trim ().charAt ( 0 );
+	}
+	
 	/**
 	 * Change the value of a parameter on this request. (Generally used by validators.)
 	 * @param fieldName

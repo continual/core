@@ -120,6 +120,7 @@ public class CsvCallbackReader<E extends Exception>
 
 	String fLastToken;
 	boolean fLastOnLine;
+	private boolean fSkipNextNewline = false;
 	
 	protected void readTerm ( InputStreamReader is ) throws IOException
 	{
@@ -129,9 +130,16 @@ public class CsvCallbackReader<E extends Exception>
 		final StringBuffer sb = new StringBuffer ();
 
 		int current = is.read ();
+		if ( fSkipNextNewline && current == '\n' )
+		{
+			current = is.read ();
+		}
+		fSkipNextNewline = false;
+
 		if ( current < 0 || isLineEnding ( current ) )
 		{
 			fLastOnLine = true;
+			if ( current == '\r' ) fSkipNextNewline = true;
 			return;
 		}
 
@@ -193,6 +201,7 @@ public class CsvCallbackReader<E extends Exception>
 						// the end
 						terminated = true;
 						fLastOnLine = isLineEnding ( current );
+						if ( current == '\r' ) fSkipNextNewline = true;
 					}
 					else
 					{
@@ -205,6 +214,7 @@ public class CsvCallbackReader<E extends Exception>
 					// when not quoting, this ends the term
 					terminated = true;
 					fLastOnLine = isLineEnding ( current );
+					if ( current == '\r' ) fSkipNextNewline = true;
 				}
 			}
 			else
@@ -219,7 +229,7 @@ public class CsvCallbackReader<E extends Exception>
 	{
 		// FIXME: this is a "newline" which may or may not work based on the line ending
 		// saved into the CSV stream
-		return c == '\n';
+		return c == '\n' || c == '\r';
 	}
 
 	private List<String> readLineValues ( InputStreamReader is, boolean withTrim ) throws IOException

@@ -56,6 +56,11 @@ public class TypicalRestApiEndpoint<I extends Identity> extends JsonIoEndpoint
 	public interface Authenticator<I extends Identity>
 	{
 		I authenticate ( IamService<I,?> am, CHttpRequestContext context ) throws IamSvcException;
+
+		default I authenticate ( IamService<I,?> am, String authToken ) throws IamSvcException
+		{
+			return null;
+		}
 	}
 
 	/**
@@ -253,6 +258,33 @@ public class TypicalRestApiEndpoint<I extends Identity> extends JsonIoEndpoint
 			}
 
 			return result;
+		}
+		catch ( IamSvcException x )
+		{
+			log.warn ( "Error processing authentication: " + x.getMessage () );
+			throw x;
+		}
+	}
+
+	/**
+	 * Get the current user via authentication and return a user context
+	 * @param token the authentication token
+	 * @return a UserContext or null of the user is not authenticated
+	 * @throws IamSvcException
+	 */
+	public UserContext<I> getUser ( final String token ) throws IamSvcException
+	{
+		try
+		{
+			I authUser = fAuthenticator.authenticate ( fAccts, token );
+			if ( authUser != null )
+			{
+				return new UserContext.Builder<I> ()
+					.forUser ( authUser )
+					.build ()
+				;
+			}
+			return null;
 		}
 		catch ( IamSvcException x )
 		{

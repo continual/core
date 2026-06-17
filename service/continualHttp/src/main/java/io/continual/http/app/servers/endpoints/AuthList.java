@@ -106,6 +106,27 @@ class AuthList<I extends Identity> implements Authenticator<I>
 				}
 				return authUser;
 			}
+
+			@Override
+			public I authenticate ( IamService<I,?> am, String authToken ) throws IamSvcException
+			{
+				I authUser = null;
+				try
+				{
+					final JwtCredential cred = JwtCredential.fromToken ( authToken );
+					authUser = am.getIdentityDb ().authenticate ( cred );
+					if ( authUser != null )
+					{
+						IamAuthLog.authenticationEvent ( authUser.getId (), "JWT", "(method call)" );
+					}
+				}
+				catch ( InvalidJwtToken e )
+				{
+					// ignore, can't authenticate this way
+					log.info ( "Invalid token: " + e.getMessage () );
+				}
+				return authUser;
+			}
 		} );
 
 		// username/password...
@@ -143,6 +164,17 @@ class AuthList<I extends Identity> implements Authenticator<I>
 		return null;
 	}
 
+	@Override
+	public I authenticate ( IamService<I,?> am, String authToken ) throws IamSvcException
+	{
+		for ( Authenticator<I> inner : fAuthenticators )
+		{
+			I result = inner.authenticate ( am, authToken );
+			if ( result != null ) return result;
+		}
+		return null;
+	}
+	
 	private final LinkedList<Authenticator<I>> fAuthenticators;
 
 	private static class CHttpHeaderReader implements HeaderReader

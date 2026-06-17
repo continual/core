@@ -161,4 +161,23 @@ public class CsvCallbackReaderTest
 		reader.read(inputStream, myRecordHandler);
 		assertEquals (2, reader.getLinesParsed());
 	}
+
+	@Test
+	public void testLineEndsWithCrLf () throws Exception
+	{
+		final CsvCallbackReader<Exception> reader = new CsvCallbackReader<Exception> ( false );
+		InputStreamReader inputStream = new InputStreamReader ( new ByteArrayInputStream ( "a,b\r\nc,d\r\n".getBytes () ) );
+		final StringBuffer sb = new StringBuffer ();
+		reader.read ( inputStream, new RecordHandler<Exception> ()
+		{
+			@Override
+			public boolean handler ( Map<String, String> fields )
+			{
+				sb.append ( fields.get ( "0" ) );
+				sb.append ( fields.get ( "1" ) );
+				return true;
+			}
+		} );
+		assertEquals ( "abcd", sb.toString () );
+	}
 }

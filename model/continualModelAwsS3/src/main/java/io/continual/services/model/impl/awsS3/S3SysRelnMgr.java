@@ -7,12 +7,14 @@ import java.util.List;
 
 import org.json.JSONObject;
 
-import com.amazonaws.SdkClientException;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsResponse;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.services.model.core.Model.RelationType;
@@ -34,7 +36,7 @@ import io.continual.util.naming.Path;
  */
 class S3SysRelnMgr
 {
-	public S3SysRelnMgr ( AmazonS3 s3, String bucketId, Path relnsRoot ) throws BuildFailure
+	public S3SysRelnMgr ( S3Client s3, String bucketId, Path relnsRoot ) throws BuildFailure
 	{
 		fS3 = s3;
 		fBucketId = bucketId;
@@ -52,25 +54,21 @@ class S3SysRelnMgr
 	public void relate ( ModelRelation mr ) throws ModelServiceException, ModelRequestException
 	{
 		final String fwdPath = forwardDirToS3Path ( mr );
-		try (
-			final ByteArrayInputStream bais = new ByteArrayInputStream ( kBytesForObject )
-		)
+		try
 		{
-			fS3.putObject ( fBucketId, fwdPath, bais, new ObjectMetadata () );
+			fS3.putObject ( PutObjectRequest.builder().bucket(fBucketId).key(fwdPath).build(), RequestBody.fromBytes(kBytesForObject) );
 		}
-		catch ( IOException x )
+		catch ( S3Exception x )
 		{
 			throw new ModelServiceException ( x );
 		}
 		
 		final String revPath = reverseDirToS3Path ( mr );
-		try (
-			final ByteArrayInputStream bais = new ByteArrayInputStream ( kBytesForObject )
-		)
+		try
 		{
-			fS3.putObject ( fBucketId, revPath, bais, new ObjectMetadata () );
+			fS3.putObject ( PutObjectRequest.builder().bucket(fBucketId).key(revPath).build(), RequestBody.fromBytes(kBytesForObject) );
 		}
-		catch ( IOException x )
+		catch ( S3Exception x )
 		{
 			throw new ModelServiceException ( x );
 		}
@@ -80,17 +78,17 @@ class S3SysRelnMgr
 	{
 		try
 		{
-			fS3.deleteObject ( fBucketId, forwardDirToS3Path ( mr ) );
+			fS3.deleteObject ( DeleteObjectRequest.builder().bucket(fBucketId).key(forwardDirToS3Path ( mr )).build() );
 		}
-		catch ( SdkClientException x )
+		catch ( S3Exception x )
 		{
 			throw new ModelServiceException ( x );
 		}
 		try
 		{
-			fS3.deleteObject ( fBucketId, reverseDirToS3Path ( mr ) );
+			fS3.deleteObject ( DeleteObjectRequest.builder().bucket(fBucketId).key(reverseDirToS3Path ( mr )).build() );
 		}
-		catch ( SdkClientException x )
+		catch ( S3Exception x )
 		{
 			throw new ModelServiceException ( x );
 		}
@@ -101,10 +99,12 @@ class S3SysRelnMgr
 		final String fwdPath = forwardDirToS3Path ( mr );
 		try
 		{
-			return fS3.doesObjectExist ( fBucketId, fwdPath );
+			fS3.headObject(software.amazon.awssdk.services.s3.model.HeadObjectRequest.builder().bucket(fBucketId).key(fwdPath).build());
+			return true;
 		}
-		catch ( SdkClientException x )
+		catch ( S3Exception x )
 		{
+			if (x.statusCode() == 404) return false;
 			throw new ModelServiceException ( x );
 		}
 	}
@@ -135,21 +135,22 @@ class S3SysRelnMgr
 		final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
 
 		final String inPrefix = getInboundPrefixFor ( forObject, named );
-		final ListObjectsRequest listObjectsRequest = new ListObjectsRequest ()
-			.withBucketName ( fBucketId )
-			.withPrefix ( inPrefix )
-		;
-		ObjectListing ol;
+		String marker = null;
 		do
 		{
-			ol = fS3.listObjects ( listObjectsRequest );
-			for ( S3ObjectSummary objectSummary : ol.getObjectSummaries () )
+			ListObjectsResponse ol = fS3.listObjects ( ListObjectsRequest.builder()
+				.bucket ( fBucketId )
+				.prefix ( inPrefix )
+				.marker ( marker )
+				.build()
+			);
+			for ( S3Object objectSummary : ol.contents () )
 			{
 				result.add ( s3EntryToReln ( objectSummary ) );
 			}
-			listObjectsRequest.setMarker ( ol.getNextMarker () );
+			marker = ol.isTruncated () ? ol.nextMarker () : null;
 		}
-		while ( ol.isTruncated () );
+		while ( marker != null );
 
 		return result;
 	}
@@ -159,27 +160,28 @@ class S3SysRelnMgr
 		final LinkedList<ModelRelationInstance> result = new LinkedList<> ();
 
 		final String inPrefix = getOutboundPrefixFor ( forObject, named );
-		final ListObjectsRequest listObjectsRequest = new ListObjectsRequest ()
-			.withBucketName ( fBucketId )
-			.withPrefix ( inPrefix )
-		;
-		ObjectListing ol;
+		String marker = null;
 		do
 		{
-			ol = fS3.listObjects ( listObjectsRequest );
-			for ( S3ObjectSummary objectSummary : ol.getObjectSummaries () )
+			ListObjectsResponse ol = fS3.listObjects ( ListObjectsRequest.builder()
+				.bucket ( fBucketId )
+				.prefix ( inPrefix )
+				.marker ( marker )
+				.build()
+			);
+			for ( S3Object objectSummary : ol.contents () )
 			{
 				result.add ( s3EntryToReln ( objectSummary ) );
 			}
-			listObjectsRequest.setMarker ( ol.getNextMarker () );
+			marker = ol.isTruncated () ? ol.nextMarker () : null;
 		}
-		while ( ol.isTruncated () );
+		while ( marker != null );
 
 		return result;
 	}
 
 	private final Path fRelnsRoot;
-	private final AmazonS3 fS3;
+	private final S3Client fS3;
 	private final String fBucketId;
 
 	private String encodePathComponent ( String s )
@@ -256,9 +258,9 @@ class S3SysRelnMgr
 		return p.toString ().substring ( 1 );
 	}
 
-	private ModelRelationInstance s3EntryToReln ( S3ObjectSummary objectSummary )
+	private ModelRelationInstance s3EntryToReln ( S3Object objectSummary )
 	{
-		final String key = objectSummary.getKey ();
+		final String key = objectSummary.key ();
 		final Path keyPath = Path.fromString ( "/" + key );
 		final Path localPart = keyPath.makePathWithinParent ( fRelnsRoot );
 		final String localPartStr = localPart.toString ().substring ( 1 );

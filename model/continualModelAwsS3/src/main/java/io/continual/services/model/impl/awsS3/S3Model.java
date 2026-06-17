@@ -33,19 +33,24 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.amazonaws.SdkClientException;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.ListObjectsV2Request;
-import com.amazonaws.services.s3.model.ListObjectsV2Result;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.core.exception.SdkException;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.metrics.MetricsCatalog;
@@ -81,12 +86,11 @@ import io.continual.util.naming.Path;
 
 public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 {
-	public static void initModel ( String acctId, String modelId, String accessKey, String secretKey, Regions region, String bucketId, String prefix ) throws BuildFailure
+	public static void initModel ( String acctId, String modelId, String accessKey, String secretKey, Region region, String bucketId, String prefix ) throws BuildFailure
 	{
-		final AmazonS3 fS3 = AmazonS3ClientBuilder
-			.standard ()
-			.withRegion ( region )
-			.withCredentials ( new S3Creds ( accessKey, secretKey ) )
+		final S3Client fS3 = S3Client.builder()
+			.region ( region )
+			.credentialsProvider ( StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)) )
 			.build ()
 		;
 		final String fBucketId = bucketId;
@@ -106,9 +110,11 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		final String metdataStr = metadataPath.toString ().substring ( 1 );
 
 		// if the object exists, something's not right
-		if ( fS3.doesObjectExist ( fBucketId, metdataStr ) )
-		{
+		try {
+			fS3.headObject(HeadObjectRequest.builder().bucket(fBucketId).key(metdataStr).build());
 			throw new BuildFailure ( "This model is already initialized." );
+		} catch (S3Exception x) {
+			if (x.statusCode() != 404) throw new BuildFailure ( x );
 		}
 
 		// write the metadata object
@@ -116,13 +122,11 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 			.put ( "version", Version.V2.toString () )
 		;
 
-		try (
-			final ByteArrayInputStream bais = new ByteArrayInputStream ( metadata.toString ( 4 ).getBytes ( kUtf8 ) )
-		)
+		try
 		{
-			fS3.putObject ( fBucketId, metdataStr, bais, new ObjectMetadata () );
+			fS3.putObject ( PutObjectRequest.builder().bucket(fBucketId).key(metdataStr).build(), RequestBody.fromBytes(metadata.toString ( 4 ).getBytes ( kUtf8 )) );
 		}
-		catch ( IOException x )
+		catch ( S3Exception x )
 		{
 			throw new BuildFailure ( x );
 		}
@@ -134,10 +138,9 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 
 		fAcctId = acctId;
 
-		fS3 = AmazonS3ClientBuilder
-			.standard ()
-			.withRegion ( Regions.DEFAULT_REGION )
-			.withCredentials ( new S3Creds ( accessKey, secretKey ) )
+		fS3 = S3Client.builder()
+			.region ( Region.US_EAST_1 )
+			.credentialsProvider ( StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)) )
 			.build ()
 		;
 		fBucketId = bucketId;
@@ -169,12 +172,11 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 
 			final String accessKey = evaledConfig.getString ( "accessKey" );
 			final String secretKey = evaledConfig.getString ( "secretKey" );
-			final Regions region = Regions.fromName ( evaledConfig.optString ( "region", Regions.US_WEST_2.getName () ) );
+			final Region region = Region.of ( evaledConfig.optString ( "region", Region.US_WEST_2.id () ) );
 
-			fS3 = AmazonS3ClientBuilder
-				.standard ()
-				.withRegion ( region )
-				.withCredentials ( new S3Creds ( accessKey, secretKey ) )
+			fS3 = S3Client.builder()
+				.region ( region )
+				.credentialsProvider ( StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)) )
 				.build ()
 			;
 			fBucketId = evaledConfig.getString ( "bucket" );
@@ -247,14 +249,14 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		return 1024L;
 	}
 
-	private List<Path> loadNextS3Set ( ListObjectsV2Request req, Path prefix, TreeSet<Path> seen, AtomicBoolean lastResultTruncated, PageRequest pr )
+	private List<Path> loadNextS3Set ( ListObjectsV2Request.Builder reqBuilder, Path prefix, TreeSet<Path> seen, AtomicBoolean lastResultTruncated, PageRequest pr )
 	{
 		final LinkedList<Path> pending = new LinkedList<> ();
 
-		final ListObjectsV2Result result = fS3.listObjectsV2 ( req );
-		for ( S3ObjectSummary objectSummary : result.getObjectSummaries () )
+		final ListObjectsV2Response result = fS3.listObjectsV2 ( reqBuilder.build() );
+		for ( S3Object objectSummary : result.contents () )
 		{
-			final String key = objectSummary.getKey ();
+			final String key = objectSummary.key ();
 			final Path asPath = s3KeyToPath ( key );
 			if ( !asPath.equals ( prefix ) && !seen.contains ( asPath ) )
 			{
@@ -262,17 +264,17 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 				seen.add ( asPath );
 			}
 		}
-		for ( String commonPrefix : result.getCommonPrefixes () )
+		for ( software.amazon.awssdk.services.s3.model.CommonPrefix commonPrefix : result.commonPrefixes () )
 		{
-			final Path asPath = s3KeyToPath ( commonPrefix );
+			final Path asPath = s3KeyToPath ( commonPrefix.prefix() );
 			if ( !asPath.equals ( prefix ) && !seen.contains ( asPath ) )
 			{
 				pending.add ( asPath );
 				seen.add ( asPath );
 			}
 		}
-		final String token = result.getNextContinuationToken ();
-		req.setContinuationToken ( token );
+		final String token = result.nextContinuationToken ();
+		reqBuilder.continuationToken ( token );
 
 		lastResultTruncated.set ( result.isTruncated () );
 
@@ -285,10 +287,10 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 		final LinkedList<Path> pending = new LinkedList<> ();
 		final TreeSet<Path> seen = new TreeSet<> ();
 
-		final ListObjectsV2Request req = new ListObjectsV2Request ()
-			.withBucketName ( fBucketId )
-			.withPrefix ( pathToS3Path ( prefix ) + "/" )
-			.withDelimiter ( Path.getPathSeparatorString () )
+		final ListObjectsV2Request.Builder req = ListObjectsV2Request.builder ()
+			.bucket ( fBucketId )
+			.prefix ( pathToS3Path ( prefix ) + "/" )
+			.delimiter ( Path.getPathSeparatorString () )
 		;
 
 		final AtomicBoolean lastResultTruncated = new AtomicBoolean ( true );
@@ -584,18 +586,22 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 			final Boolean notFound = fNotFoundCache.read ( s3Path );
 			if ( notFound != null ) return false;
 
-			final boolean asObj = fS3.doesObjectExist ( fBucketId, s3Path );
-			if ( asObj ) return true;
+			try {
+				fS3.headObject ( HeadObjectRequest.builder().bucket(fBucketId).key(s3Path).build() );
+				return true;
+			} catch ( S3Exception x ) {
+				if ( x.statusCode() != 404 ) throw new ModelRequestException ( x );
+			}
 
 			if ( fFoldersAsObjects )
 			{
-				final ObjectListing ol = fS3.listObjects ( fBucketId, s3Path + "/" );
-				return ( ol.getObjectSummaries ().size () > 0 );
+				final ListObjectsResponse ol = fS3.listObjects ( ListObjectsRequest.builder().bucket(fBucketId).prefix(s3Path + "/").build() );
+				return ( ol.contents ().size () > 0 );
 			}
 			
 			return false;
 		}
-		catch ( SdkClientException x )
+		catch ( SdkException x )
 		{
 			throw new ModelRequestException ( x );
 		}
@@ -625,10 +631,10 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 
 			try ( Timer.Context s3TimingContext = fS3ReadTimer.time () )
 			{
-				final S3Object o = fS3.getObject ( fBucketId, s3Path );
+				final ResponseInputStream<GetObjectResponse> o = fS3.getObject ( GetObjectRequest.builder().bucket(fBucketId).key(s3Path).build() );
 	
 				final JSONObject rawData;
-				try ( InputStream is = o.getObjectContent () )
+				try ( InputStream is = o )
 				{
 					 rawData = new JSONObject ( new CommentedJsonTokener ( is ) );
 				}
@@ -651,14 +657,14 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 				// 
 			}
 		}
-		catch ( AmazonS3Exception x ) 
+		catch ( S3Exception x ) 
 		{
-			if ( x.getErrorCode ().equals ( "NoSuchKey" ) || x.getErrorCode ().equals ( "NoSuchBucket" ) )
+			if ( x.statusCode() == 404 || x.awsErrorDetails().errorCode().equals ( "NoSuchKey" ) || x.awsErrorDetails().errorCode().equals ( "NoSuchBucket" ) )
 			{
 				if ( fFoldersAsObjects )
 				{
-					final ObjectListing ol = fS3.listObjects ( fBucketId, s3Path + "/" );
-					if ( ol.getObjectSummaries ().size () > 0 )
+					final ListObjectsResponse ol = fS3.listObjects ( ListObjectsRequest.builder().bucket(fBucketId).prefix(s3Path + "/").build() );
+					if ( ol.contents ().size () > 0 )
 					{
 						// it's a "folder"; return an empty object
 						final CommonDataTransfer result = new CommonDataTransfer ( objectPath, new JSONObject () );
@@ -673,7 +679,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 			}
 			throw new ModelRequestException ( x );
 		}
-		catch ( SdkClientException x )
+		catch ( SdkException x )
 		{
 			throw new ModelRequestException ( x );
 		}
@@ -683,22 +689,17 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	protected void internalStore ( ModelRequestContext context, Path objectPath, ModelDataTransfer o ) throws ModelRequestException, ModelServiceException
 	{
 		try (
-			final Timer.Context timingContext = fWriteTimer.time ();
-			final ByteArrayInputStream bais = new ByteArrayInputStream ( CommonDataTransfer.toDataObject ( o ).toString ( 4 ).getBytes ( kUtf8 ) )
+			final Timer.Context timingContext = fWriteTimer.time ()
 		)
 		{
 			final String s3Path = pathToS3Path ( objectPath );
-			fS3.putObject ( fBucketId, s3Path, bais, new ObjectMetadata () );
+			fS3.putObject ( PutObjectRequest.builder().bucket(fBucketId).key(s3Path).build(), RequestBody.fromBytes(CommonDataTransfer.toDataObject ( o ).toString ( 4 ).getBytes ( kUtf8 )) );
 			fCache.write ( s3Path, o );
 			fNotFoundCache.remove ( s3Path );
 		}
 		catch ( JSONException x )
 		{
 			throw new ModelRequestException ( "The object data is corrupt." );
-		}
-		catch ( IOException x )
-		{
-			throw new ModelServiceException ( x );
 		}
 	}
 
@@ -710,7 +711,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 			final boolean existed = exists ( context, objectPath );
 			final String s3Path = pathToS3Path ( objectPath );
 
-			fS3.deleteObject ( fBucketId, s3Path );
+			fS3.deleteObject ( DeleteObjectRequest.builder().bucket(fBucketId).key(s3Path).build() );
 			fRelnMgr.removeAllRelations ( objectPath );
 
 			fCache.remove ( s3Path );
@@ -721,7 +722,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 	}
 
 	private final String fAcctId;	// because we've been using this for awhile...
-	private final AmazonS3 fS3;
+	private final S3Client fS3;
 	private final String fBucketId;
 	private final String fPrefix;
 	private final S3SysRelnMgr fRelnMgr;
@@ -766,36 +767,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 
 	static final Charset kUtf8 = Charset.forName ( "UTF8" );
 
-	private static class S3Creds implements AWSCredentialsProvider
-	{
-		public S3Creds ( String key, String secret )
-		{
-			fAccessKey = key;
-			fPrivateKey = secret;
-		}
 
-		@Override
-		public AWSCredentials getCredentials ()
-		{
-			return new AWSCredentials ()
-			{
-				@Override
-				public String getAWSAccessKeyId () { return fAccessKey; }
-
-				@Override
-				public String getAWSSecretKey () { return fPrivateKey; }
-			};
-		}
-
-		@Override
-		public void refresh ()
-		{
-			// ignore
-		}
-
-		private final String fAccessKey;
-		private final String fPrivateKey;
-	}
 
 	// we store a JSON object in the bucket/prefix folder with model metadata.
 	private JSONObject readModelMetadata () throws BuildFailure
@@ -804,10 +776,10 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 
 		try ( Timer.Context s3TimingContext = fS3ReadTimer.time () )
 		{
-			final S3Object o = fS3.getObject ( fBucketId, loc );
+			final ResponseInputStream<GetObjectResponse> o = fS3.getObject ( GetObjectRequest.builder().bucket(fBucketId).key(loc).build() );
 
 			final JSONObject rawData;
-			try ( InputStream is = o.getObjectContent () )
+			try ( InputStream is = o )
 			{
 				rawData = new JSONObject ( new CommentedJsonTokener ( is ) );
 			}
@@ -822,9 +794,9 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 
 			return rawData;
 		}
-		catch ( AmazonS3Exception x )
+		catch ( S3Exception x )
 		{
-			if ( x.getErrorCode ().equals ( "NoSuchKey" ) )
+			if ( x.statusCode() == 404 || x.awsErrorDetails().errorCode().equals ( "NoSuchKey" ) )
 			{
 				return new JSONObject ();
 			}
@@ -833,7 +805,7 @@ public class S3Model extends CommonJsonDbModel implements MetricsSupplier
 				throw new BuildFailure ( x );
 			}
 		}
-		catch ( SdkClientException x )
+		catch ( SdkException x )
 		{
 			throw new BuildFailure ( x );
 		}

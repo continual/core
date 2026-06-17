@@ -56,7 +56,7 @@ public class AwsS3BucketAndKeyLoaderTest extends TestCase
 		}
 		if( !origEnv.containsKey ( "AWS_REGION" ) )
 		{
-			fieldKV.put ( "AWS_REGION" , com.amazonaws.regions.Regions.US_EAST_1.getName () );
+			fieldKV.put ( "AWS_REGION" , software.amazon.awssdk.regions.Region.US_EAST_1.id () );
 		}
 	}
 

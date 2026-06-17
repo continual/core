@@ -13,6 +13,7 @@
  *	See the License for the specific language governing permissions and
  *	limitations under the License.
  */
+
 package io.continual.iam.impl.s3;
 
 import java.io.ByteArrayInputStream;
@@ -34,19 +35,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 import io.continual.builder.Builder.BuildFailure;
 import io.continual.iam.access.AccessControlList;
@@ -70,15 +58,35 @@ import io.continual.util.data.json.CommentedJsonTokener;
 import io.continual.util.data.json.JsonUtil;
 import io.continual.util.data.json.JsonVisitor;
 import io.continual.util.time.Clock;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsResponse;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
-public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
+public class S3IamDb
+	extends CommonJsonDb<CommonJsonIdentity, CommonJsonGroup>
 {
-	public static S3IamDb fromJson ( JSONObject config ) throws IamSvcException, BuildFailure
+	public static S3IamDb fromJson ( JSONObject config )
+		throws IamSvcException,
+			BuildFailure
 	{
-		final ExpressionEvaluator ee = new ExpressionEvaluator ( new EnvDataSource (), new SpecialFnsDataSource () );
+		final ExpressionEvaluator ee = new ExpressionEvaluator (
+			new EnvDataSource (), new SpecialFnsDataSource () );
 		final JSONObject evaledConfig = ee.evaluateJsonObject ( config );
 
-		final String sysAdminGroup = evaledConfig.optString ( "sysAdminGroup", "sysadmin" );
+		final String sysAdminGroup = evaledConfig.optString ( "sysAdminGroup",
+			"sysadmin" );
 
 		Builder b = new Builder ()
 			.withAccessKey ( evaledConfig.getString ( "accessKey" ) )
@@ -88,19 +96,18 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 			.usingAclFactory ( new AclFactory ()
 			{
 				@Override
-				public AccessControlList createDefaultAcl ( AclUpdateListener acll )
+				public AccessControlList createDefaultAcl (
+					AclUpdateListener acll )
 				{
-					final AccessControlList acl = new AccessControlList ( acll );
-					acl
-						.permit ( sysAdminGroup, AccessControlList.READ )
+					final AccessControlList acl = new AccessControlList (
+						acll );
+					acl.permit ( sysAdminGroup, AccessControlList.READ )
 						.permit ( sysAdminGroup, AccessControlList.UPDATE )
 						.permit ( sysAdminGroup, AccessControlList.CREATE )
-						.permit ( sysAdminGroup, AccessControlList.DELETE )
-					;
+						.permit ( sysAdminGroup, AccessControlList.DELETE );
 					return acl;
 				}
-			} )
-		;
+			} );
 		final JSONObject jwt = evaledConfig.optJSONObject ( "jwt" );
 		if ( jwt != null )
 		{
@@ -108,11 +115,9 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 			final String jwtSecret = jwt.optString ( "sha256Key", null );
 			if ( jwtIssuer != null && jwtSecret != null )
 			{
-				b = b.withJwtProducer ( new JwtProducer.Builder ()
-					.withIssuerName ( jwtIssuer )
-					.usingSigningKey ( jwtSecret )
-					.build ()
-				);
+				b = b.withJwtProducer (
+					new JwtProducer.Builder ().withIssuerName ( jwtIssuer )
+						.usingSigningKey ( jwtSecret ).build () );
 			}
 		}
 
@@ -120,12 +125,13 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 		final JSONArray jwtv = evaledConfig.optJSONArray ( "jwtvalidators" );
 		if ( jwtv != null )
 		{
-			for ( int i=0; i<jwtv.length (); i++ )
+			for ( int i = 0; i < jwtv.length (); i++ )
 			{
-				b = b.withJwtValidator ( io.continual.builder.Builder.fromJson ( JwtValidator.class, jwtv.getJSONObject ( i ) ) );
+				b = b.withJwtValidator ( io.continual.builder.Builder.fromJson (
+					JwtValidator.class, jwtv.getJSONObject ( i ) ) );
 			}
 		}
-		
+
 		return b.build ();
 	}
 
@@ -179,9 +185,12 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 			return this;
 		}
 
-		public S3IamDb build () throws IamSvcException, BuildFailure
+		public S3IamDb build ()
+			throws IamSvcException,
+				BuildFailure
 		{
-			final S3IamDb db = new S3IamDb ( apiKey, privateKey, bucket, prefix, aclFactory, jwtProducer );
+			final S3IamDb db = new S3IamDb ( apiKey, privateKey, bucket, prefix,
+				aclFactory, jwtProducer );
 			if ( create )
 			{
 				db.findOrCreateBucket ();
@@ -203,30 +212,57 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 		private LinkedList<JwtValidator> jwtValidators = new LinkedList<> ();
 	}
 
-	@SuppressWarnings("deprecation")
-	protected S3IamDb ( String s3ApiKey, String s3PrivateKey, String bucket, String prefix, AclFactory aclFactory, JwtProducer jwtIssuer ) throws BuildFailure
+	protected S3IamDb ( String s3ApiKey, String s3PrivateKey, String bucket,
+		String prefix, AclFactory aclFactory, JwtProducer jwtIssuer )
+		throws BuildFailure
 	{
 		super ( aclFactory, jwtIssuer );
 
-		if ( bucket == null || bucket.length () == 0 ) throw new BuildFailure ( "A bucket ID is required." );
-		if ( prefix == null ) prefix = "";
+		if ( bucket == null || bucket.length () == 0 )
+			throw new BuildFailure ( "A bucket ID is required." );
+		if ( prefix == null )
+			prefix = "";
 
-		fDb = new AmazonS3Client ( new S3Creds ( s3ApiKey, s3PrivateKey ) );
+		fDb = S3Client.builder ()
+			.credentialsProvider ( StaticCredentialsProvider.create ( AwsBasicCredentials.create ( s3ApiKey, s3PrivateKey ) ) )
+			.build ()
+		;
 		fBucketId = bucket;
 		fPrefix = prefix;
-		fCache = new LruCache<String,JSONObject>( 1024 );	// FIXME: clean caching
+		fCache = new LruCache<String, JSONObject> ( 1024 ); // FIXME: clean caching
 	}
 
 	protected void findOrCreateBucket () throws IamSvcException
 	{
 		try
 		{
-			if ( !fDb.doesBucketExist ( fBucketId ) )
+			try
 			{
-				fDb.createBucket ( fBucketId );
+				fDb.headBucket (
+					HeadBucketRequest.builder ()
+						.bucket ( fBucketId )
+						.build ()
+					)
+				;
+			}
+			catch ( S3Exception e )
+			{
+				if ( e.statusCode () == 404 || e.statusCode () == 403 )
+				{
+					fDb.createBucket (
+						CreateBucketRequest.builder ()
+							.bucket ( fBucketId )
+							.build ()
+						)
+					;
+				}
+				else
+				{
+					throw e;
+				}
 			}
 		}
-		catch ( AmazonClientException x )
+		catch ( S3Exception x )
 		{
 			throw new IamSvcException ( x );
 		}
@@ -234,13 +270,14 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 
 	public void close ()
 	{
-		fDb.shutdown ();
+		fDb.close ();
 	}
 
 	@Override
-	public Map<String, CommonJsonIdentity> loadAllUsers () throws IamSvcException
+	public Map<String, CommonJsonIdentity> loadAllUsers ()
+		throws IamSvcException
 	{
-		final HashMap<String,CommonJsonIdentity> result = new HashMap<String,CommonJsonIdentity> ();
+		final HashMap<String, CommonJsonIdentity> result = new HashMap<String, CommonJsonIdentity> ();
 		for ( String userId : getAllUsers () )
 		{
 			result.put ( userId, loadUser ( userId ) );
@@ -249,7 +286,8 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	}
 
 	@Override
-	public Collection<String> getAllUsers () throws IamSvcException
+	public Collection<String> getAllUsers ()
+		throws IamSvcException
 	{
 		final String prefix = concatPathParts ( getPrefix (), "users/" );
 		final LinkedList<String> result = new LinkedList<String> ();
@@ -265,7 +303,8 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	}
 
 	@Override
-	public Collection<String> getAllGroups () throws IamSvcException
+	public Collection<String> getAllGroups ()
+		throws IamSvcException
 	{
 		final String prefix = concatPathParts ( getPrefix (), "groups/" );
 		final LinkedList<String> result = new LinkedList<String> ();
@@ -281,7 +320,8 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	}
 
 	@Override
-	public List<String> findUsers ( String startingWith ) throws IamSvcException
+	public List<String> findUsers ( String startingWith )
+		throws IamSvcException
 	{
 		final String sysPrefix = concatPathParts ( getPrefix (), "users" );
 		final String prefix = concatPathParts ( sysPrefix, startingWith );
@@ -295,29 +335,30 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	}
 
 	@Override
-	public void sweepExpiredTags () throws IamSvcException
+	public void sweepExpiredTags ()
+		throws IamSvcException
 	{
 		final TreeSet<String> keys = new TreeSet<String> ();
 		try
 		{
 			final String prefix = makeByTagId ( "" );
-			final ListObjectsRequest listObjectRequest = new ListObjectsRequest()
-				.withBucketName ( fBucketId )
-				.withPrefix ( prefix )
-			;
-			ObjectListing objects = fDb.listObjects ( listObjectRequest );
+			String marker = null;
 			do
 			{
-				for ( S3ObjectSummary objectSummary : objects.getObjectSummaries () )
+				ListObjectsResponse objects = fDb.listObjects (
+					ListObjectsRequest.builder ().bucket ( fBucketId )
+						.prefix ( prefix ).marker ( marker ).build () );
+				for ( S3Object objectSummary : objects.contents () )
 				{
-					final String tagId = objectSummary.getKey ().substring ( prefix.length () );
+					final String tagId = objectSummary.key ()
+						.substring ( prefix.length () );
 					keys.add ( tagId );
 				}
-				objects = fDb.listNextBatchOfObjects ( objects );
+				marker = objects.isTruncated () ? objects.nextMarker () : null;
 			}
-			while ( objects.isTruncated () );		
+			while ( marker != null );
 		}
-		catch ( AmazonS3Exception x )
+		catch ( S3Exception x )
 		{
 			throw new IamSvcException ( x );
 		}
@@ -328,19 +369,19 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 		}
 	}
 
-	private final AmazonS3Client fDb;
+	private final S3Client fDb;
 	private final String fBucketId;
 	private final String fPrefix;
-	private final LruCache<String,JSONObject> fCache;
+	private final LruCache<String, JSONObject> fCache;
 
 	private static final long kMaxCacheAgeMs = 1000 * 60;
-	
+
 	String getPrefix ()
 	{
 		return fPrefix + "/";
 	}
 
-	String concatPathParts ( String... parts )
+	String concatPathParts ( String ... parts )
 	{
 		final StringBuilder sb = new StringBuilder ();
 		String last = null;
@@ -378,7 +419,8 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 
 	String makeByUserApiKeyId ( String userId, String apiKeyId )
 	{
-		return concatPathParts ( getPrefix (), "apikeys/byUser/", userId, apiKeyId );
+		return concatPathParts ( getPrefix (), "apikeys/byUser/", userId,
+			apiKeyId );
 	}
 
 	String makeUserApiKeyFolderId ( String userId )
@@ -418,11 +460,13 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 
 	/**
 	 * Load an object by key, returning the stream or null
+	 * 
 	 * @param key
 	 * @return a stream or null if not found
 	 * @throws IamSvcException
 	 */
-	private InputStream load ( String key ) throws IamSvcException
+	private InputStream load ( String key )
+		throws IamSvcException
 	{
 		final ByteArrayOutputStream baos = new ByteArrayOutputStream ();
 		if ( loadTo ( key, baos ) )
@@ -434,11 +478,13 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 
 	/**
 	 * Load an object by key, returning the object or null if not found
+	 * 
 	 * @param key
 	 * @return the object or null if not found
 	 * @throws IamSvcException
 	 */
-	private JSONObject loadObject ( String key ) throws IamSvcException
+	private JSONObject loadObject ( String key )
+		throws IamSvcException
 	{
 		final long startMs = Clock.now ();
 		try
@@ -446,24 +492,28 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 			final JSONObject cached = fCache.get ( key, kMaxCacheAgeMs );
 			if ( cached != null )
 			{
-				final long durMs = Clock.now () - startMs; 
+				final long durMs = Clock.now () - startMs;
 				if ( log.isDebugEnabled () )
 				{
-					log.debug ( "S3IamDb.loadObject ( " + key + " ): from cache, " + durMs + " ms" );
+					log.debug ( "S3IamDb.loadObject ( " + key
+						+ " ): from cache, " + durMs + " ms" );
 				}
 				return cached;
 			}
 
 			final InputStream is = load ( key );
-			if ( is == null ) return null;
+			if ( is == null )
+				return null;
 
-			final JSONObject result = new JSONObject ( new CommentedJsonTokener ( is ) );
+			final JSONObject result = new JSONObject (
+				new CommentedJsonTokener ( is ) );
 			fCache.put ( key, JsonUtil.clone ( result ) );
 
-			final long durMs = Clock.now () - startMs; 
+			final long durMs = Clock.now () - startMs;
 			if ( log.isDebugEnabled () )
 			{
-				log.debug ( "S3IamDb.loadObject ( " + key + " ): from S3, " + durMs + " ms" );
+				log.debug ( "S3IamDb.loadObject ( " + key + " ): from S3, "
+					+ durMs + " ms" );
 			}
 
 			return result;
@@ -476,37 +526,37 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 
 	/**
 	 * Load an object to a stream.
+	 * 
 	 * @param key
 	 * @param os
 	 * @returns true if found, false if not found
 	 * @throws IamSvcException
-	 * @throws IamBadRequestException 
+	 * @throws IamBadRequestException
 	 */
-	private boolean loadTo ( String key, OutputStream os ) throws IamSvcException
+	private boolean loadTo ( String key, OutputStream os )
+		throws IamSvcException
 	{
-		S3Object object = null;
+		ResponseInputStream<GetObjectResponse> object = null;
 		try
 		{
-			object = fDb.getObject ( new GetObjectRequest ( fBucketId, key ) );
-			final InputStream is = object.getObjectContent ();
+			object = fDb.getObject ( GetObjectRequest.builder ()
+				.bucket ( fBucketId ).key ( key ).build () );
 
 			// s3 objects must be closed or will leak an HTTP connection
-			StreamTools.copyStream ( is, os );
+			StreamTools.copyStream ( object, os );
 
 			return true;
 		}
-		catch ( AmazonServiceException x )
+		catch ( S3Exception x )
 		{
-			if ( 404 == x.getStatusCode () ) return false;
-			throw new IamSvcException ( x ); 
+			if ( 404 == x.statusCode () )
+				return false;
+			throw new IamSvcException ( x );
 		}
-		catch ( AmazonClientException x )
-		{
-			throw new IamSvcException ( x ); 
-		}
+
 		catch ( IOException x )
 		{
-			throw new IamSvcException ( x ); 
+			throw new IamSvcException ( x );
 		}
 		finally
 		{
@@ -518,58 +568,57 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 				}
 				catch ( IOException e )
 				{
-					throw new IamSvcException ( e ); 
+					throw new IamSvcException ( e );
 				}
 			}
 		}
 	}
 
-	List<String> loadKeysBelow ( String key ) throws IamSvcException
+	List<String> loadKeysBelow ( String key )
+		throws IamSvcException
 	{
 		final LinkedList<String> result = new LinkedList<String> ();
 		try
 		{
-			final ListObjectsRequest listObjectsRequest = new ListObjectsRequest ()
-				.withBucketName ( fBucketId )
-				.withPrefix ( key )
-			;
-			ObjectListing objectListing;
+			String marker = null;
 			do
 			{
-				objectListing = fDb.listObjects ( listObjectsRequest );
-				for ( S3ObjectSummary objectSummary : objectListing.getObjectSummaries () )
+				ListObjectsResponse objectListing = fDb.listObjects (
+					ListObjectsRequest.builder ().bucket ( fBucketId )
+						.prefix ( key ).marker ( marker ).build () );
+				for ( S3Object objectSummary : objectListing.contents () )
 				{
-					result.add ( objectSummary.getKey () );
+					result.add ( objectSummary.key () );
 				}
-				listObjectsRequest.setMarker ( objectListing.getNextMarker () );
+				marker = objectListing.isTruncated ()
+					? objectListing.nextMarker ()
+					: null;
 			}
-			while ( objectListing.isTruncated () );
+			while ( marker != null );
 		}
-		catch ( AmazonClientException e )
+		catch ( S3Exception e )
 		{
 			throw new IamSvcException ( e );
-		}	
+		}
 		return result;
 	}
-	
-	void storeObject ( String key, JSONObject o ) throws IamSvcException
+
+	void storeObject ( String key, JSONObject o )
+		throws IamSvcException
 	{
 		try
 		{
 			fCache.put ( key, JsonUtil.clone ( o ) );
 
 			final String data = o.toString ();
-			final InputStream is = new ByteArrayInputStream ( data.getBytes ( "UTF-8" ) );
-			final long length = data.length ();
-
-			final ObjectMetadata om = new ObjectMetadata ();
-			om.setContentLength ( length );
-			om.setContentType ( "application/json" );
-			fDb.putObject ( new PutObjectRequest ( fBucketId, key, is, om ) );
+			fDb.putObject (
+				PutObjectRequest.builder ().bucket ( fBucketId ).key ( key )
+					.contentType ( "application/json" ).build (),
+				RequestBody.fromBytes ( data.getBytes ( "UTF-8" ) ) );
 		}
-		catch ( AmazonS3Exception x )
+		catch ( S3Exception x )
 		{
-			throw new IamSvcException ( x ); 
+			throw new IamSvcException ( x );
 		}
 		catch ( UnsupportedEncodingException e )
 		{
@@ -577,44 +626,22 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 		}
 	}
 
-	private void deleteObject ( String key ) throws IamSvcException
+	private void deleteObject ( String key )
+		throws IamSvcException
 	{
 		try
 		{
 			fCache.drop ( key );
-			fDb.deleteObject ( fBucketId, key );
+			fDb.deleteObject ( DeleteObjectRequest.builder ()
+				.bucket ( fBucketId ).key ( key ).build () );
 		}
-		catch ( AmazonS3Exception x )
+		catch ( S3Exception x )
 		{
 			throw new IamSvcException ( x );
 		}
 	}
 
-	private static class S3Creds implements AWSCredentials
-	{
-		public S3Creds ( String key, String secret )
-		{
-			fAccessKey = key;
-			fPrivateKey = secret;
-		}
-
-		@Override
-		public String getAWSAccessKeyId ()
-		{
-			return fAccessKey;
-		}
-
-		@Override
-		public String getAWSSecretKey ()
-		{
-			return fPrivateKey;
-		}
-
-		private final String fAccessKey;
-		private final String fPrivateKey;
-	}
-
-//////////////////////////
+	//////////////////////////
 
 	@Override
 	protected JSONObject createNewUser ( String id )
@@ -623,25 +650,29 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	}
 
 	@Override
-	protected JSONObject loadUserObject ( String id ) throws IamSvcException
+	protected JSONObject loadUserObject ( String id )
+		throws IamSvcException
 	{
 		return loadObject ( makeUserId ( id ) );
 	}
 
 	@Override
-	protected void storeUserObject ( String id, JSONObject data ) throws IamSvcException
+	protected void storeUserObject ( String id, JSONObject data )
+		throws IamSvcException
 	{
 		storeObject ( makeUserId ( id ), data );
 	}
 
 	@Override
-	protected void deleteUserObject ( String id ) throws IamSvcException
+	protected void deleteUserObject ( String id )
+		throws IamSvcException
 	{
 		deleteObject ( makeUserId ( id ) );
 	}
 
 	@Override
-	protected CommonJsonIdentity instantiateIdentity ( String id, JSONObject data )
+	protected CommonJsonIdentity instantiateIdentity ( String id,
+		JSONObject data )
 	{
 		return new CommonJsonIdentity ( id, data, this );
 	}
@@ -653,19 +684,22 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	}
 
 	@Override
-	protected JSONObject loadGroupObject ( String id ) throws IamSvcException
+	protected JSONObject loadGroupObject ( String id )
+		throws IamSvcException
 	{
 		return loadObject ( makeGroupId ( id ) );
 	}
 
 	@Override
-	protected void storeGroupObject ( String id, JSONObject data ) throws IamSvcException
+	protected void storeGroupObject ( String id, JSONObject data )
+		throws IamSvcException
 	{
 		storeObject ( makeGroupId ( id ), data );
 	}
 
 	@Override
-	protected void deleteGroupObject ( String id ) throws IamSvcException
+	protected void deleteGroupObject ( String id )
+		throws IamSvcException
 	{
 		deleteObject ( makeGroupId ( id ) );
 	}
@@ -676,30 +710,37 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 		return new CommonJsonGroup ( id, data, this );
 	}
 
-	protected JSONObject createApiKeyObject ( String userId, String apiKey, String apiSecret )
+	protected JSONObject createApiKeyObject ( String userId, String apiKey,
+		String apiSecret )
 	{
 		return CommonJsonApiKey.initialize ( apiSecret, userId );
 	}
 
 	@Override
-	protected JSONObject loadApiKeyObject ( String id ) throws IamSvcException
+	protected JSONObject loadApiKeyObject ( String id )
+		throws IamSvcException
 	{
 		return loadObject ( makeByApiKeyId ( id ) );
 	}
 
 	@Override
-	protected void storeApiKeyObject ( String id, JSONObject apiKeyObject ) throws IamSvcException, IamBadRequestException
+	protected void storeApiKeyObject ( String id, JSONObject apiKeyObject )
+		throws IamSvcException,
+			IamBadRequestException
 	{
 		final String userId = apiKeyObject.optString ( kUserId, null );
-		if ( userId == null ) throw new IamBadRequestException ( "no user specified for api key" );
+		if ( userId == null )
+			throw new IamBadRequestException (
+				"no user specified for api key" );
 
 		// make sure the user exists
 		final JSONObject user = loadUserObject ( userId );
-		if ( user == null ) throw new IamIdentityDoesNotExist ( userId );
+		if ( user == null )
+			throw new IamIdentityDoesNotExist ( userId );
 
 		// store in apikeys section
 		storeObject ( makeByApiKeyId ( id ), apiKeyObject );
-		
+
 		// store with user
 		JSONArray userApiKeys = user.optJSONArray ( "apiKeys" );
 		if ( userApiKeys == null )
@@ -707,7 +748,8 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 			userApiKeys = new JSONArray ();
 			user.put ( "apiKeys", userApiKeys );
 		}
-		final Set<String> existing = new TreeSet<String> ( JsonVisitor.arrayToList ( userApiKeys ) );
+		final Set<String> existing = new TreeSet<String> (
+			JsonVisitor.arrayToList ( userApiKeys ) );
 		if ( !existing.contains ( id ) )
 		{
 			userApiKeys.put ( id );
@@ -716,7 +758,8 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	}
 
 	@Override
-	protected void deleteApiKeyObject ( String id ) throws IamSvcException
+	protected void deleteApiKeyObject ( String id )
+		throws IamSvcException
 	{
 		final JSONObject apiKey = loadApiKeyObject ( id );
 		if ( apiKey != null )
@@ -743,12 +786,15 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	}
 
 	@Override
-	protected Collection<String> loadApiKeysForUser ( String userId ) throws IamSvcException, IamIdentityDoesNotExist
+	protected Collection<String> loadApiKeysForUser ( String userId )
+		throws IamSvcException,
+			IamIdentityDoesNotExist
 	{
 		// make sure the user exists
 		final JSONObject user = loadUserObject ( userId );
-		if ( user == null ) throw new IamIdentityDoesNotExist ( userId );
-		
+		if ( user == null )
+			throw new IamIdentityDoesNotExist ( userId );
+
 		// read from user
 		JSONArray userApiKeys = user.optJSONArray ( "apiKeys" );
 		if ( userApiKeys != null )
@@ -760,34 +806,40 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	}
 
 	@Override
-	protected JSONObject loadAclObject ( String id ) throws IamSvcException
+	protected JSONObject loadAclObject ( String id )
+		throws IamSvcException
 	{
 		return loadObject ( makeAclId ( id ) );
 	}
 
 	@Override
-	protected void storeAclObject ( String id, JSONObject data ) throws IamSvcException
+	protected void storeAclObject ( String id, JSONObject data )
+		throws IamSvcException
 	{
 		storeObject ( makeAclId ( id ), data );
 	}
 
 	@Override
-	protected void deleteAclObject ( String id ) throws IamSvcException
+	protected void deleteAclObject ( String id )
+		throws IamSvcException
 	{
 		deleteObject ( makeAclId ( id ) );
 	}
 
 	@Override
-	protected JSONObject loadTagObject ( String id, boolean expiredOk ) throws IamSvcException
+	protected JSONObject loadTagObject ( String id, boolean expiredOk )
+		throws IamSvcException
 	{
 		final JSONObject entry = loadObject ( makeByTagId ( id ) );
-		if ( entry == null ) return null;
+		if ( entry == null )
+			return null;
 
 		final long expireEpoch = entry.getLong ( kExpireEpoch );
 		if ( expireEpoch < ( Clock.now () / 1000L ) && !expiredOk )
 		{
 			final String userId = entry.optString ( kUserId, null );
-			final String tagType = entry.optString ( kTagType, entry.optString ( "type", null ) );
+			final String tagType = entry.optString ( kTagType,
+				entry.optString ( "type", null ) );
 			if ( userId == null || tagType == null )
 			{
 				log.warn ( "Tag " + id + " is damaged." );
@@ -795,7 +847,8 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 			else
 			{
 				deleteTagObject ( id, userId, tagType );
-				log.info ( "Tag " + id + " (" + userId + "/" + tagType + ") deleted." );
+				log.info ( "Tag " + id + " (" + userId + "/" + tagType
+					+ ") deleted." );
 			}
 			return null;
 		}
@@ -803,10 +856,14 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	}
 
 	@Override
-	protected JSONObject loadTagObject ( String userId, String appTagType, boolean expiredOk ) throws IamSvcException
+	protected JSONObject loadTagObject ( String userId, String appTagType,
+		boolean expiredOk )
+		throws IamSvcException
 	{
-		final JSONObject entry = loadObject ( makeByUserTagId ( userId, appTagType ) );
-		if ( entry == null ) return null;
+		final JSONObject entry = loadObject (
+			makeByUserTagId ( userId, appTagType ) );
+		if ( entry == null )
+			return null;
 
 		final long expireEpoch = entry.getLong ( kExpireEpoch );
 		if ( expireEpoch < ( Clock.now () / 1000L ) && !expiredOk )
@@ -819,34 +876,43 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	}
 
 	@Override
-	protected void storeTagObject ( String id, String userId, String appTagType, JSONObject data ) throws IamSvcException
+	protected void storeTagObject ( String id, String userId, String appTagType,
+		JSONObject data )
+		throws IamSvcException
 	{
 		storeObject ( makeByTagId ( id ), data );
 		storeObject ( makeByUserTagId ( userId, appTagType ), data );
 	}
 
 	@Override
-	protected void deleteTagObject ( String id, String userId, String appTagType ) throws IamSvcException
+	protected void deleteTagObject ( String id, String userId,
+		String appTagType )
+		throws IamSvcException
 	{
 		deleteObject ( makeByTagId ( id ) );
 		deleteObject ( makeByUserTagId ( userId, appTagType ) );
 	}
 
 	@Override
-	protected JSONObject loadAliasObject ( String id ) throws IamSvcException
+	protected JSONObject loadAliasObject ( String id )
+		throws IamSvcException
 	{
 		return loadObject ( makeByAliasId ( id ) );
 	}
 
 	@Override
-	protected void storeAliasObject ( String id, JSONObject aliasObject ) throws IamSvcException, IamBadRequestException
+	protected void storeAliasObject ( String id, JSONObject aliasObject )
+		throws IamSvcException,
+			IamBadRequestException
 	{
 		final String userId = aliasObject.optString ( kUserId, null );
-		if ( userId == null ) throw new IamBadRequestException ( "no user specified for alias" );
+		if ( userId == null )
+			throw new IamBadRequestException ( "no user specified for alias" );
 
 		// make sure the user exists
 		final JSONObject user = loadUserObject ( userId );
-		if ( user == null ) throw new IamIdentityDoesNotExist ( userId );
+		if ( user == null )
+			throw new IamIdentityDoesNotExist ( userId );
 
 		// store in apikeys section
 		storeObject ( makeByAliasId ( id ), aliasObject );
@@ -858,7 +924,8 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 			userAliases = new JSONArray ();
 			user.put ( "aliases", userAliases );
 		}
-		final Set<String> existing = new TreeSet<String> ( JsonVisitor.arrayToList ( userAliases ) );
+		final Set<String> existing = new TreeSet<String> (
+			JsonVisitor.arrayToList ( userAliases ) );
 		if ( !existing.contains ( id ) )
 		{
 			userAliases.put ( id );
@@ -867,7 +934,8 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	}
 
 	@Override
-	protected void deleteAliasObject ( String id ) throws IamSvcException
+	protected void deleteAliasObject ( String id )
+		throws IamSvcException
 	{
 		final JSONObject alias = loadAliasObject ( id );
 		if ( alias != null )
@@ -888,12 +956,15 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	}
 
 	@Override
-	protected Collection<String> loadAliasesForUser ( String userId ) throws IamSvcException, IamIdentityDoesNotExist
+	protected Collection<String> loadAliasesForUser ( String userId )
+		throws IamSvcException,
+			IamIdentityDoesNotExist
 	{
 		// make sure the user exists
 		final JSONObject user = loadUserObject ( userId );
-		if ( user == null ) throw new IamIdentityDoesNotExist ( userId );
-		
+		if ( user == null )
+			throw new IamIdentityDoesNotExist ( userId );
+
 		// read from user
 		JSONArray userAliases = user.optJSONArray ( "aliases" );
 		if ( userAliases != null )
@@ -905,13 +976,15 @@ public class S3IamDb extends CommonJsonDb<CommonJsonIdentity,CommonJsonGroup>
 	}
 
 	@Override
-	protected void storeInvalidJwtToken ( String token ) throws IamSvcException
+	protected void storeInvalidJwtToken ( String token )
+		throws IamSvcException
 	{
 		storeObject ( makeJwtTokenId ( token ), new JSONObject () );
 	}
 
 	@Override
-	protected boolean isInvalidJwtToken ( String token ) throws IamSvcException
+	protected boolean isInvalidJwtToken ( String token )
+		throws IamSvcException
 	{
 		return null != loadObject ( makeJwtTokenId ( token ) );
 	}

@@ -8,14 +8,15 @@ import java.util.concurrent.TimeUnit;
 import io.continual.services.processor.engine.model.*;
 import org.json.JSONObject;
 
-import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.ListObjectsV2Request;
-import com.amazonaws.services.s3.model.ListObjectsV2Result;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
+import software.amazon.awssdk.auth.credentials.EnvironmentVariableCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
 import io.continual.services.ServiceContainer;
 import io.continual.util.data.exprEval.ExpressionEvaluator;
@@ -37,14 +38,13 @@ public class S3DbJsonDocSource implements Source
 		fBucket = ee.evaluateText ( config.getString ( kSetting_Bucket ) );
 		fPrefix = ee.evaluateText ( config.optString ( kSetting_Prefix, "" ) );
 
-		fClient = AmazonS3ClientBuilder
-			.standard ()
-			.withCredentials ( new EnvironmentVariableCredentialsProvider () )
-			.withRegion ( fRegion ).build ();
+		fClient = S3Client.builder()
+			.credentialsProvider ( EnvironmentVariableCredentialsProvider.create () )
+			.region ( Region.of(fRegion) ).build ();
 
-		fReq = new ListObjectsV2Request ()
-			.withBucketName ( fBucket )
-			.withPrefix ( fPrefix )
+		fReqBuilder = ListObjectsV2Request.builder ()
+			.bucket ( fBucket )
+			.prefix ( fPrefix )
 		;
 
 		fPendingKeys = new LinkedList<> ();
@@ -56,14 +56,13 @@ public class S3DbJsonDocSource implements Source
 		fBucket = bucket;
 		fPrefix = prefix;
 
-		fClient = AmazonS3ClientBuilder
-			.standard ()
-			.withCredentials ( new EnvironmentVariableCredentialsProvider () )
-			.withRegion ( fRegion ).build ();
+		fClient = S3Client.builder()
+			.credentialsProvider ( EnvironmentVariableCredentialsProvider.create () )
+			.region ( Region.of(fRegion) ).build ();
 
-		fReq = new ListObjectsV2Request ()
-			.withBucketName ( fBucket )
-			.withPrefix ( fPrefix )
+		fReqBuilder = ListObjectsV2Request.builder ()
+			.bucket ( fBucket )
+			.prefix ( fPrefix )
 		;
 
 		fPendingKeys = new LinkedList<> ();
@@ -99,9 +98,9 @@ public class S3DbJsonDocSource implements Source
 		final String key = fPendingKeys.remove ();
 		if ( key != null )
 		{
-			try ( final S3Object obj = fClient.getObject ( new GetObjectRequest ( fBucket, key ) ) )
+			try ( final ResponseInputStream<GetObjectResponse> obj = fClient.getObject ( GetObjectRequest.builder().bucket(fBucket).key(key).build() ) )
 			{
-				try ( final InputStream is = obj.getObjectContent () )
+				try ( final InputStream is = obj )
 				{
 					final JSONObject o = new JSONObject ( new CommentedJsonTokener ( is ) );
 					return new SimpleMessageAndRouting ( Message.adoptJsonAsMessage ( o ), "default" );
@@ -126,8 +125,8 @@ public class S3DbJsonDocSource implements Source
 	private final String fRegion;
 	private final String fBucket;
 	private final String fPrefix;
-	private final AmazonS3 fClient;
-	private final ListObjectsV2Request fReq;
+	private final S3Client fClient;
+	private final ListObjectsV2Request.Builder fReqBuilder;
 
 	private final LinkedList<String> fPendingKeys;
 
@@ -141,11 +140,11 @@ public class S3DbJsonDocSource implements Source
 
 	private void loadNextSet ()
 	{
-		final ListObjectsV2Result result = fClient.listObjectsV2 ( fReq );
-		for ( S3ObjectSummary objectSummary : result.getObjectSummaries () )
+		final ListObjectsV2Response result = fClient.listObjectsV2 ( fReqBuilder.build() );
+		for ( S3Object objectSummary : result.contents () )
         {
-			fPendingKeys.add ( objectSummary.getKey () );
+			fPendingKeys.add ( objectSummary.key () );
         }
-		fReq.setContinuationToken ( result.getNextContinuationToken () );
+		fReqBuilder.continuationToken ( result.nextContinuationToken () );
 	}
 }

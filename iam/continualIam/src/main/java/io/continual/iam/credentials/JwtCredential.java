@@ -51,10 +51,25 @@ public class JwtCredential
 			final String[] parts = authHeader.split ( " " );
 			if ( parts.length == 2 )
 			{
-				return new JwtCredential ( parts[1] );
+				return fromToken ( parts[1] );
 			}
 		}
 		throw new InvalidJwtToken ("The auth header value doesn't start with Bearer.");
+	}
+
+	/**
+	 * Build a JWT credential from a token value
+	 * @param token the authentication header value
+	 * @return a JwtCredential
+	 * @throws InvalidJwtToken when the token is invalid
+	 */
+	public static JwtCredential fromToken ( String token ) throws InvalidJwtToken
+	{
+		if ( token != null )
+		{
+			return new JwtCredential ( token );
+		}
+		throw new InvalidJwtToken ( "Null token value" );
 	}
 
 	/**

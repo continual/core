@@ -188,7 +188,7 @@ public class ResourceLoader
 			sCheckedS3 = true;
 			try
 			{
-				final Class<?> clazz = com.amazonaws.services.s3.AmazonS3.class;
+				final Class<?> clazz = software.amazon.awssdk.services.s3.S3Client.class;
 				sS3Available = clazz != null;
 			}
 			catch ( NoClassDefFoundError x )

@@ -24,13 +24,13 @@ import java.io.InputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.S3Object;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import io.continual.util.data.StreamTools;
 
 import io.continual.resources.ResourceLoader;
@@ -43,14 +43,10 @@ public class AwsS3BucketAndKeyLoader implements ResourceSource
 		fClient = null;
 		fBucket = bucket;
 
-		fCreds = new AWSCredentials ()
-		{
-			@Override
-			public String getAWSAccessKeyId () { return System.getenv ( "AWS_ACCESS_KEY_ID" ); }
-
-			@Override
-			public String getAWSSecretKey () { return System.getenv ( "AWS_SECRET_ACCESS_KEY" ); }
-		};
+		fCreds = StaticCredentialsProvider.create(AwsBasicCredentials.create(
+			System.getenv ( "AWS_ACCESS_KEY_ID" ),
+			System.getenv ( "AWS_SECRET_ACCESS_KEY" )
+		));
 	}
 
 	@Override
@@ -66,24 +62,21 @@ public class AwsS3BucketAndKeyLoader implements ResourceSource
 		{
 			if ( fClient == null )
 			{
-				fClient = AmazonS3ClientBuilder
-					.standard ()
-					.withCredentials ( new AWSStaticCredentialsProvider ( fCreds ) )
-					.build ()
-				;
+				fClient = S3Client.builder()
+					.credentialsProvider(fCreds)
+					.build();
 			}
 
 			final ByteArrayOutputStream baos = new ByteArrayOutputStream ();
-			S3Object object = null;
+			ResponseInputStream<GetObjectResponse> object = null;
 			try
 			{
-				object = fClient.getObject ( new GetObjectRequest ( fBucket, resourceId ) );
-				final InputStream is = object.getObjectContent ();
+				object = fClient.getObject ( GetObjectRequest.builder().bucket(fBucket).key(resourceId).build() );
 	
 				// s3 objects must be closed or will leak an HTTP connection
-				StreamTools.copyStream ( is, baos );
+				StreamTools.copyStream ( object, baos );
 			}
-			catch ( AmazonS3Exception x )
+			catch ( S3Exception x )
 			{
 				throw new IOException ( x ); 
 			}
@@ -103,9 +96,9 @@ public class AwsS3BucketAndKeyLoader implements ResourceSource
 		}
 	}
 
-	private final AWSCredentials fCreds;
+	private final StaticCredentialsProvider fCreds;
 	private final String fBucket;
-	private AmazonS3 fClient;
+	private S3Client fClient;
 
 	private static final Logger log = LoggerFactory.getLogger ( ResourceLoader.class );
 }
