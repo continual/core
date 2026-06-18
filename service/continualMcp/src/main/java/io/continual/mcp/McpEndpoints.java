@@ -64,7 +64,7 @@ public class McpEndpoints<I extends Identity> extends TypicalRestApiEndpoint<I>
 
 		try
 		{
-			final URI req = new URI ( ctx.request ().getUrl () );
+			final URI req = getOriginalUri ( ctx );
 			final String base = new URI ( req.getScheme (), req.getAuthority (), "", null, null ).toString ();
 
 			sendJson ( ctx, new JSONObject ()
@@ -97,7 +97,7 @@ public class McpEndpoints<I extends Identity> extends TypicalRestApiEndpoint<I>
 
 		try
 		{
-			final URI req = new URI ( ctx.request ().getUrl () );
+			final URI req = getOriginalUri ( ctx );
 			final String base = new URI ( req.getScheme (), req.getAuthority (), "", null, null ).toString ();
 			final String resource = new URI ( req.getScheme (), req.getAuthority (), "/mcp", null, null ).toString ();
 
@@ -393,8 +393,8 @@ public class McpEndpoints<I extends Identity> extends TypicalRestApiEndpoint<I>
 
 			final PrintWriter pw = context.response ().getStreamForTextResponse ( "text/event-stream" );
 			final String postUrl = derivePostMcpUrl ( context, sessionId );
-			
-			// Send the session ID as the SSE event ID so the client sends it back 
+
+			// Send the session ID as the SSE event ID so the client sends it back
 			// in the Last-Event-ID header upon reconnect
 			pw.print ( "id: " );
 			pw.print ( sessionId );
@@ -426,9 +426,9 @@ public class McpEndpoints<I extends Identity> extends TypicalRestApiEndpoint<I>
 			}
 			finally
 			{
-				// We no longer remove the session immediately on disconnect so the 
+				// We no longer remove the session immediately on disconnect so the
 				// client can reconnect and resume the session via ?sessionId=...
-				// Note: You should consider adding a TTL/cleanup job to McpSessionStore 
+				// Note: You should consider adding a TTL/cleanup job to McpSessionStore
 				// to eventually evict inactive sessions.
 				// fSessions.remove ( sessionId );
 			}
@@ -668,16 +668,37 @@ public class McpEndpoints<I extends Identity> extends TypicalRestApiEndpoint<I>
 
 	private static String derivePostMcpUrl ( CHttpRequestContext ctx, String sessionId ) throws URISyntaxException
 	{
-		final URI req = new URI ( ctx.request ().getUrl () );
+		final URI req = getOriginalUri ( ctx );
 		return new URI ( req.getScheme (), req.getAuthority (), "/mcp/" + sessionId, null, null ).toString ();
 	}
 
 	private static String deriveCallbackUri ( CHttpRequestContext ctx ) throws URISyntaxException
 	{
-		final URI req = new URI ( ctx.request ().getUrl () );
+		final URI req = getOriginalUri ( ctx );
 		final String path = req.getPath ();
 		final String callbackPath = path.substring ( 0, path.lastIndexOf ( '/' ) + 1 ) + "callback";
 		return new URI ( req.getScheme (), req.getAuthority (), callbackPath, null, null ).toString ();
+	}
+
+	private static URI getOriginalUri ( CHttpRequestContext ctx ) throws URISyntaxException
+	{
+		final URI req = new URI ( ctx.request ().getUrl () );
+		String scheme = req.getScheme ();
+		String authority = req.getAuthority ();
+
+		final String forwardedProto = ctx.request ().getFirstHeader ( "X-Forwarded-Proto" );
+		if ( forwardedProto != null && !forwardedProto.trim ().isEmpty () )
+		{
+			scheme = forwardedProto.split ( "," ) [0].trim ();
+		}
+
+		final String forwardedHost = ctx.request ().getFirstHeader ( "X-Forwarded-Host" );
+		if ( forwardedHost != null && !forwardedHost.trim ().isEmpty () )
+		{
+			authority = forwardedHost.split ( "," ) [0].trim ();
+		}
+
+		return new URI ( scheme, authority, req.getPath (), req.getQuery (), req.getFragment () );
 	}
 
 	private static JSONObject jsonRpcResult ( String id, JSONObject result )
