@@ -67,7 +67,7 @@ public class McpEndpoints<I extends Identity> extends TypicalRestApiEndpoint<I>
 			final URI req = getOriginalUri ( ctx );
 			final String base = new URI ( req.getScheme (), req.getAuthority (), "", null, null ).toString ();
 
-			sendJson ( ctx, new JSONObject ()
+			final JSONObject result = new JSONObject ()
 				.put ( "issuer", "https://" + fInfo.getAuthDomain () )
 				.put ( "authorization_endpoint", base + "/authorize" )
 				.put ( "token_endpoint", base + "/token" )
@@ -75,7 +75,9 @@ public class McpEndpoints<I extends Identity> extends TypicalRestApiEndpoint<I>
 				.put ( "response_types_supported", new JSONArray ().put ( "code" ) )
 				.put ( "grant_types_supported", new JSONArray ().put ( "authorization_code" ) )
 				.put ( "token_endpoint_auth_methods_supported", new JSONArray ().put ( "client_secret_post" ) )
-			);
+			;
+			log.info ( "Returning [{}]", result.toString () );
+			sendJson ( ctx, result );
 		}
 		catch ( URISyntaxException x )
 		{
@@ -101,10 +103,12 @@ public class McpEndpoints<I extends Identity> extends TypicalRestApiEndpoint<I>
 			final String base = new URI ( req.getScheme (), req.getAuthority (), "", null, null ).toString ();
 			final String resource = new URI ( req.getScheme (), req.getAuthority (), "/mcp", null, null ).toString ();
 
-			sendJson ( ctx, new JSONObject ()
+			final JSONObject result = new JSONObject ()
 				.put ( "resource", resource )
 				.put ( "authorization_servers", new JSONArray ().put ( base ) )
-			);
+			;
+			log.info ( "Returning [{}]", result.toString () );
+			sendJson ( ctx, result );
 		}
 		catch ( URISyntaxException x )
 		{
@@ -144,6 +148,7 @@ public class McpEndpoints<I extends Identity> extends TypicalRestApiEndpoint<I>
 	{
 		if ( !fInfo.enableAuthFlowEndpoints () )
 		{
+			log.info ( "auth flow endpoints aren't enabled" );
 			sendStatusCodeAndMessage ( ctx, HttpStatusCodes.k404_notFound, "not found" );
 			return;
 		}
@@ -170,6 +175,7 @@ public class McpEndpoints<I extends Identity> extends TypicalRestApiEndpoint<I>
 				authUrl.append ( "&audience=" ).append ( URLEncoder.encode ( fInfo.getAuthAudience (), StandardCharsets.UTF_8 ) );
 			}
 
+			log.info ( "redirect to [" + authUrl.toString () + "]" );
 			ctx.response ().redirectExactly ( authUrl.toString () );
 		}
 		catch ( URISyntaxException x )
