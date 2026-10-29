@@ -5,12 +5,7 @@ public class McpInfo
 	public McpInfo ()
 	{
 		fInstructions = "";
-
 		fAuthEndpoints = false;
-		fAuthDomain = null;
-		fAuthClientId = null;
-		fAuthClientSecret = null;
-		fAuthAudience = null;
 	}
 
 	public String getName ()
@@ -57,40 +52,19 @@ public class McpInfo
 		return this;
 	}
 
-	public McpInfo setAuthDomain ( String domain )
+	public McpInfo setAuthServer ( String server )
 	{
-		fAuthDomain = domain;
-		return this;
-	}
-
-	public McpInfo setAuthClientId ( String clientId )
-	{
-		fAuthClientId = clientId;
-		return this;
-	}
-
-	public McpInfo setAuthClientSecret ( String clientSecret )
-	{
-		fAuthClientSecret = clientSecret;
-		return this;
-	}
-
-	public McpInfo setAuthAudience ( String audience )
-	{
-		fAuthAudience = audience;
+		fAuthServer = server;
 		return this;
 	}
 
 	/** @return true if enough auth info is present to emit an auth block */
 	public boolean hasAuthInfo ()
 	{
-		return fAuthDomain != null && fAuthClientId != null;
+		return fAuthServer != null;
 	}
 
-	public String getAuthDomain () { return fAuthDomain; }
-	public String getAuthClientId () { return fAuthClientId; }
-	public String getAuthClientSecret () { return fAuthClientSecret; }
-	public String getAuthAudience () { return fAuthAudience; }
+	public String getAuthServer () { return fAuthServer; }
 
 	private String fInstructions;
 
@@ -98,8 +72,5 @@ public class McpInfo
 	private String fVersion;
 	
 	private boolean fAuthEndpoints;
-	private String fAuthDomain;
-	private String fAuthClientId;
-	private String fAuthClientSecret;
-	private String fAuthAudience;
+	private String fAuthServer;
 }

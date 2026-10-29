@@ -273,9 +273,23 @@ public class ShardedExpiringCache<K,V>
 
 	private Shard getShard ( K key )
 	{
-		final int hash = Math.abs ( key.hashCode () );
-		final int index = hash % fShardCount;
+		// avalanche the hash before reducing to an index; a plain modulo would otherwise
+		// select on the low bits alone, which are low-entropy for structured keys (e.g.
+		// path-like strings) and skew shard occupancy, especially with a power-of-two shard count
+		final int hash = spreadBits ( key.hashCode () );
+		final int index = Math.floorMod ( hash, fShardCount );
 		return fShards.get ( index );
+	}
+
+	// 32-bit avalanche mix (Murmur3 finalizer), so every output bit depends on all input bits
+	private static int spreadBits ( int h )
+	{
+		h ^= ( h >>> 16 );
+		h *= 0x85ebca6b;
+		h ^= ( h >>> 13 );
+		h *= 0xc2b2ae35;
+		h ^= ( h >>> 16 );
+		return h;
 	}
 	
 	private class Shard
