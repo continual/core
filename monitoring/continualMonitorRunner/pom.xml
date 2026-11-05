@@ -4,7 +4,7 @@
 
 	<parent>
 		<groupId>io.continual</groupId>
-		<version>0.3.44</version>
+		<version>0.3.45</version>
 		<artifactId>continualMonitoring</artifactId>
 		<relativePath>..</relativePath>
 	</parent>
@@ -76,23 +76,6 @@
 	</dependencies>
 
 	<build>
-
-		<resources>
-			<resource>
-				<directory>src/main/resources</directory>
-				<includes>
-					<include>**/*.properties</include>
-				</includes>
-				<filtering>true</filtering>
-			</resource>
-			<resource>
-				<directory>src/main/resources</directory>
-				<excludes>
-					<exclude>**/*.properties</exclude>
-				</excludes>
-				<filtering>false</filtering>
-			</resource>
-		</resources>
 
 		<plugins>
 			<plugin>

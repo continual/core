@@ -11,7 +11,7 @@
 
 	<!-- When changing version, also change parent version number in sub-pom files -->
 	<!-- You can run versionUpdate.sh in this directory to do this. -->
-	<version>0.3.44</version> <!-- build_version -->
+	<version>0.3.45</version> <!-- build_version -->
 	<packaging>pom</packaging>
 
 	<name>ContinualIO</name>
@@ -155,6 +155,14 @@
 				<excludes>
 					<exclude>**/*.properties</exclude>
 				</excludes>
+				<filtering>false</filtering>
+			</resource>
+			<resource>
+				<directory>${maven.multiModuleProjectDirectory}</directory>
+				<includes>
+					<include>LICENSE</include>
+				</includes>
+				<targetPath>META-INF</targetPath>
 				<filtering>false</filtering>
 			</resource>
 		</resources>

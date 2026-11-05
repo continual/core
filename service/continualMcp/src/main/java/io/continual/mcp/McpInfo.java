@@ -1,11 +1,21 @@
 package io.continual.mcp;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 public class McpInfo
 {
 	public McpInfo ()
 	{
 		fInstructions = "";
+
 		fAuthEndpoints = false;
+
+		fAuthScopes = new ArrayList<> ();
+		fAuthScopes.add ( "openid" );
+		fAuthScopes.add ( "profile" );
+		fAuthScopes.add ( "email" );
 	}
 
 	public String getName ()
@@ -64,7 +74,59 @@ public class McpInfo
 		return fAuthServer != null;
 	}
 
-	public String getAuthServer () { return fAuthServer; }
+	/**
+	 * Get the auth server string
+	 * @return an auth server string if set
+	 */
+	public String getAuthServer ()
+	{
+		return fAuthServer;
+	}
+
+	/**
+	 * empty auth scopes
+	 * @return this MCP info
+	 */
+	public McpInfo clearAuthScopes ()
+	{
+		fAuthScopes.clear ();
+		return this;
+	}
+	
+	/**
+	 * use given auth scopes
+	 * @param scopes
+	 * @return this MCP info
+	 */
+	public McpInfo replaceAuthScopes ( List<String> scopes )
+	{
+		fAuthScopes.clear ();
+		if ( scopes != null )
+		{
+			fAuthScopes.addAll ( scopes );
+		}
+		return this;
+	}
+
+	/**
+	 * use the given auth scope
+	 * @param scope
+	 * @return this MCP info
+	 */
+	public McpInfo addAuthScope ( String scope )
+	{
+		fAuthScopes.add ( scope );
+		return this;
+	}
+
+	/**
+	 * Get the configured auth scopes
+	 * @return a list of 0 or more auth scopes
+	 */
+	public List<String> getAuthScopes ()
+	{
+		return Collections.unmodifiableList ( fAuthScopes );
+	}
 
 	private String fInstructions;
 
@@ -73,4 +135,5 @@ public class McpInfo
 	
 	private boolean fAuthEndpoints;
 	private String fAuthServer;
+	private List<String> fAuthScopes;
 }

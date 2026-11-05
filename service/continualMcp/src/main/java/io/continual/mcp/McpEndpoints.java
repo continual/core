@@ -70,7 +70,7 @@ public class McpEndpoints<I extends Identity> extends TypicalRestApiEndpoint<I>
 			sendJson ( ctx, new JSONObject ()
 				.put ( "resource", resource )
 				.put ( "authorization_servers", new JSONArray ().put ( fInfo.getAuthServer () ) )
-				.put ( "scopes_supported", new JSONArray ().put ( "openid" ).put ( "profile" ).put ( "email" ) )
+				.put ( "scopes_supported", JsonVisitor.listToArray ( fInfo.getAuthScopes () ) )
 				.put ( "bearer_methods_supported", new JSONArray().put ( "header" ) )
 			);
 		}
