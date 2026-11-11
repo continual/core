@@ -241,8 +241,25 @@ public class McpEndpoints<I extends Identity> extends TypicalRestApiEndpoint<I>
 				.append ( "Bearer resource_metadata=\"" )
 				.append ( deriveUnAuthUrl ( context ) )
 				.append ( "\"" )
-				.append ( " scope=\"openid profile email\"" )
 			;
+
+			if ( !fInfo.getAuthScopes().isEmpty() )
+			{
+				sb.append ( " scope=\"" );
+
+				boolean firstScope = true;
+				for ( String scope : fInfo.getAuthScopes () )
+				{
+					if ( !firstScope )
+					{
+						sb.append ( " " );
+					}
+					sb.append ( scope );
+					firstScope = false;
+				}
+				sb.append ( "\"" );
+			}
+
 			if ( hadToken )
 			{
 				sb.append ( " error=\"invalid_token\"" );
